@@ -1,7 +1,8 @@
 import { Link, Outlet } from 'react-router';
 import { cn, focusRing, focusRingOnDark } from '../lib/cn';
+import { SiteNav } from './SiteNav';
 
-/** App frame: skip link, dark header, main landmark, footer. Full navigation arrives in task 5. */
+/** App frame: skip link, dark header with responsive navigation, main landmark, footer. */
 export function RootLayout() {
   return (
     <div className="flex min-h-dvh flex-col">
@@ -14,11 +15,18 @@ export function RootLayout() {
       >
         Skip to content
       </a>
-      <header className="bg-ink-950 text-paper-0">
+      <header className="relative bg-ink-950 text-paper-0">
         <div className="mx-auto flex min-h-16 max-w-content items-center justify-between px-4 sm:px-6">
-          <Link to="/" className={cn('rounded-sm font-heading text-h4 font-bold', focusRingOnDark)}>
+          <Link
+            to="/"
+            className={cn(
+              'inline-flex min-h-11 items-center rounded-sm font-heading text-h4 font-bold',
+              focusRingOnDark,
+            )}
+          >
             Proof &amp; Poise
           </Link>
+          <SiteNav />
         </div>
       </header>
       <main id="main" tabIndex={-1} className="flex-1 outline-none">

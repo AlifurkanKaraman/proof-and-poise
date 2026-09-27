@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { Providers } from './providers';
@@ -19,11 +19,13 @@ describe('router', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Turn your real experience into interview-ready evidence.',
     );
-    expect(screen.getByRole('link', { name: 'Prepare for a job' })).toHaveAttribute(
+    // The header nav repeats both links, so scope to the page content.
+    const main = within(screen.getByRole('main'));
+    expect(main.getByRole('link', { name: 'Prepare for a job' })).toHaveAttribute(
       'href',
       '/prepare',
     );
-    expect(screen.getByRole('link', { name: 'Try the demo' })).toHaveAttribute('href', '/demo');
+    expect(main.getByRole('link', { name: 'Try the demo' })).toHaveAttribute('href', '/demo');
   });
 
   it('renders the 404 page for unknown paths', async () => {
