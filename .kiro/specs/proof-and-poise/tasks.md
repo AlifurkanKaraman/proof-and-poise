@@ -31,7 +31,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Add `.github/workflows/ci.yml` (install, typecheck, lint, test, build, gitleaks) and a PR template with a security checklist.
   - deps: none. _Requirements: 15.7, 17.4, 19.1–19.3_
 
-- [ ] 2. [A] Web app shell and design system
+- [x] 2. [A] Web app shell and design system
   - Set up Vite + React + TS strict, Tailwind with a token preset (`src/design/tokens.ts`), and shadcn/ui init (Radix). Add `@fontsource-variable` Manrope and Inter, `lucide-react`, Framer Motion `motion.ts` presets, and a `useReducedMotion` wrapper.
   - Build the UI primitives: Button (with variants), Input, Textarea (with a counter), StatusBadge (the 5 trust and strength states), ScoreRing, SegmentedProgress, Stepper, Tabs, Dialog, Disclosure, Toast, plus the state components (Empty, Skeleton, LoadingStage, ErrorState, Success).
   - Add the Router skeleton with lazy routes, per-route error boundaries, a 404 page, and a `/dev/design` route for the internal token gallery (dev builds only).
