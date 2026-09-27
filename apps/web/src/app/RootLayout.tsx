@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router';
 import { cn, focusRing, focusRingOnDark } from '../lib/cn';
+import { RedirectNotice } from './RequireSession';
 import { SiteNav } from './SiteNav';
 
 /** App frame: skip link, dark header with responsive navigation, main landmark, footer. */
@@ -30,6 +31,7 @@ export function RootLayout() {
         </div>
       </header>
       <main id="main" tabIndex={-1} className="flex-1 outline-none">
+        <RedirectNotice />
         <Outlet />
       </main>
       <footer className="bg-ink-950 text-paper-0">

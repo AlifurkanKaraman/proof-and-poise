@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { RouteObject } from 'react-router';
 import NotFoundPage from './NotFoundPage';
+import { RequireSession } from './RequireSession';
 import { RootLayout } from './RootLayout';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 
@@ -33,17 +34,24 @@ export const routes: RouteObject[] = [
       withBoundary({ index: true, lazy: page(() => import('../features/landing/LandingPage')) }),
       withBoundary({ path: 'prepare', lazy: page(() => import('../features/setup/PreparePage')) }),
       withBoundary({ path: 'demo', lazy: page(() => import('../features/demo/DemoPage')) }),
+      // Session screens require a stored token for this session (Req 2.3, design §10).
       withBoundary({
-        path: 's/:id/analysis',
-        lazy: page(() => import('../features/analysis/AnalysisPage')),
-      }),
-      withBoundary({
-        path: 's/:id/interview',
-        lazy: page(() => import('../features/interview/InterviewPage')),
-      }),
-      withBoundary({
-        path: 's/:id/report',
-        lazy: page(() => import('../features/report/ReportPage')),
+        path: 's/:id',
+        Component: RequireSession,
+        children: [
+          withBoundary({
+            path: 'analysis',
+            lazy: page(() => import('../features/analysis/AnalysisPage')),
+          }),
+          withBoundary({
+            path: 'interview',
+            lazy: page(() => import('../features/interview/InterviewPage')),
+          }),
+          withBoundary({
+            path: 'report',
+            lazy: page(() => import('../features/report/ReportPage')),
+          }),
+        ],
       }),
       withBoundary({
         path: 'privacy',

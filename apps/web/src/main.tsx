@@ -7,15 +7,28 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 import { Providers } from './app/providers';
 import { routes } from './app/routes';
 
-const router = createBrowserRouter(routes);
+/**
+ * `pnpm dev:mock` only: start MSW before the first request. `import.meta.env.MODE` is
+ * replaced at build time, so production builds drop this branch and the mocks chunk.
+ */
+async function enableMocking() {
+  if (import.meta.env.MODE === 'mock') {
+    const { startMockApi } = await import('./mocks/browser');
+    await startMockApi();
+  }
+}
 
-const container = document.getElementById('root');
-if (!container) throw new Error('Root element #root not found');
+function render() {
+  const router = createBrowserRouter(routes);
+  const container = document.getElementById('root');
+  if (!container) throw new Error('Root element #root not found');
+  createRoot(container).render(
+    <StrictMode>
+      <Providers>
+        <RouterProvider router={router} />
+      </Providers>
+    </StrictMode>,
+  );
+}
 
-createRoot(container).render(
-  <StrictMode>
-    <Providers>
-      <RouterProvider router={router} />
-    </Providers>
-  </StrictMode>,
-);
+void enableMocking().then(render);

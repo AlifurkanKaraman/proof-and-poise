@@ -1,7 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { clearSession, saveSession } from '../lib/session';
 import { Providers } from './providers';
+import { SESSION_MISSING_MESSAGE } from './RequireSession';
 import { routes } from './routes';
 
 function renderAt(path: string) {
@@ -33,9 +35,30 @@ describe('router', () => {
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
   });
 
-  it('routes session screens', async () => {
-    renderAt('/s/abc/interview');
+  it('routes session screens when this tab holds the session token', async () => {
+    const sessionId = '0b6f1f7e-2d3c-4a5b-8c9d-0e1f2a3b4c5d';
+    saveSession({ sessionId, sessionToken: 't'.repeat(43) });
+    renderAt(`/s/${sessionId}/interview`);
     expect(await screen.findByRole('heading', { name: 'Interview' })).toBeInTheDocument();
+    clearSession();
+  });
+
+  it('redirects session screens to / with a message when the token is missing (design §10)', async () => {
+    renderAt('/s/0b6f1f7e-2d3c-4a5b-8c9d-0e1f2a3b4c5d/report');
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
+      'Turn your real experience into interview-ready evidence.',
+    );
+    expect(screen.getByText(SESSION_MISSING_MESSAGE).closest('[role="status"]')).not.toBeNull();
+  });
+
+  it('redirects when the stored session is for a different ID', async () => {
+    saveSession({
+      sessionId: '11111111-2222-4333-8444-555555555555',
+      sessionToken: 't'.repeat(43),
+    });
+    renderAt('/s/0b6f1f7e-2d3c-4a5b-8c9d-0e1f2a3b4c5d/analysis');
+    expect(await screen.findByText(SESSION_MISSING_MESSAGE)).toBeInTheDocument();
+    clearSession();
   });
 
   it('exposes /dev/design in dev/test builds', async () => {
