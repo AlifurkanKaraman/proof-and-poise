@@ -4,6 +4,7 @@
  */
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { API_BASE_PATH, matchPath, type RouteContract } from '@proof-and-poise/shared';
+import type { SessionMeta } from '../data/sessionRepository';
 import { ApiError, toApiError } from './errors';
 import { logger as defaultLogger, type Logger } from './logger';
 
@@ -11,6 +12,20 @@ export interface RequestContext {
   event: APIGatewayProxyEventV2;
   params: Record<string, string>;
   requestId: string;
+  /** Set for routes whose contract has `auth: true`; the router authenticates first. */
+  session: SessionMeta | undefined;
+}
+
+/** Resolves the session for `{sessionId}` from the request headers, or throws 401. */
+export type Authenticator = (
+  sessionId: string | undefined,
+  headers: APIGatewayProxyEventV2['headers'] | undefined,
+) => Promise<SessionMeta>;
+
+/** The authenticated session, for handlers of `auth: true` routes. */
+export function sessionOf(ctx: RequestContext): SessionMeta {
+  if (!ctx.session) throw new ApiError('UNAUTHORIZED');
+  return ctx.session;
 }
 
 export interface HandlerResult {
@@ -33,7 +48,10 @@ const JSON_HEADERS = {
 
 export class Router {
   private readonly entries: Registered[] = [];
-  constructor(private readonly log: Logger = defaultLogger) {}
+  constructor(
+    private readonly log: Logger = defaultLogger,
+    private readonly authenticate?: Authenticator,
+  ) {}
 
   add(contract: RouteContract, handler: RouteHandler): this {
     this.entries.push({ contract, handler });
@@ -56,7 +74,13 @@ export class Router {
         const params = matchPath(contract.path, relPath);
         if (!params) continue;
         routeLabel = `${method} ${contract.path}`;
-        const result = await handler({ event, params, requestId });
+        // Session-scoped routes fail closed: no authenticator configured means 401 (Req 2.2).
+        let session: SessionMeta | undefined;
+        if (contract.auth) {
+          if (!this.authenticate) throw new ApiError('UNAUTHORIZED');
+          session = await this.authenticate(params['sessionId'], event.headers);
+        }
+        const result = await handler({ event, params, requestId, session });
         const status = result.status ?? contract.successStatus;
         this.log.info('request', {
           requestId,

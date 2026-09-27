@@ -131,6 +131,65 @@ describe('ProofAndPoiseStack', () => {
     });
   });
 
+  it('routes the session and resume-upload endpoints (task 8)', () => {
+    for (const key of [
+      'POST /v1/sessions',
+      'GET /v1/sessions/{sessionId}',
+      'DELETE /v1/sessions/{sessionId}',
+      'POST /v1/sessions/{sessionId}/uploads/resume',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('passes the salt parameter name, not the salt, to the api Lambda (Req 16.3)', () => {
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'proof-and-poise-dev-api',
+      Environment: {
+        Variables: Match.objectLike({ IP_HASH_SALT_PARAM: '/proof-and-poise/dev/ip-hash-salt' }),
+      },
+    });
+    template.hasResourceProperties('Custom::IpHashSalt', {
+      ParameterName: '/proof-and-poise/dev/ip-hash-salt',
+    });
+    // No plaintext parameter in the template: the value is generated at deploy time.
+    template.resourceCountIs('AWS::SSM::Parameter', 0);
+  });
+
+  it('scopes api data-plane grants to the table, session prefixes, and the salt', () => {
+    const apiPolicy = Object.values(template.findResources('AWS::IAM::Policy')).find((p) =>
+      JSON.stringify(p.Properties.Roles).includes('ApiFunction'),
+    );
+    expect(apiPolicy).toBeDefined();
+    const statements = apiPolicy!.Properties.PolicyDocument.Statement as {
+      Action: string | string[];
+      Resource: unknown;
+      Condition?: unknown;
+    }[];
+    const byAction = (a: string) =>
+      statements.find((s) => (Array.isArray(s.Action) ? s.Action : [s.Action]).includes(a));
+
+    expect(byAction('dynamodb:BatchWriteItem')?.Action).toEqual([
+      'dynamodb:GetItem',
+      'dynamodb:PutItem',
+      'dynamodb:UpdateItem',
+      'dynamodb:Query',
+      'dynamodb:DeleteItem',
+      'dynamodb:BatchWriteItem',
+    ]);
+    expect(JSON.stringify(byAction('s3:PutObject')?.Resource)).toContain('/resumes/*');
+    expect(JSON.stringify(byAction('s3:DeleteObject')?.Resource)).toMatch(
+      /resumes\/\*.*audio\/\*.*transcripts\/\*/,
+    );
+    expect(byAction('s3:ListBucket')?.Condition).toEqual({
+      StringLike: { 's3:prefix': ['resumes/*', 'audio/*', 'transcripts/*'] },
+    });
+    expect(JSON.stringify(byAction('ssm:GetParameter')?.Resource)).toContain(
+      ':parameter/proof-and-poise/dev/ip-hash-salt',
+    );
+    expect(byAction('ssm:PutParameter')).toBeUndefined();
+  });
+
   it('grants no bedrock:* or * wildcard actions', () => {
     const actions = allIamActions();
     expect(actions).not.toContain('bedrock:*');

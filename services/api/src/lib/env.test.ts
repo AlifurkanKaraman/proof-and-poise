@@ -6,6 +6,7 @@ const valid = {
   TABLE_NAME: 'proof-and-poise-dev',
   BUCKET_NAME: 'proof-and-poise-dev-uploads',
   ALLOWED_ORIGINS: 'http://localhost:5173, https://develop.example.amplifyapp.com',
+  IP_HASH_SALT_PARAM: '/proof-and-poise/dev/ip-hash-salt',
 };
 
 describe('loadEnv (Req 15.4)', () => {
@@ -26,12 +27,18 @@ describe('loadEnv (Req 15.4)', () => {
         APP_STAGE: 'staging',
         ALLOWED_ORIGINS: secretish,
         TABLE_NAME: undefined,
+        IP_HASH_SALT_PARAM: undefined,
       });
       expect.unreachable();
     } catch (err) {
       expect(err).toBeInstanceOf(EnvError);
       const e = err as EnvError;
-      expect(e.invalidKeys.sort()).toEqual(['ALLOWED_ORIGINS', 'APP_STAGE', 'TABLE_NAME']);
+      expect(e.invalidKeys.sort()).toEqual([
+        'ALLOWED_ORIGINS',
+        'APP_STAGE',
+        'IP_HASH_SALT_PARAM',
+        'TABLE_NAME',
+      ]);
       expect(e.message).not.toContain(secretish);
     }
   });
