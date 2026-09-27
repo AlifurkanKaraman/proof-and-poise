@@ -21,6 +21,10 @@ After verification passes (`pnpm typecheck` → `pnpm lint` → `pnpm test` → 
 7. PRs: don't open one unless asked. Give the command instead: `gh pr create --base develop --head <branch> --title "<title>" --body-file .github/pull_request_template.md` (base is the parent branch for stacked branches).
 8. Report branch, commit hash, push result, and the PR command.
 
+## After a merge into develop
+
+When the user says a PR was merged into `develop` (or asks you to merge one), run the `handoff-update` skill so `HANDOFF.md` stays current. You create the handoff PR; merge it only when the user asks.
+
 ## Never
 
 Push to `develop` or `main` directly, `--force`/`-f`, `--amend` or rebase on pushed commits, `--no-verify`, or commit files outside the change.

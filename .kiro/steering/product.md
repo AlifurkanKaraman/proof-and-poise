@@ -15,8 +15,8 @@ Source of truth: `.kiro/specs/proof-and-poise/` (`requirements.md`, `design.md`,
 
 ## Current scope (from tasks.md and the working tree)
 
-- Done: tasks 1–7 (bootstrap, web shell, shared contracts, CDK walking skeleton with `ProofAndPoise-dev` deployed and `GET /v1/health` returning 200, landing page, MSW mock layer and API client, demo fixtures). See `HANDOFF.md` for which branches are merged into `develop`.
-- Everything else (API routes beyond `/v1/health`, Bedrock, Transcribe, Amplify, e2e, `docs/`) is planned, not built.
+- Done: tasks 1–8 (bootstrap, web shell, shared contracts, CDK walking skeleton, landing page, MSW mock layer and API client, demo fixtures, sessions, auth, quotas, and resume upload). `ProofAndPoise-dev` is deployed and serves `GET /v1/health` plus the session and resume-upload routes. See `HANDOFF.md` for which branches are merged into `develop`.
+- Everything else (API routes beyond sessions and resume upload, Bedrock, Transcribe, Amplify, e2e, `docs/`) is planned, not built.
 - Out of MVP scope: the "Post-hackathon" list in requirements.md (Cognito, Polly, mobile app, etc.). `apps/mobile/` is a README only.
 
 ## Unknown
