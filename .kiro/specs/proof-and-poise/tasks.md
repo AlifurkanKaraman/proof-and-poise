@@ -53,7 +53,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 
 ## Phase 1: Setup and analysis (D1–D2)
 
-- [ ] 5. [A] Landing page
+- [x] 5. [A] Landing page
   - Hero ("Turn your real experience into interview-ready evidence."), "Prepare for a job" and "Try the demo" CTAs, the interactive evidence-thread preview (local fictional data with keyboard support), the three steps, and the trust, privacy, and ethics sections. Responsive navigation with an accessible mobile menu, and the `/privacy` and `/ethics` pages.
   - deps: 2. _Requirements: 1.1–1.5, 15.8_
 
