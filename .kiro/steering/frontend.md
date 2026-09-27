@@ -12,5 +12,6 @@ fileMatchPattern: "apps/web/**"
 - Every visible button does something real or is disabled and labeled "Coming soon".
 - Only `VITE_API_BASE_URL` and `VITE_APP_ENV` may be read from the environment. No AWS SDK or credentials in the web bundle.
 - Tests use Testing Library + jsdom (`vite.config.ts` `test` block, `src/test/setup.ts`). Query by role/text, and assert accessibility attributes where they matter (see `StatusBadge.test.tsx`).
-- Planned but not installed: TanStack Query, MSW (`src/mocks/`), Playwright + axe (`e2e/`). Adding them is a dependency change.
+- Data: call the API only through `src/lib/api/` (typed client + TanStack Query hooks); session token only via `src/lib/session.ts`. The MSW mock API lives in `src/mocks/` (`pnpm dev:mock`); keep a handler for every contract route.
+- Planned but not installed: Playwright + axe (`e2e/`). Adding them is a dependency change.
 - Verify layouts at 375, 768, and 1280 px when changing layout; say so if you couldn't.

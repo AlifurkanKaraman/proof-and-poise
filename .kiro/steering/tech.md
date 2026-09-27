@@ -36,4 +36,4 @@ Single package: `pnpm --filter @proof-and-poise/<web|api|shared|infrastructure> 
 
 ## Not yet present
 
-Playwright, axe, MSW, TanStack Query, `amplify.yml`, and `docs/` are planned in design.md but not installed or created. Don't assume they exist.
+Playwright, axe, `amplify.yml`, and `docs/` are planned in design.md but not installed or created. Don't assume they exist. (TanStack Query `5.104.0` and MSW `2.15.0` were added to web in task 6.)
