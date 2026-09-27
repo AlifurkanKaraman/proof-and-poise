@@ -57,7 +57,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Hero ("Turn your real experience into interview-ready evidence."), "Prepare for a job" and "Try the demo" CTAs, the interactive evidence-thread preview (local fictional data with keyboard support), the three steps, and the trust, privacy, and ethics sections. Responsive navigation with an accessible mobile menu, and the `/privacy` and `/ethics` pages.
   - deps: 2. _Requirements: 1.1–1.5, 15.8_
 
-- [ ] 6. [A] MSW mock layer and API client
+- [x] 6. [A] MSW mock layer and API client
   - Build a typed fetch client that validates responses with the contract schemas, plus TanStack Query hooks, `session.ts` (sessionStorage), and the route guard. Add MSW handlers for every contract route, backed by the demo fixtures, with a toggle to simulate errors, and the `pnpm dev:mock` script.
   - deps: 3, 7 (fixtures). _Requirements: 2.3, 2.6, 8 (contract)_
 
