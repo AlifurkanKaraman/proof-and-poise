@@ -23,7 +23,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 
 ## Phase 0: Foundations (D0)
 
-- [-] 1. ⛓ [B] Repository bootstrap (no application code)
+- [x] 1. ⛓ [B] Repository bootstrap (no application code)
   - `git init`, then create `.gitignore` **first** (node_modules, dist, cdk.out, .env*, !.env.example, coverage, playwright-report, *.webm/*.mp4/*.wav, uploads). Then add `.editorconfig`, `.nvmrc` (22), and `.gitleaks.toml`.
   - Install pnpm (`npm i -g pnpm@<pinned>`, since Node 25 doesn't bundle corepack). Create the root `package.json` with scripts `typecheck`, `lint`, `test`, `build`, and `e2e`, plus `pnpm-workspace.yaml`, `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), ESLint flat config, and Prettier.
   - Create the empty workspace packages `apps/web`, `packages/shared`, `services/api`, and `infrastructure`, plus `apps/mobile/README.md`.
