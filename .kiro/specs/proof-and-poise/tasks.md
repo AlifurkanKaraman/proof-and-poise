@@ -37,14 +37,14 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Add the Router skeleton with lazy routes, per-route error boundaries, a 404 page, and a `/dev/design` route for the internal token gallery (dev builds only).
   - deps: 1. _Requirements: 14.1–14.8_
 
-- [ ] 3. ⛓ [AB] Shared contracts and domain (contract-first, pair-reviewed)
+- [x] 3. ⛓ [AB] Shared contracts and domain (contract-first, pair-reviewed)
   - Add `limits.ts`; Zod schemas for inputs, EvidenceMap, Competency, Evidence, Recommendation, Turn, Evaluation, Report, and ScoreEvent; model-output schemas (strict); and the route contracts in `contracts/`.
   - Add `grounding/`: `normalize`, `isGroundedQuote`, `novelTerms`, and label validation. Add `keywords/` with the alias map and tech dictionary.
   - Add `scoring/` with every formula from design §6, the strength caps, and score-event creation. Add `interview/` with the plan-selection and follow-up rule.
   - Tests: unit tests plus the fast-check properties 1–6 from design §13.
   - deps: 1. _Requirements: 5.2, 5.4, 6.1–6.5, 7.2–7.3, 9.1, 9.3, 17.1_
 
-- [ ] 4. ⛓ [B] CDK walking skeleton deployed
+- [x] 4. ⛓ [B] CDK walking skeleton deployed
   - Build the `ProofAndPoiseStack`: DynamoDB table (on-demand, TTL), S3 bucket (block public access, SSL, SSE-S3, 1-day lifecycle, CORS, autoDelete), the `api` Lambda (arm64, nodejs22.x, 512 MB, 25 s), and an HTTP API with stage throttling of 10/20, CORS, and `/v1/health`. Log retention is 14 days.
   - Add `env.ts` (Zod), an allowlisted `logger.ts` with a redaction test, the error model, and the router.
   - Add CDK assertion tests (no NAT, public access blocked, lifecycle, TTL, throttling).
