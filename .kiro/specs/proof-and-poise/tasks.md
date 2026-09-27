@@ -65,7 +65,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Write the fictional resume and JD, the precomputed EvidenceMap (it must pass the schemas and grounding), sample answers (including one deliberately vague answer), and labeled offline sample feedback, following design §15.
   - deps: 3. _Requirements: 13.1–13.4_
 
-- [ ] 8. ⛓ [B] Sessions, auth, quotas, uploads
+- [x] 8. ⛓ [B] Sessions, auth, quotas, uploads
   - `POST/GET/DELETE /sessions` (token hash, TTL, demo seeding, IP-hash rate limit with the SSM salt), the bearer auth middleware, the quota counter helper, the global budget counter, and the presigned resume POST (300 s, size and type conditions, session-scoped key).
   - deps: 3, 4. _Requirements: 2.1–2.5, 4.1–4.2, 16.2–16.4_
 

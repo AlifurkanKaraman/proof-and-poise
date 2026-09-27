@@ -66,10 +66,13 @@ export const LIMITS = {
     reports: 2,
     transcriptions: 8,
   },
-  rateLimit: { sessionsPerIpPerHour: 10 },
+  /** Session creation per salted IP hash per hour; the counter item lives 2 h (design §5). */
+  rateLimit: { sessionsPerIpPerHour: 10, ttlHours: 2 },
+  /** Global daily circuit breaker (Req 16.4); the counter item lives 3 days (design §5). */
   globalBudget: {
     bedrockCallsPerDay: 1_500,
     transcribeSecondsPerDay: 60 * 60,
+    ttlDays: 3,
   },
   model: {
     analyze: { maxTokens: 3_000, temperature: 0.2 },

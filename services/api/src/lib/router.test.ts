@@ -48,6 +48,19 @@ describe('router', () => {
     });
   });
 
+  it('fails closed with 401 on auth routes when no authenticator is configured', async () => {
+    let called = false;
+    const router = new Router(silent()).add(routes.getSession, () => {
+      called = true;
+      return { body: {} };
+    });
+    const res = await router.handle(
+      event('GET', '/v1/sessions/3f1c2a4e-8b7d-4c1a-9e2f-0a1b2c3d4e5f'),
+    );
+    expect(res.statusCode).toBe(401);
+    expect(called).toBe(false);
+  });
+
   it('hides unexpected error details behind INTERNAL and logs only code/name', async () => {
     const lines: string[] = [];
     const router = new Router(createLogger((l) => lines.push(l))).add(routes.health, () => {

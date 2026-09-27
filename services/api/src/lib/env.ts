@@ -21,9 +21,10 @@ export const EnvSchema = z.object({
   BUCKET_NAME: z.string().min(3).max(63),
   MODEL_ID: z.string().min(1).default('us.amazon.nova-lite-v1:0'),
   ALLOWED_ORIGINS: csv,
-  // Added by later tasks (analysis worker, IP-hash salt). Optional until then.
+  /** SSM parameter name holding the IP-hash salt; the value is read at cold start (Req 16.3). */
+  IP_HASH_SALT_PARAM: z.string().regex(/^\/[A-Za-z0-9_.\-/]{1,1010}$/),
+  // Added by the analysis-worker task. Optional until then.
   WORKER_FUNCTION_NAME: z.string().min(1).optional(),
-  IP_HASH_SALT_PARAM: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

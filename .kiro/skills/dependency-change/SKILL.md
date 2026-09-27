@@ -9,7 +9,7 @@ description: Use before adding, removing, upgrading, or moving any npm dependenc
 2. Find ownership:
    - Which package imports it? Add it there only, not at the root. Root devDependencies are for repo-wide tooling (ESLint, Prettier, TypeScript).
    - Is it already present elsewhere? Match that exact version (the repo keeps versions aligned, e.g. `typescript 6.0.3`, `vitest 4.1.11`, `zod 4.6.5`).
-   - Runtime vs dev: Lambda code gets AWS SDK v3 from the runtime (`externalModules: ['@aws-sdk/*']`); `packages/shared` must stay pure TS with `zod` as its only runtime dep.
+   - Runtime vs dev: Lambda code bundles its AWS SDK v3 packages (`externalModules: []`), so they're `dependencies` of `@proof-and-poise/api` pinned to the same exact version as the other `@aws-sdk/*` packages; `packages/shared` must stay pure TS with `zod` as its only runtime dep.
    - Is it well known and maintained? Flag names that look like typosquats.
 3. Announce before running: package (e.g. `@proof-and-poise/api`), exact version, dep vs devDep, and the expected diff (one line in that `package.json`, new entries in `pnpm-lock.yaml`, no other versions changing).
 4. Run one command, for example:
