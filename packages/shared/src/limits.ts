@@ -1,0 +1,89 @@
+/**
+ * Single source of truth for every input, output, and quota limit.
+ * Client validation, server validation, prompts, and infrastructure read from here.
+ */
+export const LIMITS = {
+  session: {
+    ttlHours: 24,
+    /** 32 bytes = 256 bits of CSPRNG entropy (Req 2.1). */
+    tokenBytes: 32,
+  },
+  resumeText: { min: 200, max: 12_000 },
+  jobText: { min: 200, max: 8_000 },
+  company: { max: 100 },
+  role: { min: 1, max: 120 },
+  resumeUpload: {
+    contentType: 'application/pdf',
+    minBytes: 1,
+    maxBytes: 5_242_880,
+    maxPages: 4,
+    presignExpiresSec: 300,
+  },
+  audioUpload: {
+    contentTypes: ['audio/webm', 'audio/mp4', 'audio/ogg'],
+    minBytes: 1,
+    maxBytes: 10 * 1024 * 1024,
+    presignExpiresSec: 300,
+  },
+  recording: { maxSeconds: 120 },
+  answer: { min: 20, max: 3_000 },
+  confirmation: { min: 30, max: 500, maxPerSession: 3 },
+  analysis: {
+    competencies: { min: 6, max: 12 },
+    keywords: { min: 8, max: 30 },
+    recommendations: { max: 10 },
+    evidencePerCompetency: { max: 5 },
+    /** Minimum extracted characters before extraction counts as successful (Req 4.4). */
+    minExtractedChars: 200,
+    /** Target end-to-end time budget (Req 5.5). */
+    timeoutSec: 60,
+  },
+  grounding: {
+    /** Quotes shorter than this never count as grounded (design §7.4). */
+    minQuoteChars: 12,
+  },
+  interview: {
+    primaryQuestions: 5,
+    candidateQuestions: { behavioral: 3, roleSpecific: 3 },
+    selectedQuestions: { behavioral: 2, roleSpecific: 2 },
+    /** Position (1-based) of the forced evidence-gap question in the plan. */
+    gapPosition: 3,
+    minFollowUps: 1,
+    maxFollowUps: 2,
+    followUpMaxChars: 300,
+    questionMaxChars: 400,
+    prepTimerSec: 30,
+    /** Bonus added to a competency's plan priority when the candidate flagged or confirmed it. */
+    priorityBonus: 0.5,
+  },
+  quotas: {
+    analyses: 2,
+    confirmations: 3,
+    evaluations: 10,
+    primaryEvaluations: 5,
+    followUpEvaluations: 2,
+    practiceEvaluations: 3,
+    reports: 2,
+    transcriptions: 8,
+  },
+  rateLimit: { sessionsPerIpPerHour: 10 },
+  globalBudget: {
+    bedrockCallsPerDay: 1_500,
+    transcribeSecondsPerDay: 60 * 60,
+  },
+  model: {
+    analyze: { maxTokens: 3_000, temperature: 0.2 },
+    confirmRewrite: { maxTokens: 400, temperature: 0.2 },
+    generateQuestions: { maxTokens: 1_000, temperature: 0.5 },
+    evaluateAnswer: { maxTokens: 800, temperature: 0.2 },
+    reportNarrative: { maxTokens: 1_200, temperature: 0.3 },
+  },
+  report: {
+    summarySentences: { min: 2, max: 4 },
+    starOutlines: { min: 2, max: 3 },
+    actions: 3,
+  },
+} as const;
+
+export type ModelTask = keyof typeof LIMITS.model;
+export type AudioContentType = (typeof LIMITS.audioUpload.contentTypes)[number];
