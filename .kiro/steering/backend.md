@@ -11,4 +11,4 @@ fileMatchPattern: "services/**"
 - Env: add new variables to `EnvSchema` in `lib/env.ts` and to the Lambda `environment` in the stack together. `EnvError` reports key names only, never values.
 - Model calls (planned, design §7): user content in delimited tags treated as data; output validated by schema and grounding checks before use; per-call token caps and temperatures from Req 16.5.
 - Session-scoped routes require the bearer token, and errors must not reveal whether a session exists.
-- AWS SDK v3 is provided by the Lambda runtime (`externalModules: ['@aws-sdk/*']`). Adding an SDK client for local types/tests is still a dependency change.
+- The api Lambda bundles its pinned AWS SDK v3 packages (`externalModules: []`) so production runs the exact version the tests use. The runtime-included SDK is an older, Region-dependent minor version and isn't guaranteed to include helpers like `lib-dynamodb` or `s3-presigned-post`. SDK packages are runtime `dependencies` of `@proof-and-poise/api`, with all `@aws-sdk/*` packages pinned to the same exact version; adding one is a dependency change.
