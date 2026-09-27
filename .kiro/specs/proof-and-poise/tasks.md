@@ -61,7 +61,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Build a typed fetch client that validates responses with the contract schemas, plus TanStack Query hooks, `session.ts` (sessionStorage), and the route guard. Add MSW handlers for every contract route, backed by the demo fixtures, with a toggle to simulate errors, and the `pnpm dev:mock` script.
   - deps: 3, 7 (fixtures). _Requirements: 2.3, 2.6, 8 (contract)_
 
-- [ ] 7. [AB] Demo fixture content
+- [x] 7. [AB] Demo fixture content
   - Write the fictional resume and JD, the precomputed EvidenceMap (it must pass the schemas and grounding), sample answers (including one deliberately vague answer), and labeled offline sample feedback, following design §15.
   - deps: 3. _Requirements: 13.1–13.4_
 
