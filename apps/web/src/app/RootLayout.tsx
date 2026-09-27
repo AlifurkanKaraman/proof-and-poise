@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router';
+import { Link, Outlet, ScrollRestoration } from 'react-router';
 import { cn, focusRing, focusRingOnDark } from '../lib/cn';
 import { RedirectNotice } from './RequireSession';
 import { SiteNav } from './SiteNav';
@@ -7,6 +7,8 @@ import { SiteNav } from './SiteNav';
 export function RootLayout() {
   return (
     <div className="flex min-h-dvh flex-col">
+      {/* New navigations start at the top; back/forward restore the saved position. */}
+      <ScrollRestoration />
       <a
         href="#main"
         className={cn(

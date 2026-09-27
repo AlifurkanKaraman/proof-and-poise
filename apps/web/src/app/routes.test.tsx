@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { clearSession, saveSession } from '../lib/session';
 import { Providers } from './providers';
 import { SESSION_MISSING_MESSAGE } from './RequireSession';
@@ -59,6 +60,25 @@ describe('router', () => {
     renderAt('/s/0b6f1f7e-2d3c-4a5b-8c9d-0e1f2a3b4c5d/analysis');
     expect(await screen.findByText(SESSION_MISSING_MESSAGE)).toBeInTheDocument();
     clearSession();
+  });
+
+  it('scrolls to the top after navigating via a link (ScrollRestoration)', async () => {
+    // jsdom doesn't implement scrollTo.
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    try {
+      renderAt('/');
+      await screen.findByRole('heading', { level: 1 });
+      scrollTo.mockClear();
+      const footer = within(screen.getByRole('contentinfo'));
+      await userEvent.click(footer.getByRole('link', { name: 'Privacy' }));
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /privacy/i }),
+      ).toBeInTheDocument();
+      expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('exposes /dev/design in dev/test builds', async () => {
