@@ -6,3 +6,4 @@ export * from './grounding';
 export * from './keywords';
 export * from './scoring';
 export * from './interview';
+export * from './fixtures/demo';
