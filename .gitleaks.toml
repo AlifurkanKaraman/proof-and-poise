@@ -1,0 +1,12 @@
+title = "Proof & Poise gitleaks config"
+
+# Use the default gitleaks ruleset (AWS keys, private keys, tokens, etc.).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder-only files and lockfiles"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)pnpm-lock\.yaml$''',
+]

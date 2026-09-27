@@ -1,0 +1,11 @@
+{
+  "name": "@proof-and-poise/infrastructure",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node -e \"console.log('infrastructure: no tests yet (added in task 4)')\"",
+    "build": "node -e \"console.log('infrastructure: no build yet (CDK app added in task 4)')\""
+  }
+}

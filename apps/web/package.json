@@ -1,0 +1,12 @@
+{
+  "name": "@proof-and-poise/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node -e \"console.log('web: no tests yet (added in task 2)')\"",
+    "build": "node -e \"console.log('web: no build yet (added in task 2)')\"",
+    "e2e": "node -e \"console.log('web: no e2e yet (added in task 22)')\""
+  }
+}

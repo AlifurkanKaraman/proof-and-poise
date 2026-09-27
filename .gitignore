@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+cdk.out/
+*.tsbuildinfo
+
+# Environment files (only .env.example is committed)
+.env
+.env.*
+*.env
+!.env.example
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# User files and audio (never commit)
+uploads/
+*.webm
+*.mp4
+*.wav
+*.ogg
+*.m4a
+
+# Secrets and credentials
+*.pem
+*.key
+credentials*.json
+
+# Logs and OS/editor noise
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
