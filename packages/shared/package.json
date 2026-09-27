@@ -8,7 +8,16 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node -e \"console.log('shared: no tests yet (added in task 3)')\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "node -e \"console.log('shared: consumed as TS source, no build step')\""
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
   }
 }
