@@ -6,24 +6,14 @@ Last updated: 2026-09-27, when task 6 was finished. Update this file whenever yo
 
 Tasks 1–7 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`).
 
-| Task                             | Branch                                     | In `develop`?                                                                                          |
-| -------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| 1–5                              | merged (PRs #1–#4)                         | Yes                                                                                                    |
-| 7. Demo fixtures                 | `feature/demo-fixtures`                    | **No.** PR #5 merged it into `feature/landing-page` after that branch had already gone into `develop`. |
-| 6. MSW mock layer and API client | `feature/msw-api-client` (built on task 7) | **No.** No PR yet.                                                                                     |
-| (this handoff)                   | `feature/claude-handoff` (built on task 6) | No                                                                                                     |
+| Task | Branch                          | In `develop`? |
+| ---- | ------------------------------- | ------------- |
+| 1–7  | merged                          | Yes           |
+| —    | `feature/claude-handoff` (this) | Yes           |
 
-## First: get `develop` up to date
+## Starting work
 
-Open these PRs and merge them in order. Each one only shows its own changes once the one before it is merged.
-
-```bash
-gh pr create --base develop --head feature/demo-fixtures --title "feat(shared): demo fixture content (task 7)" --body-file .github/pull_request_template.md
-gh pr create --base develop --head feature/msw-api-client --title "feat(web): MSW mock layer and API client (task 6)" --body-file .github/pull_request_template.md
-gh pr create --base develop --head feature/claude-handoff --title "docs: Claude Code handoff" --body-file .github/pull_request_template.md
-```
-
-Then `git switch develop && git pull`, and start each new task on its own `feature/<slug>` branch from `develop`.
+`develop` has everything so far. Run `git switch develop && git pull`, then start each task on its own `feature/<slug>` branch from `develop` and open a PR back into `develop`.
 
 ## Next up
 
