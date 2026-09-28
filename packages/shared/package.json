@@ -4,11 +4,28 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./scoring": "./src/scoring/index.ts",
+    "./grounding": "./src/grounding/index.ts",
+    "./interview": "./src/interview/index.ts",
+    "./keywords": "./src/keywords/index.ts",
+    "./limits": "./src/limits.ts",
+    "./fixtures/demo": "./src/fixtures/demo/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node -e \"console.log('shared: no tests yet (added in task 3)')\"",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
     "build": "node -e \"console.log('shared: consumed as TS source, no build step')\""
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.5",
+    "fast-check": "^4.10.2",
+    "@vitest/coverage-v8": "^3.1.5"
   }
 }
