@@ -6,15 +6,15 @@ Last updated: 2026-09-29, after tasks 9, 11, and 12 were merged into `develop`. 
 
 Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), except task 10 (Amplify - blocked on manual setup).
 
-| Task          | Branch                                        | In `develop`? |
-| ------------- | --------------------------------------------- | ------------- |
-| 1–7           | merged                                        | Yes           |
-| 8             | `feature/sessions-auth-quotas` (PR #10)       | Yes           |
-| 9             | `feature/analysis-worker` (PR #12)            | Yes           |
-| 11, 12        | `feature/integrate-setup-analysis`            | Yes           |
-| Scroll-to-top | `feature/scroll-to-top` (PR #9)               | Yes           |
-| —             | `feature/claude-handoff` (PR #8)              | Yes           |
-| —             | `feature/handoff-task-8`                      | Yes           |
+| Task          | Branch                                  | In `develop`? |
+| ------------- | --------------------------------------- | ------------- |
+| 1–7           | merged                                  | Yes           |
+| 8             | `feature/sessions-auth-quotas` (PR #10) | Yes           |
+| 9             | `feature/analysis-worker` (PR #12)      | Yes           |
+| 11, 12        | `feature/integrate-setup-analysis`      | Yes           |
+| Scroll-to-top | `feature/scroll-to-top` (PR #9)         | Yes           |
+| —             | `feature/claude-handoff` (PR #8)        | Yes           |
+| —             | `feature/handoff-task-8`                | Yes           |
 
 ## Starting work
 
@@ -23,6 +23,7 @@ Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), excep
 ## What recent tasks added
 
 **Task 8 (sessions, auth, quotas):**
+
 - `POST /v1/sessions` with `{"mode":"standard"|"demo"}` returns `sessionId`, `sessionToken`, `expiresAt`. A demo session starts at stage `analysis` with the precomputed fixture.
 - `GET` and `DELETE /v1/sessions/{sessionId}` take `Authorization: Bearer <token>`. Every auth failure (bad ID, missing/wrong token, unknown or expired session) is the same 401. Delete removes the session's DynamoDB records and its S3 files.
 - `POST /v1/sessions/{sessionId}/uploads/resume` with `{"contentType":"application/pdf","size":<bytes>}` returns a presigned POST `{url, fields, key, expiresIn: 300}`. S3 enforces the PDF type and ≤ 5 MB.
@@ -30,6 +31,7 @@ Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), excep
 - The IP-hash salt lives in SSM at `/proof-and-poise/<stage>/ip-hash-salt`, generated at deploy by a custom resource.
 
 **Task 9 (Bedrock + analysis worker):**
+
 - `POST /v1/sessions/{sessionId}/analysis` starts async analysis (invokes worker Lambda)
 - `GET /v1/sessions/{sessionId}/analysis` returns status (queued/processing/ready/failed) and evidenceMap when ready
 - Worker Lambda: extracts PDF text (unpdf, ≤4 pages) → AI analysis via Bedrock Nova Lite → grounding validation → scores computation → DynamoDB persistence
@@ -37,6 +39,7 @@ Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), excep
 - Evaluation harness in `services/api/src/eval/` with sample resumes
 
 **Tasks 11, 12 (job setup + analysis workspace):**
+
 - `apps/web/src/features/setup/PreparePage.tsx`: Two-step wizard (resume paste/upload → job details) → creates session → starts analysis
 - `apps/web/src/features/analysis/AnalysisPage.tsx` + `AnalysisWorkspace.tsx`: Analysis results with 4 tabs (overview with score cards, competencies grouped by importance, recommendations by trust label, keywords matched vs required)
 - Loading stages, error states with retry, navigation to interview
@@ -55,15 +58,18 @@ aws cloudformation describe-stacks --stack-name ProofAndPoise-dev \
 ## Next up
 
 **Critical path (Backend B):**
+
 - **Task 13. Decisions and confirmations API** - Accept/reject recommendations, create confirmations with AI rewrite
 - **Task 17. Interview API** - Generate questions, evaluate answers, follow-up logic
 - **Task 18. Audio upload + transcription** - Presigned upload, Transcribe integration
 
 **Frontend (A) - can work against MSW:**
+
 - **Task 15. Interview room UI** - Record/Type tabs, prep timer, useRecorder hook, feedback display
 - **Task 19. Readiness report UI** - Readiness ring, STAR outlines, practice again, print stylesheet
 
 **Blocked:**
+
 - Task 10 (Amplify) - needs manual AWS Console setup to connect GitHub repo
 - Task 14 (Integration) - needs task 13 first
 
