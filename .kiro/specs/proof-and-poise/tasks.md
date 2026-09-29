@@ -79,12 +79,12 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Add `amplify.yml` (monorepo, `appRoot: apps/web`, pnpm). The user connects the GitHub repo in the Amplify console for the `main` and `develop` branches and sets `VITE_API_BASE_URL`. Add the Amplify domains to the CORS allowlist. Verify the landing page loads on the preview URL.
   - deps: 1, 4, 5. _Requirements: 17.5, 17.7_
 
-- [ ] 11. [A] Job setup stepper
+- [x] 11. [A] Job setup stepper
   - Resume step (PDF dropzone with client-side type, size, and empty checks, a paste tab, and the requirements and data notice), Target job step (JD, company, role, interview type), Review step. RHF with the shared Zod schemas, ARIA-linked errors, values kept when navigating back, the upload flow (presign → POST), and the analysis kick-off.
   - LoadingStage with staged progress and polling backoff. Recoverable errors: extraction failed leads to "Paste text instead", and there's a retry on failure.
   - deps: 6. _Requirements: 3.1–3.6, 4.4–4.5, 5.1_
 
-- [ ] 12. [A] Analysis workspace
+- [x] 12. [A] Analysis workspace
   - Overview tab (Job Match, Evidence Coverage, Keyword Coverage, and Parseability rings with "How is this calculated?" disclosures, plus the top 3 strengths and gaps), Competencies tab (matrix with strength and importance filters, expandable evidence with source labels, evidence-thread motion), Recommendations tab (cards per trust label, with accept/reject/undo made optimistic with rollback; missing-evidence cards offer the confirm and practice actions), Resume tab (working resume with highlights and "Copy as text"). Score-change toasts show the reason. Integrate against `develop` API at the end of D2.
   - deps: 6, 11. _Requirements: 5.6–5.7, 6.2–6.4, 7.1, 7.4–7.7, 14.2_
 
