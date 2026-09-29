@@ -55,23 +55,17 @@ aws cloudformation describe-stacks --stack-name ProofAndPoise-dev \
   --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text
 ```
 
+## In flight (2026-09-29)
+
+- `feature/integrate-ui`: `develop` + setup-stepper-fixes + interview UI (15) + report UI (19) + e2e (22, partial). Typecheck, lint, tests, build and Playwright (full demo journey on 3 browsers) pass locally. Open a PR into `develop`.
+- `feature/decisions-api` (task 13), `feature/audio-transcription` (18), `feature/interview-api` (17, based on 13): backend, unit-tested with mocked AWS, **not deployed**.
+
 ## Next up
 
-**Critical path (Backend B):**
-
-- **Task 13. Decisions and confirmations API** - Accept/reject recommendations, create confirmations with AI rewrite
-- **Task 17. Interview API** - Generate questions, evaluate answers, follow-up logic
-- **Task 18. Audio upload + transcription** - Presigned upload, Transcribe integration
-
-**Frontend (A) - can work against MSW:**
-
-- **Task 15. Interview room UI** - Record/Type tabs, prep timer, useRecorder hook, feedback display
-- **Task 19. Readiness report UI** - Readiness ring, STAR outlines, practice again, print stylesheet
-
-**Blocked:**
-
-- Task 10 (Amplify) - needs manual AWS Console setup to connect GitHub repo
-- Task 14 (Integration) - needs task 13 first
+- Merge the branches above; then task 14 (integrate 12+13), 16 (interview integration), 21 (report + practice API), 20.
+- Task 22 left: manual audit with `apps/web/ACCESSIBILITY.md`, iOS Safari/mic-denied checks.
+- Task 10 (Amplify) needs manual Console setup. Tasks 23-25 (prod deploy, verification, docs) after that.
+- `main` has 2 commits not in `develop` (30a3fd1, 2385d84); reconcile before the release PR.
 
 ## Running it
 

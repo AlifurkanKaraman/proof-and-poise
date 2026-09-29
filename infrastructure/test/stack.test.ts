@@ -171,6 +171,46 @@ describe('ProofAndPoiseStack', () => {
     }
   });
 
+  it('routes audio upload and transcription start/poll (task 18)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/turns/{turnId}/uploads/audio',
+      'POST /v1/sessions/{sessionId}/turns/{turnId}/transcription',
+      'GET /v1/sessions/{sessionId}/turns/{turnId}/transcription',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('grants the api audio/transcript S3 access and exactly three Transcribe job actions (task 18)', () => {
+    const statements = policyStatements('ApiFunction');
+    const withAction = (a: string) =>
+      statements.filter((s) => actionsOf(s).includes(a)).map((s) => JSON.stringify(s.Resource));
+
+    // Presigning audio and Transcribe's transcript write: audio/* and transcripts/* only.
+    expect(withAction('s3:PutObject').some((r) => /audio\/\*.*transcripts\/\*/.test(r))).toBe(true);
+    const gets = withAction('s3:GetObject').join('');
+    expect(gets).toContain('/audio/*');
+    expect(gets).toContain('/transcripts/*');
+    expect(gets).not.toContain('/resumes/*');
+
+    const transcribe = statements.find((s) =>
+      actionsOf(s).includes('transcribe:GetTranscriptionJob'),
+    );
+    expect(actionsOf(transcribe!)).toEqual([
+      'transcribe:StartTranscriptionJob',
+      'transcribe:GetTranscriptionJob',
+      'transcribe:DeleteTranscriptionJob',
+    ]);
+    // The service has no resource-level permissions for job APIs (documented in the stack).
+    expect(transcribe!.Resource).toBe('*');
+    // The worker gets no Transcribe access.
+    expect(
+      policyStatements('AnalysisWorkerFunction')
+        .flatMap(actionsOf)
+        .filter((a) => a.startsWith('transcribe:')),
+    ).toEqual([]);
+  });
+
   it('passes the salt parameter name, not the salt, to the api Lambda (Req 16.3)', () => {
     template.hasResourceProperties('AWS::Lambda::Function', {
       FunctionName: 'proof-and-poise-dev-api',
@@ -257,12 +297,47 @@ describe('ProofAndPoiseStack', () => {
     });
   });
 
-  it('lets the api invoke only the worker, and grants the api no Bedrock access', () => {
+  it('routes POST decision and confirmations (task 13)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/recommendations/{recId}/decision',
+      'POST /v1/sessions/{sessionId}/confirmations',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('routes the interview start, read, and answer endpoints (task 17)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/interview',
+      'GET /v1/sessions/{sessionId}/interview',
+      'POST /v1/sessions/{sessionId}/turns/{turnId}/answer',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('routes the report and practice endpoints (task 21)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/report',
+      'GET /v1/sessions/{sessionId}/report',
+      'POST /v1/sessions/{sessionId}/practice',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('lets the api invoke only the worker and call only the configured model (confirmRewrite)', () => {
     const statements = policyStatements('ApiFunction');
     const invoke = statements.filter((s) => actionsOf(s).includes('lambda:InvokeFunction'));
     expect(invoke).toHaveLength(1);
     expect(JSON.stringify(invoke[0]?.Resource)).toContain('AnalysisWorkerFunction');
-    expect(statements.flatMap(actionsOf).filter((a) => a.startsWith('bedrock:'))).toEqual([]);
+
+    const bedrockActions = statements.flatMap(actionsOf).filter((a) => a.startsWith('bedrock:'));
+    expect(bedrockActions).toEqual(['bedrock:InvokeModel']);
+    const bedrock = statements.find((s) => actionsOf(s).includes('bedrock:InvokeModel'))!;
+    const resources = JSON.stringify(bedrock.Resource);
+    expect(resources).toContain(':inference-profile/us.amazon.nova-lite-v1:0');
+    expect(resources).not.toMatch(/foundation-model\/\*|inference-profile\/\*/);
   });
 
   it('scopes worker grants to the table, resumes/*, and the Nova Lite ARNs (design §11)', () => {

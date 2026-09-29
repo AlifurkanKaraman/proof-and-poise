@@ -4,7 +4,7 @@
  * anything else so tests can't silently pass against unmodeled behavior.
  */
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import type { AwsStub } from 'aws-sdk-client-mock';
 
 type Item = Record<string, unknown>;
@@ -38,6 +38,10 @@ export class MemoryTable {
       this.put(input.Item);
       return {};
     });
+    mock.on(DeleteCommand).callsFake(({ Key }: { Key: Item }) => {
+      this.items.delete(key(Key));
+      return {};
+    });
     mock.on(UpdateCommand).callsFake((input: UpdateInput) => this.update(input));
   }
 
@@ -53,6 +57,14 @@ export class MemoryTable {
         return item === undefined;
       case 'attribute_not_exists(PK) OR #s IN (:ready, :failed)':
         return item === undefined || [values[':ready'], values[':failed']].includes(attr('#s'));
+      case 'attribute_exists(PK) AND #s = :ready AND (attribute_not_exists(rev) OR rev = :rev)':
+        return (
+          item !== undefined &&
+          attr('#s') === values[':ready'] &&
+          (item['rev'] === undefined || item['rev'] === values[':rev'])
+        );
+      case 'attribute_exists(PK) AND rev = :rev':
+        return item !== undefined && item['rev'] === values[':rev'];
       case '#s IN (:queued, :running)':
         return [values[':queued'], values[':running']].includes(attr('#s'));
       case '#c < :max':

@@ -6,3 +6,4 @@ export * from './job';
 export * from './evidenceMap';
 export * from './interview';
 export * from './feedback';
+export * from './report';

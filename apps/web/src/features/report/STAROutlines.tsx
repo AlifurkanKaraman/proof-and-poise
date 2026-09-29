@@ -1,15 +1,10 @@
 import { Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
-interface STAROutline {
-  situation: string;
-  task: string;
-  action: string;
-  result: string;
-}
+import type { StarOutline } from '@proof-and-poise/shared';
 
 interface STAROutlinesProps {
-  outlines: STAROutline[];
+  outlines: StarOutline[];
   className?: string;
 }
 
@@ -28,18 +23,17 @@ export function STAROutlines({ outlines, className }: STAROutlinesProps) {
       </div>
 
       <p className="mb-6 text-small text-ink-700">
-        Use these outlines to structure your interview responses. They're built from your actual experience.
+        Use these outlines to structure your interview responses. They're built from your actual
+        experience.
       </p>
 
       <div className="flex flex-col gap-6">
         {outlines.map((outline, idx) => (
           <div
-            key={idx}
+            key={`${outline.competencyId}-${idx}`}
             className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-4"
           >
-            <p className="mb-4 text-small font-semibold text-indigo-900">
-              Story {idx + 1}
-            </p>
+            <p className="mb-4 text-small font-semibold text-indigo-900">{outline.title}</p>
 
             <div className="space-y-3">
               <div>

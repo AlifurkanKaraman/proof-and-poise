@@ -12,6 +12,7 @@ This checklist covers manual accessibility tests for Proof & Poise (Req 14, WCAG
 Test each screen with keyboard only (no mouse):
 
 ### Landing Page (`/`)
+
 - [ ] Tab reaches "Try the demo" button
 - [ ] Tab reaches "For job seekers" button
 - [ ] Tab reaches footer links
@@ -20,10 +21,12 @@ Test each screen with keyboard only (no mouse):
 - [ ] Shift+Tab reverses order
 
 ### Demo Page (`/demo`)
+
 - [ ] Tab through all interactive elements
 - [ ] "Start demo" button keyboard-accessible
 
 ### Prepare Page (`/s/{id}/prepare`)
+
 - [ ] Tab into resume textarea
 - [ ] Tab to "Next" button
 - [ ] Job description textarea keyboard-accessible
@@ -31,12 +34,14 @@ Test each screen with keyboard only (no mouse):
 - [ ] Field validation errors announced
 
 ### Analysis Page (`/s/{id}/analysis`)
+
 - [ ] Tab switches between tabs (Overview, Competencies, Recommendations, Keywords)
 - [ ] Arrow keys navigate within tab list (optional enhancement)
 - [ ] "Start Interview" button keyboard-accessible
 - [ ] Accordion/disclosure widgets keyboard-operable
 
 ### Interview Page (`/s/{id}/interview`)
+
 - [ ] Tab switches Record/Type tabs
 - [ ] "Request microphone" button keyboard-accessible
 - [ ] Record/Stop/Play buttons keyboard-accessible
@@ -45,6 +50,7 @@ Test each screen with keyboard only (no mouse):
 - [ ] Prep timer "Pause" and "Hide" buttons keyboard-accessible
 
 ### Report Page (`/s/{id}/report`)
+
 - [ ] Tab through all sections
 - [ ] "Print report" button keyboard-accessible
 - [ ] "Practice this question again" buttons reachable
@@ -54,6 +60,7 @@ Test each screen with keyboard only (no mouse):
 ## Focus Order
 
 For each screen, verify:
+
 - [ ] Focus order follows visual/logical reading order (top-to-bottom, left-to-right)
 - [ ] Focus never trapped (can always escape modals/dialogs)
 - [ ] Focus visible at all times (no invisible focus states)

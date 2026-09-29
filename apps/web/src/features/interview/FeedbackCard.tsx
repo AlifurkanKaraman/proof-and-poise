@@ -1,23 +1,25 @@
 import { Award, CheckCircle, Lightbulb, TrendingUp } from 'lucide-react';
-import type { Evaluation } from '@proof-and-poise/shared';
+import { DIMENSIONS, type Dimension, type Evaluation } from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/cn';
 
 interface FeedbackCardProps {
   evaluation: Evaluation;
   onContinue: () => void;
-  isContinuing?: boolean;
+  isContinuing?: boolean | undefined;
+  /** No next question: the button leads to the report. */
+  isLast?: boolean | undefined;
   className?: string;
 }
 
-const DIMENSION_LABELS: Record<keyof Evaluation['dimensions'], string> = {
+const DIMENSION_LABELS: Record<Dimension, string> = {
   relevance: 'Relevance',
   specificity: 'Specificity',
   evidence: 'Evidence',
-  starStructure: 'STAR Structure',
+  star: 'STAR structure',
   clarity: 'Clarity',
   ownership: 'Ownership',
-  roleConnection: 'Role Connection',
+  roleConnection: 'Role connection',
 };
 
 /**
@@ -28,11 +30,11 @@ export function FeedbackCard({
   evaluation,
   onContinue,
   isContinuing,
+  isLast,
   className,
 }: FeedbackCardProps) {
-  // Calculate average score
-  const scores = Object.values(evaluation.dimensions).map((d) => d.score);
-  const averageScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  // Weighted score is computed deterministically by the server (design §8).
+  const averageScore = evaluation.weightedScore;
 
   const scoreColor = (score: number) => {
     if (score >= 3.5) return 'text-emerald-700';
@@ -49,7 +51,12 @@ export function FeedbackCard({
   };
 
   return (
-    <div className={cn('flex flex-col gap-6 rounded-lg border border-line-200 bg-paper-0 p-6', className)}>
+    <div
+      className={cn(
+        'flex flex-col gap-6 rounded-lg border border-line-200 bg-paper-0 p-6',
+        className,
+      )}
+    >
       {/* Overall score */}
       <div className="flex items-start gap-4">
         <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-indigo-100">
@@ -58,7 +65,10 @@ export function FeedbackCard({
         <div className="flex-1">
           <p className="text-h3 font-semibold text-ink-950">Answer Feedback</p>
           <p className="mt-1 text-small text-ink-700">
-            Average score: <span className={cn('font-semibold', scoreColor(averageScore))}>{averageScore.toFixed(1)}/4.0</span>
+            Average score:{' '}
+            <span className={cn('font-semibold', scoreColor(averageScore))}>
+              {averageScore.toFixed(1)}/4.0
+            </span>
           </p>
         </div>
       </div>
@@ -86,13 +96,22 @@ export function FeedbackCard({
       <div>
         <p className="mb-3 text-small font-semibold text-ink-950">Dimension Scores</p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {Object.entries(evaluation.dimensions).map(([key, dim]) => {
-            const label = DIMENSION_LABELS[key as keyof typeof DIMENSION_LABELS];
+          {DIMENSIONS.map((key) => {
+            const dim = evaluation.dimensions[key];
+            const label = DIMENSION_LABELS[key];
+            // A null dimension was not applicable to this answer.
+            if (dim === null) {
+              return (
+                <div key={key} className="rounded border border-line-200 p-3">
+                  <p className="text-caption font-semibold uppercase tracking-wide text-ink-950">
+                    {label}
+                  </p>
+                  <p className="text-caption text-ink-700">Not assessed for this question.</p>
+                </div>
+              );
+            }
             return (
-              <div
-                key={key}
-                className={cn('rounded border p-3', scoreBg(dim.score))}
-              >
+              <div key={key} className={cn('rounded border p-3', scoreBg(dim.score))}>
                 <div className="mb-1 flex items-center justify-between">
                   <p className="text-caption font-semibold uppercase tracking-wide text-ink-950">
                     {label}
@@ -109,26 +128,23 @@ export function FeedbackCard({
       </div>
 
       {/* Stronger outline (Req 11.5) */}
-      {evaluation.strongerOutline && (
+      {evaluation.strongerOutline.length > 0 && (
         <div className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-4">
           <div className="mb-2 flex items-center gap-2">
             <Lightbulb className="size-5 text-indigo-700" aria-hidden />
             <p className="text-small font-semibold text-indigo-900">Stronger answer outline</p>
           </div>
-          <p className="text-small text-indigo-950 whitespace-pre-line">
-            {evaluation.strongerOutline}
-          </p>
+          <ol className="list-decimal space-y-1 pl-5 text-small text-indigo-950">
+            {evaluation.strongerOutline.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
         </div>
       )}
 
       {/* Continue button */}
-      <Button
-        onClick={onContinue}
-        disabled={isContinuing}
-        size="lg"
-        className="w-full"
-      >
-        {isContinuing ? 'Loading next question...' : 'Continue to Next Question'}
+      <Button onClick={onContinue} disabled={isContinuing} size="lg" className="w-full">
+        {isContinuing ? 'Loading...' : isLast ? 'View your report' : 'Continue to next question'}
       </Button>
     </div>
   );

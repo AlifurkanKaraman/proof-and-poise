@@ -88,7 +88,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Overview tab (Job Match, Evidence Coverage, Keyword Coverage, and Parseability rings with "How is this calculated?" disclosures, plus the top 3 strengths and gaps), Competencies tab (matrix with strength and importance filters, expandable evidence with source labels, evidence-thread motion), Recommendations tab (cards per trust label, with accept/reject/undo made optimistic with rollback; missing-evidence cards offer the confirm and practice actions), Resume tab (working resume with highlights and "Copy as text"). Score-change toasts show the reason. Integrate against `develop` API at the end of D2.
   - deps: 6, 11. _Requirements: 5.6–5.7, 6.2–6.4, 7.1, 7.4–7.7, 14.2_
 
-- [ ] 13. ⛓ [B] Decisions and confirmations API
+- [x] 13. ⛓ [B] Decisions and confirmations API
   - `POST …/decision` (accept, reject, or reset; locked once the interview starts; working-resume recompute; keyword coverage; score event). `POST /confirmations` (attestation required, 30–500 chars, max 3, strength cap, `confirmRewrite` model call with grounding against the resume plus the statement, interview priority).
   - deps: 9. _Requirements: 6.4, 7.5–7.6, 8.1–8.5_
 
@@ -98,7 +98,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 
 ## Phase 2: Interview (D3)
 
-- [ ] 15. [A] Interview room UI
+- [x] 15. [A] Interview room UI
   - A distraction-free layout with the SegmentedProgress (follow-up sub-steps), the question card with its type and competency label, the optional 30 s prep timer (pausable, hideable, never auto-submits), and the answer panel with Record/Type tabs.
   - A `useRecorder` reducer and hook (format negotiation, 120 s limit, all microphone states) with unit tests. Record, stop, replay, re-record, upload, transcribing skeleton, editable transcript review, and submit. Typed answers with a counter.
   - Show feedback after each answer (strength, improvement, dimension chips), then continue. Demo mode adds "Insert sample answer (fictional)". Resume after reload.
@@ -108,26 +108,26 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Integrate task 15 against the real endpoints from 17 and 18. Test on Chrome, Firefox, desktop Safari, and iOS Safari. Test the microphone-denied path.
   - deps: 15, 17, 18. _Requirements: 10.2, 10.4_
 
-- [ ] 17. ⛓ [B] Interview API
+- [x] 17. ⛓ [B] Interview API
   - `POST/GET /interview` (the `generateQuestions` model call; server-side selection B1, R1, GAP, B2, R2; idempotent; locks decisions). `POST …/answer` (validation, quota, `evaluateAnswer`, weighted score computation, the follow-up rule, next turn, 409 on duplicates). Demo fallback to the labeled sample feedback on `UPSTREAM_UNAVAILABLE` or `CAPACITY_REACHED`.
   - Rubric and fairness prompt rules (no judgment of accent or fluency, no inferences). Unit tests with a mocked Bedrock client, including guaranteed-follow-up scenarios.
   - deps: 9, 13. _Requirements: 9.1, 9.3–9.4, 11.1–11.5, 13.4_
 
-- [ ] 18. ⛓ [B] Audio upload and transcription
+- [x] 18. ⛓ [B] Audio upload and transcription
   - Presigned audio POST (≤ 10 MB, allowed types). `POST …/transcription` (daily minute budget, `StartTranscriptionJob` with the output written to `transcripts/<sessionId>/`, and `IdentifyLanguage` off with `en-US`/`en-GB`/`en-IN` options documented). `GET …/transcription` (lazy poll; once done, read the transcript, then delete the audio, transcript, and job). Error mapping leads to the typed fallback.
-  - Verify the Transcribe → S3 permissions in dev with a real 10 s recording.
+  - Verify the Transcribe → S3 permissions in dev with a real 10 s recording. **Not done:** needs a deploy, which was not authorized. Code and IAM are covered by mocked-SDK and CDK assertion tests only.
   - deps: 8. _Requirements: 10.4, 10.6–10.7, 16.4_
 
 ## Phase 3: Report, hardening, release (D4–D5)
 
-- [ ] 19. [A] Readiness report UI
+- [x] 19. [A] Readiness report UI
   - Readiness ring with the two-term explanation, the summary, the competency status list, per-question feedback accordions (with follow-ups nested), strongest evidence, weakest areas, STAR outlines, and three prioritized actions. "Practice again" on questions below Proficient, with a before/after comparison and a score event. Print stylesheet. "Delete my data" with a confirmation dialog.
   - deps: 6. _Requirements: 2.5, 12.1–12.4_
 
 - [ ] 20. [A] Report and practice integration
   - deps: 19, 21. _Requirements: 12.3_
 
-- [ ] 21. ⛓ [B] Report and practice API
+- [x] 21. ⛓ [B] Report and practice API
   - `POST/GET /report` (deterministic scores plus the narrative model call, validated, idempotent) and `POST /practice` (creates a practice turn, reuses the answer evaluation, best-attempt readiness, score event).
   - deps: 17. _Requirements: 6.2, 12.1–12.3, 12.5_
 

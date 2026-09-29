@@ -99,6 +99,54 @@ export class AnalysisRepository {
     return rest as StoredAnalysis;
   }
 
+  /** The ready analysis and its revision (0 until first edited), or null if not ready. */
+  async getReady(sessionId: string): Promise<{ ready: ReadyAnalysis; rev: number } | null> {
+    const res = await this.ddb.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: analysisKey(sessionId),
+        ConsistentRead: true,
+      }),
+    );
+    const item = res.Item;
+    if (!item || item['status'] !== 'ready') return null;
+    const { PK: _pk, SK: _sk, ttl: _ttl, rev, ...ready } = item;
+    return { ready: ready as ReadyAnalysis, rev: typeof rev === 'number' ? rev : 0 };
+  }
+
+  /**
+   * Replaces the evidence map after a decision or confirmation. Optimistic lock on `rev`, so
+   * two concurrent edits can't overwrite each other; the loser gets 409 `CONFLICT`. Also
+   * fails if the session was deleted meanwhile.
+   */
+  async saveEvidenceMap(
+    sessionId: string,
+    expectedRev: number,
+    evidenceMap: ReadyAnalysis['evidenceMap'],
+  ): Promise<void> {
+    try {
+      await this.ddb.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: analysisKey(sessionId),
+          UpdateExpression: 'SET evidenceMap = :m, rev = :next',
+          ConditionExpression:
+            'attribute_exists(PK) AND #s = :ready AND (attribute_not_exists(rev) OR rev = :rev)',
+          ExpressionAttributeNames: { '#s': 'status' },
+          ExpressionAttributeValues: {
+            ':m': evidenceMap,
+            ':next': expectedRev + 1,
+            ':rev': expectedRev,
+            ':ready': 'ready',
+          },
+        }),
+      );
+    } catch (err) {
+      if (isConditionFailure(err)) throw new ApiError('CONFLICT');
+      throw err;
+    }
+  }
+
   /**
    * Marks an analysis as queued. Only allowed when there is none yet or the previous one
    * finished (ready or failed); otherwise throws 409 `CONFLICT`.

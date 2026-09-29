@@ -16,7 +16,7 @@ interface PrepTimerProps {
  * - Informational only (never auto-submits)
  */
 export function PrepTimer({ onHide, className }: PrepTimerProps) {
-  const [secondsLeft, setSecondsLeft] = useState(LIMITS.interview.prepTimerSec);
+  const [secondsLeft, setSecondsLeft] = useState<number>(LIMITS.interview.prepTimerSec);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
@@ -39,9 +39,7 @@ export function PrepTimer({ onHide, className }: PrepTimerProps) {
     <div
       className={cn(
         'flex items-center gap-4 rounded-lg border p-4',
-        isComplete
-          ? 'border-emerald-700/20 bg-emerald-50'
-          : 'border-line-200 bg-paper-0',
+        isComplete ? 'border-emerald-700/20 bg-emerald-50' : 'border-line-200 bg-paper-0',
         className,
       )}
       role="timer"
@@ -49,10 +47,7 @@ export function PrepTimer({ onHide, className }: PrepTimerProps) {
     >
       <div className="flex items-center gap-3">
         <Clock
-          className={cn(
-            'size-5',
-            isComplete ? 'text-emerald-700' : 'text-indigo-600',
-          )}
+          className={cn('size-5', isComplete ? 'text-emerald-700' : 'text-indigo-600')}
           aria-hidden
         />
         <div>
@@ -79,15 +74,14 @@ export function PrepTimer({ onHide, className }: PrepTimerProps) {
             onClick={togglePause}
             aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
           >
-            {isPaused ? <Play className="size-4" aria-hidden /> : <Pause className="size-4" aria-hidden />}
+            {isPaused ? (
+              <Play className="size-4" aria-hidden />
+            ) : (
+              <Pause className="size-4" aria-hidden />
+            )}
           </Button>
         )}
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onHide}
-          aria-label="Hide timer"
-        >
+        <Button variant="secondary" size="sm" onClick={onHide} aria-label="Hide timer">
           <X className="size-4" aria-hidden />
         </Button>
       </div>
