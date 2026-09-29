@@ -1,20 +1,21 @@
 # Handoff
 
-Last updated: 2026-09-29, after tasks 9, 11, and 12 were merged into `develop`. Update this file whenever a branch is merged into `develop` or you stop working, using the `handoff-update` skill (`.kiro/skills/handoff-update/SKILL.md`), so the next person can pick up.
+Last updated: 2026-09-29, after PR #13 (integration of UI and backend tasks 13, 15, 17, 18, 19, 21 and the e2e job) was merged into `develop`. Update this file whenever a branch is merged into `develop` or you stop working, using the `handoff-update` skill (`.kiro/skills/handoff-update/SKILL.md`), so the next person can pick up.
 
 ## Done
 
-Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), except task 10 (Amplify - blocked on manual setup).
+Tasks 1–9, 11–13, 15, 17–19 and 21 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`). Task 22 is partial. Task 10 (Amplify) is blocked on manual setup. Open: 14, 16, 20, 23–25.
 
-| Task          | Branch                                  | In `develop`? |
-| ------------- | --------------------------------------- | ------------- |
-| 1–7           | merged                                  | Yes           |
-| 8             | `feature/sessions-auth-quotas` (PR #10) | Yes           |
-| 9             | `feature/analysis-worker` (PR #12)      | Yes           |
-| 11, 12        | `feature/integrate-setup-analysis`      | Yes           |
-| Scroll-to-top | `feature/scroll-to-top` (PR #9)         | Yes           |
-| —             | `feature/claude-handoff` (PR #8)        | Yes           |
-| —             | `feature/handoff-task-8`                | Yes           |
+| Task                                 | Branch                                                                                                                                                                                                | In `develop`? |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1–7                                  | merged                                                                                                                                                                                                | Yes           |
+| 8                                    | `feature/sessions-auth-quotas` (PR #10)                                                                                                                                                               | Yes           |
+| 9                                    | `feature/analysis-worker` (PR #12)                                                                                                                                                                    | Yes           |
+| 11, 12                               | `feature/integrate-setup-analysis`                                                                                                                                                                    | Yes           |
+| 13, 15, 17, 18, 19, 21, 22 (partial) | `feature/integration-all` (PR #13; includes `setup-stepper-fixes`, `interview-room-ui`, `readiness-report-ui`, `decisions-api`, `interview-api`, `audio-transcription`, `report-api`, `quality-pass`) | Yes           |
+| Scroll-to-top                        | `feature/scroll-to-top` (PR #9)                                                                                                                                                                       | Yes           |
+| —                                    | `feature/claude-handoff` (PR #8)                                                                                                                                                                      | Yes           |
+| —                                    | `feature/handoff-task-8`                                                                                                                                                                              | Yes           |
 
 ## Starting work
 
@@ -46,26 +47,18 @@ Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), excep
 
 ## Deployed
 
-`ProofAndPoise-dev` (us-east-1) was redeployed with task 8 and checked on real AWS on 2026-09-27: health, create/get/delete, the 401 cases, demo seeding, presigned upload (including the 5 MB rejection), the rate-limit 429, and logs containing no tokens, IPs, or bodies. CORS still allows only `http://localhost:5173`.
-
-Get the API URL:
-
-```bash
-aws cloudformation describe-stacks --stack-name ProofAndPoise-dev \
-  --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text
-```
-
-## In flight (2026-09-29)
-
-- `feature/integrate-ui`: `develop` + setup-stepper-fixes + interview UI (15) + report UI (19) + e2e (22, partial). Typecheck, lint, tests, build and Playwright (full demo journey on 3 browsers) pass locally. Open a PR into `develop`.
-- `feature/decisions-api` (task 13), `feature/audio-transcription` (18), `feature/interview-api` (17, based on 13): backend, unit-tested with mocked AWS, **not deployed**.
+Only the state listed under "Deployed" above (through task 8) was deployed and checked on real AWS. **Tasks 9, 13, 17, 18 and 21 are unit-tested with mocked AWS clients and have not been deployed or run against real Bedrock or Transcribe.** The Transcribe-to-S3 check with a real recording (task 18) is still open.
 
 ## Next up
 
-- Merge the branches above; then task 14 (integrate 12+13), 16 (interview integration), 21 (report + practice API), 20.
-- Task 22 left: manual audit with `apps/web/ACCESSIBILITY.md`, iOS Safari/mic-denied checks.
-- Task 10 (Amplify) needs manual Console setup. Tasks 23-25 (prod deploy, verification, docs) after that.
-- `main` has 2 commits not in `develop` (30a3fd1, 2385d84); reconcile before the release PR.
+- **Task 14/16/20 (integration):** point the web app at the real API (`VITE_API_BASE_URL`) instead of MSW, and wire the Record tab to the transcription routes (today it shows an editable placeholder).
+- **Task 22 left:** manual audit with `apps/web/ACCESSIBILITY.md`, iOS Safari and microphone-denied checks.
+- **Task 10 (Amplify)** needs manual Console setup; tasks 23–25 (prod deploy, verification, docs) after it.
+- `main` has 2 commits not in `develop` (`30a3fd1`, `2385d84`); reconcile before the release PR.
+
+## Known issues
+
+- `pnpm lint` on Windows with `core.autocrlf=true` reports prettier warnings on many untouched files (CRLF). CI on Linux is unaffected.
 
 ## Running it
 
