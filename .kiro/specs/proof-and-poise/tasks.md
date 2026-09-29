@@ -127,7 +127,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 - [ ] 20. [A] Report and practice integration
   - deps: 19, 21. _Requirements: 12.3_
 
-- [ ] 21. ⛓ [B] Report and practice API
+- [x] 21. ⛓ [B] Report and practice API
   - `POST/GET /report` (deterministic scores plus the narrative model call, validated, idempotent) and `POST /practice` (creates a practice turn, reuses the answer evaluation, best-attempt readiness, score event).
   - deps: 17. _Requirements: 6.2, 12.1–12.3, 12.5_
 

@@ -316,6 +316,16 @@ describe('ProofAndPoiseStack', () => {
     }
   });
 
+  it('routes the report and practice endpoints (task 21)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/report',
+      'GET /v1/sessions/{sessionId}/report',
+      'POST /v1/sessions/{sessionId}/practice',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
   it('lets the api invoke only the worker and call only the configured model (confirmRewrite)', () => {
     const statements = policyStatements('ApiFunction');
     const invoke = statements.filter((s) => actionsOf(s).includes('lambda:InvokeFunction'));

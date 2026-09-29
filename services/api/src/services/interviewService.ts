@@ -9,6 +9,7 @@ import {
   advanceInterview,
   applyInterviewToMap,
   buildEvaluation,
+  canPracticeAgain,
   DEMO_INTERVIEW_PLAN,
   DEMO_SAMPLE_FEEDBACK,
   EvidenceMapSchema,
@@ -16,6 +17,9 @@ import {
   initialInterview,
   InterviewStateSchema,
   LIMITS,
+  nextId,
+  PRIMARY_KINDS,
+  questionRows,
   selectGapCompetency,
   selectPlan,
   type AnswerRequest,
@@ -129,6 +133,54 @@ export class InterviewService {
     });
     await this.deps.analyses.saveEvidenceMap(meta.sessionId, mapRev, parsedMap.data);
     return { evaluation, next: advanced.next };
+  }
+
+  /**
+   * `POST /practice` (Req 12.3, design §8): a new practice turn on an evaluated primary that
+   * scored below Proficient. Idempotent while a practice turn on that question is unanswered.
+   * The answer goes through the same `answer` path, so scoring, quotas, best-attempt readiness,
+   * and the score event are shared with the interview.
+   */
+  async startPractice(meta: SessionMeta, parentTurnId: string): Promise<Turn> {
+    const stored = await this.deps.interviews.get(meta.sessionId);
+    if (!stored) throw new ApiError('NOT_FOUND');
+    const parent = stored.state.turns.find((t) => t.id === parentTurnId);
+    if (!parent) throw new ApiError('NOT_FOUND');
+    if (!PRIMARY_KINDS.includes(parent.kind) || parent.status !== 'evaluated') {
+      throw new ApiError('CONFLICT');
+    }
+
+    const open = stored.state.turns.find(
+      (t) => t.kind === 'practice' && t.parentTurnId === parent.id && t.status === 'asked',
+    );
+    if (open) return open;
+
+    const best = questionRows(stored.state).find((r) => r.primary.id === parent.id)?.bestScore;
+    if (best === null || best === undefined || !canPracticeAgain(best)) {
+      throw new ApiError('CONFLICT');
+    }
+    const used = stored.state.turns.filter((t) => t.kind === 'practice').length;
+    if (used >= LIMITS.quotas.practiceEvaluations) throw new ApiError('QUOTA_EXCEEDED');
+
+    const turn: Turn = {
+      id: nextId(
+        'p',
+        stored.state.turns.map((t) => t.id),
+      ),
+      index: parent.index,
+      label: parent.label,
+      kind: 'practice',
+      parentTurnId: parent.id,
+      competencyIds: [...parent.competencyIds],
+      question: parent.question,
+      status: 'asked',
+    };
+    const state = this.validState({ ...stored.state, turns: [...stored.state.turns, turn] });
+    await this.deps.interviews.save(meta.sessionId, meta.ttl, stored.rev, {
+      state,
+      plan: stored.plan,
+    });
+    return turn;
   }
 
   /** One `generateQuestions` call; the server picks the 2+2+GAP plan (Req 9.1). */
