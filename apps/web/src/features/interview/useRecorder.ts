@@ -1,14 +1,9 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { LIMITS, type AudioContentType } from '@proof-and-poise/shared';
 
 // Req 10.2: Distinct, accessible state for each microphone condition
 export type MicrophoneState =
-  | 'not-requested'
-  | 'requesting'
-  | 'granted'
-  | 'denied'
-  | 'unavailable'
-  | 'unsupported';
+  'not-requested' | 'requesting' | 'granted' | 'denied' | 'unavailable' | 'unsupported';
 
 export type RecorderState =
   | { phase: 'idle'; micState: MicrophoneState }
@@ -47,7 +42,7 @@ function recorderReducer(state: RecorderState, action: RecorderAction): Recorder
     case 'tick':
       if (state.phase !== 'recording') return state;
       return { ...state, elapsedMs: action.elapsedMs };
-    case 'stop-recording':
+    case 'stop-recording': {
       if (state.phase !== 'recording') return state;
       const url = URL.createObjectURL(action.blob);
       return {
@@ -57,6 +52,7 @@ function recorderReducer(state: RecorderState, action: RecorderAction): Recorder
         url,
         durationMs: action.durationMs,
       };
+    }
     case 'play':
       if (state.phase !== 'recorded') return state;
       return { ...state, phase: 'playing' };
@@ -94,8 +90,14 @@ interface UseRecorderResult {
  * Hook for audio recording with microphone permission management.
  * Implements Req 10.1 (recording controls) and 10.2 (microphone states).
  */
+/** Wall-clock read kept out of the hook body; only called from event handlers. */
+const now = () => Date.now();
+
 export function useRecorder(): UseRecorderResult {
-  const [state, dispatch] = useReducer(recorderReducer, { phase: 'idle', micState: 'not-requested' });
+  const [state, dispatch] = useReducer(recorderReducer, {
+    phase: 'idle',
+    micState: 'not-requested',
+  });
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -103,6 +105,7 @@ export function useRecorder(): UseRecorderResult {
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
   const contentTypeRef = useRef<AudioContentType | null>(null);
+  const [contentType, setContentType] = useState<AudioContentType | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -143,6 +146,7 @@ export function useRecorder(): UseRecorderResult {
       }
 
       contentTypeRef.current = supportedType;
+      setContentType(supportedType);
       dispatch({ type: 'mic-granted' });
     } catch (error) {
       const err = error as Error;
@@ -173,7 +177,7 @@ export function useRecorder(): UseRecorderResult {
     };
 
     mediaRecorderRef.current = recorder;
-    startTimeRef.current = Date.now();
+    startTimeRef.current = now();
     recorder.start();
     dispatch({ type: 'start-recording' });
 
@@ -252,6 +256,6 @@ export function useRecorder(): UseRecorderResult {
     reset,
     elapsedSeconds,
     remainingSeconds,
-    contentType: contentTypeRef.current,
+    contentType,
   };
 }

@@ -1,119 +1,119 @@
+import {
+  DIMENSIONS,
+  canPracticeAgain,
+  type Dimension,
+  type ReportQuestion,
+  type Turn,
+} from '@proof-and-poise/shared';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import type { Turn } from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/cn';
 
 interface FeedbackAccordionProps {
-  turns: Turn[];
-  onPracticeAgain?: (turnId: string) => void;
+  questions: ReportQuestion[];
+  onPracticeAgain?: ((turnId: string) => void) | undefined;
   className?: string;
 }
 
-const DIMENSION_LABELS: Record<string, string> = {
+const DIMENSION_LABELS: Record<Dimension, string> = {
   relevance: 'Relevance',
   specificity: 'Specificity',
   evidence: 'Evidence',
-  starStructure: 'STAR Structure',
+  star: 'STAR structure',
   clarity: 'Clarity',
   ownership: 'Ownership',
-  roleConnection: 'Role Connection',
+  roleConnection: 'Role connection',
+};
+
+const KIND_LABELS: Record<Turn['kind'], string> = {
+  behavioral: 'Behavioral',
+  role_specific: 'Role-specific',
+  evidence_gap: 'Evidence gap',
+  follow_up: 'Follow-up',
+  practice: 'Practice',
 };
 
 /**
- * Per-question feedback accordions with follow-ups nested (Req 12.1, 12.3).
- * Shows 7-dimension scoring and allows "Practice again" for questions below Proficient.
+ * Per-question feedback accordions with follow-ups and practice attempts nested (Req 12.1, 12.3).
+ * Shows the 7-dimension rubric and offers "Practice again" below Proficient.
  */
-export function FeedbackAccordion({ turns, onPracticeAgain, className }: FeedbackAccordionProps) {
-  const [expandedTurns, setExpandedTurns] = useState<Set<string>>(new Set());
+export function FeedbackAccordion({
+  questions,
+  onPracticeAgain,
+  className,
+}: FeedbackAccordionProps) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const toggleTurn = (turnId: string) => {
-    setExpandedTurns((prev) => {
+  const toggle = (turnId: string) => {
+    setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(turnId)) {
-        next.delete(turnId);
-      } else {
-        next.add(turnId);
-      }
+      if (next.has(turnId)) next.delete(turnId);
+      else next.add(turnId);
       return next;
     });
   };
 
-  // Group turns by primary question (follow-ups nested under primary)
-  const primaryTurns = turns.filter((t) => t.type !== 'follow-up');
-
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      {primaryTurns.map((primary) => {
-        const followUps = turns.filter(
-          (t) => t.type === 'follow-up' && t.primaryIndex === primary.primaryIndex,
-        );
-        const isExpanded = expandedTurns.has(primary.id);
-
-        // Calculate if below proficient (average score < 2.5 = below proficient)
-        const scores = primary.evaluation
-          ? Object.values(primary.evaluation.dimensions).map((d) => d.score)
-          : [];
-        const avgScore = scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
-        const belowProficient = avgScore < 2.5;
+      {questions.map((q) => {
+        const { primary } = q;
+        const isExpanded = expanded.has(primary.id);
+        const panelId = `feedback-${primary.id}`;
+        const offerPractice = q.bestScore !== null && canPracticeAgain(q.bestScore);
 
         return (
-          <div
-            key={primary.id}
-            className="rounded-lg border border-line-200 bg-paper-0"
-          >
-            <button
-              onClick={() => toggleTurn(primary.id)}
-              className="flex w-full items-center justify-between p-4 text-left hover:bg-paper-50"
-              aria-expanded={isExpanded}
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-indigo-100 px-2 py-1 text-caption font-semibold text-indigo-700">
-                    Question {primary.primaryIndex}
+          <div key={primary.id} className="rounded-lg border border-line-200 bg-paper-0">
+            <h3>
+              <button
+                type="button"
+                onClick={() => toggle(primary.id)}
+                className="flex min-h-11 w-full items-center justify-between p-4 text-left hover:bg-paper-50"
+                aria-expanded={isExpanded}
+                aria-controls={panelId}
+              >
+                <span className="flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="rounded bg-indigo-100 px-2 py-1 text-caption font-semibold text-indigo-700">
+                      Question {primary.label}
+                    </span>
+                    <span className="text-caption text-ink-700">{KIND_LABELS[primary.kind]}</span>
+                    {q.bestScore !== null && (
+                      <span className="text-caption font-medium text-ink-700">
+                        Best score {q.bestScore.toFixed(1)} / 4
+                      </span>
+                    )}
                   </span>
-                  <span className="text-caption text-ink-700">
-                    {primary.questionType}
-                  </span>
-                </div>
-                <p className="mt-2 text-small text-ink-950">{primary.question}</p>
-              </div>
-              {isExpanded ? (
-                <ChevronUp className="ml-4 size-5 shrink-0 text-ink-700" aria-hidden />
-              ) : (
-                <ChevronDown className="ml-4 size-5 shrink-0 text-ink-700" aria-hidden />
-              )}
-            </button>
+                  <span className="mt-2 block text-small text-ink-950">{primary.question}</span>
+                </span>
+                {isExpanded ? (
+                  <ChevronUp className="ml-4 size-5 shrink-0 text-ink-700" aria-hidden />
+                ) : (
+                  <ChevronDown className="ml-4 size-5 shrink-0 text-ink-700" aria-hidden />
+                )}
+              </button>
+            </h3>
 
-            {isExpanded && primary.evaluation && (
-              <div className="border-t border-line-200 p-4">
-                <TurnFeedback
-                  turn={primary}
-                  belowProficient={belowProficient}
-                  onPracticeAgain={onPracticeAgain}
-                />
+            {isExpanded && (
+              <div id={panelId} className="border-t border-line-200 p-4">
+                <TurnFeedback turn={primary} />
 
-                {/* Follow-ups nested */}
-                {followUps.length > 0 && (
-                  <div className="mt-6 space-y-4 border-t border-line-200 pt-6">
-                    <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">
-                      Follow-up Questions
-                    </p>
-                    {followUps.map((followUp) => (
-                      <div key={followUp.id} className="ml-4 border-l-2 border-indigo-600 pl-4">
-                        <p className="mb-3 text-small font-semibold text-ink-950">
-                          {followUp.question}
-                        </p>
-                        {followUp.evaluation && (
-                          <TurnFeedback
-                            turn={followUp}
-                            belowProficient={false}
-                            onPracticeAgain={undefined}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                {q.followUps.length > 0 && (
+                  <NestedTurns title="Follow-up questions" turns={q.followUps} />
+                )}
+                {q.practiceAttempts.length > 0 && (
+                  <NestedTurns title="Practice attempts" turns={q.practiceAttempts} />
+                )}
+
+                {offerPractice && onPracticeAgain && (
+                  <Button
+                    onClick={() => onPracticeAgain(primary.id)}
+                    variant="secondary"
+                    size="sm"
+                    className="mt-4"
+                  >
+                    Practice this question again
+                  </Button>
                 )}
               </div>
             )}
@@ -124,30 +124,35 @@ export function FeedbackAccordion({ turns, onPracticeAgain, className }: Feedbac
   );
 }
 
-function TurnFeedback({
-  turn,
-  belowProficient,
-  onPracticeAgain,
-}: {
-  turn: Turn;
-  belowProficient: boolean;
-  onPracticeAgain?: (turnId: string) => void;
-}) {
-  if (!turn.evaluation) return null;
+function NestedTurns({ title, turns }: { title: string; turns: Turn[] }) {
+  return (
+    <div className="mt-6 space-y-4 border-t border-line-200 pt-6">
+      <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">{title}</p>
+      {turns.map((turn) => (
+        <div key={turn.id} className="ml-4 border-l-2 border-indigo-600 pl-4">
+          <p className="mb-3 text-small font-semibold text-ink-950">{turn.question}</p>
+          <TurnFeedback turn={turn} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
-  const evaluation = turn.evaluation;
+function TurnFeedback({ turn }: { turn: Turn }) {
+  const { evaluation, answer } = turn;
+  if (!evaluation) return null;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Answer */}
-      <div>
-        <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-700">
-          Your Answer
-        </p>
-        <p className="text-small text-ink-700">{turn.text}</p>
-      </div>
+      {answer && (
+        <div>
+          <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-700">
+            Your answer
+          </p>
+          <p className="text-small text-ink-700">{answer.text}</p>
+        </div>
+      )}
 
-      {/* Strength and Improvement */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded border border-emerald-700/20 bg-emerald-50 p-3">
           <p className="mb-1 text-caption font-semibold text-emerald-900">Strength</p>
@@ -159,46 +164,33 @@ function TurnFeedback({
         </div>
       </div>
 
-      {/* Dimension scores */}
       <div>
         <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-700">
-          Dimension Scores
+          Dimension scores
         </p>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-          {Object.entries(evaluation.dimensions).map(([key, dim]) => (
-            <div key={key} className="flex items-center justify-between text-caption">
-              <span className="text-ink-700">{DIMENSION_LABELS[key]}</span>
-              <span className="font-mono font-semibold text-ink-950">
-                {dim.score}/4
-              </span>
-            </div>
-          ))}
-        </div>
+        <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          {DIMENSIONS.map((key) => {
+            const dim = evaluation.dimensions[key];
+            return (
+              <li key={key} className="flex items-center justify-between text-caption">
+                <span className="text-ink-700">{DIMENSION_LABELS[key]}</span>
+                <span className="font-mono font-semibold text-ink-950">
+                  {dim ? `${dim.score}/4` : 'Not applicable'}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      {/* Stronger outline */}
-      {evaluation.strongerOutline && (
-        <div className="rounded border border-indigo-600/20 bg-indigo-50 p-3">
-          <p className="mb-2 text-caption font-semibold text-indigo-900">
-            Stronger answer outline
-          </p>
-          <p className="text-small text-indigo-950 whitespace-pre-line">
-            {evaluation.strongerOutline}
-          </p>
-        </div>
-      )}
-
-      {/* Practice again button (Req 12.3) */}
-      {belowProficient && onPracticeAgain && (
-        <Button
-          onClick={() => onPracticeAgain(turn.id)}
-          variant="secondary"
-          size="sm"
-          className="self-start"
-        >
-          Practice this question again
-        </Button>
-      )}
+      <div className="rounded border border-indigo-600/20 bg-indigo-50 p-3">
+        <p className="mb-2 text-caption font-semibold text-indigo-900">Stronger answer outline</p>
+        <ul className="list-inside list-disc space-y-1 text-small text-indigo-950">
+          {evaluation.strongerOutline.map((step, i) => (
+            <li key={i}>{step}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

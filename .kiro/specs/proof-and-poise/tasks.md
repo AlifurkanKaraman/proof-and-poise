@@ -98,7 +98,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 
 ## Phase 2: Interview (D3)
 
-- [ ] 15. [A] Interview room UI
+- [x] 15. [A] Interview room UI
   - A distraction-free layout with the SegmentedProgress (follow-up sub-steps), the question card with its type and competency label, the optional 30 s prep timer (pausable, hideable, never auto-submits), and the answer panel with Record/Type tabs.
   - A `useRecorder` reducer and hook (format negotiation, 120 s limit, all microphone states) with unit tests. Record, stop, replay, re-record, upload, transcribing skeleton, editable transcript review, and submit. Typed answers with a counter.
   - Show feedback after each answer (strength, improvement, dimension chips), then continue. Demo mode adds "Insert sample answer (fictional)". Resume after reload.
@@ -120,7 +120,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 
 ## Phase 3: Report, hardening, release (D4–D5)
 
-- [ ] 19. [A] Readiness report UI
+- [x] 19. [A] Readiness report UI
   - Readiness ring with the two-term explanation, the summary, the competency status list, per-question feedback accordions (with follow-ups nested), strongest evidence, weakest areas, STAR outlines, and three prioritized actions. "Practice again" on questions below Proficient, with a before/after comparison and a score event. Print stylesheet. "Delete my data" with a confirmation dialog.
   - deps: 6. _Requirements: 2.5, 12.1–12.4_
 

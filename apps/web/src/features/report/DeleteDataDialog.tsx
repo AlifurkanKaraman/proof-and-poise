@@ -20,17 +20,14 @@ export function DeleteDataDialog({ onConfirm, isDeleting }: DeleteDataDialogProp
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-md">
+      <DialogContent title="Delete all your data?" className="max-w-md">
         <div className="flex flex-col gap-6">
           <div className="flex items-start gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error-100">
               <AlertTriangle className="size-6 text-error-700" aria-hidden />
             </div>
             <div className="flex-1">
-              <h2 className="text-h3 font-semibold text-ink-950">Delete all your data?</h2>
-              <p className="mt-2 text-small text-ink-700">
-                This will permanently delete:
-              </p>
+              <p className="text-small text-ink-700">This will permanently delete:</p>
               <ul className="mt-2 list-inside list-disc text-small text-ink-700">
                 <li>Your resume and job description</li>
                 <li>All analysis results</li>

@@ -1,10 +1,12 @@
 import { CheckCircle, Circle, TrendingUp, XCircle } from 'lucide-react';
-import type { Competency } from '@proof-and-poise/shared';
+import type { Report } from '@proof-and-poise/shared';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
 
+type ReportCompetency = Report['competencies'][number];
+
 interface CompetencyStatusListProps {
-  competencies: Competency[];
+  competencies: ReportCompetency[];
   className?: string;
 }
 
@@ -44,56 +46,28 @@ const READINESS_CONFIG = {
  * Shows ready | developing | needs_practice | not_assessed for each competency.
  */
 export function CompetencyStatusList({ competencies, className }: CompetencyStatusListProps) {
-  // Group by importance
-  const byImportance = {
-    required: competencies.filter((c) => c.importance === 'required'),
-    preferred: competencies.filter((c) => c.importance === 'preferred'),
-    bonus: competencies.filter((c) => c.importance === 'bonus'),
-  };
-
   return (
     <div className={cn('rounded-lg border border-line-200 bg-paper-0 p-6', className)}>
       <h2 className="mb-4 text-h3 font-semibold text-ink-950">Competency Status</h2>
 
-      <div className="flex flex-col gap-6">
-        {byImportance.required.length > 0 && (
-          <Section title="Required" competencies={byImportance.required} />
-        )}
-        {byImportance.preferred.length > 0 && (
-          <Section title="Preferred" competencies={byImportance.preferred} />
-        )}
-        {byImportance.bonus.length > 0 && (
-          <Section title="Bonus" competencies={byImportance.bonus} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Section({ title, competencies }: { title: string; competencies: Competency[] }) {
-  return (
-    <div>
-      <p className="mb-3 text-caption font-semibold uppercase tracking-wide text-ink-700">
-        {title}
-      </p>
-      <div className="grid grid-cols-1 gap-3">
+      <ul className="grid grid-cols-1 gap-3">
         {competencies.map((competency) => {
           const config = READINESS_CONFIG[competency.readiness];
           const Icon = config.icon;
 
           return (
-            <div
-              key={competency.id}
-              className={cn(
-                'flex items-start gap-3 rounded border p-4',
-                config.border,
-                config.bg,
-              )}
+            <li
+              key={competency.competencyId}
+              className={cn('flex items-start gap-3 rounded border p-4', config.border, config.bg)}
             >
               <Icon className={cn('size-5 shrink-0', config.color)} aria-hidden />
               <div className="flex-1">
                 <p className="text-small font-semibold text-ink-950">{competency.name}</p>
-                <p className="mt-1 text-caption text-ink-700">{competency.description}</p>
+                {competency.bestScore !== null && (
+                  <p className="mt-1 text-caption text-ink-700">
+                    Best answer score: {competency.bestScore.toFixed(1)} / 4
+                  </p>
+                )}
               </div>
               <StatusBadge
                 status={
@@ -106,10 +80,10 @@ function Section({ title, competencies }: { title: string; competencies: Compete
                 label={config.label}
                 className="shrink-0"
               />
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

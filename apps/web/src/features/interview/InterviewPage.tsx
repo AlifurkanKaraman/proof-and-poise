@@ -1,60 +1,70 @@
+import { LIMITS, type Evaluation, type Turn } from '@proof-and-poise/shared';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { LIMITS } from '@proof-and-poise/shared';
 import { Page } from '../../app/Page';
-import { Button } from '../../components/ui/Button';
-import { SegmentedProgress, type Segment } from '../../components/ui/SegmentedProgress';
 import { ErrorState } from '../../components/states/ErrorState';
 import { LoadingStage } from '../../components/states/LoadingStage';
+import { Button } from '../../components/ui/Button';
+import { SegmentedProgress, type Segment } from '../../components/ui/SegmentedProgress';
 import { userMessage } from '../../lib/api/errors';
 import { useInterview, useSubmitAnswer } from '../../lib/api/queries';
-import { AnswerPanel } from './AnswerPanel';
+import { AnswerPanel, type PanelAnswer } from './AnswerPanel';
 import { FeedbackCard } from './FeedbackCard';
 import { PrepTimer } from './PrepTimer';
 import { QuestionCard } from './QuestionCard';
 
+interface Feedback {
+  evaluation: Evaluation;
+  hasNext: boolean;
+}
+
 /**
- * Interview room page (Task 15, Req 9.2, 9.3, 10.1-10.3, 10.5).
+ * Interview room page (Task 15, Req 9.2, 9.3, 10.1-10.3, 10.5, 11.1).
  * Distraction-free layout with question, prep timer, answer capture, and feedback.
  */
 export default function InterviewPage() {
   const { id } = useParams<{ id: string }>();
-  const sessionId = id!;
+  const sessionId = id ?? '';
   const navigate = useNavigate();
 
   const interview = useInterview(sessionId);
   const submitAnswer = useSubmitAnswer(sessionId);
 
   const [showTimer, setShowTimer] = useState(true);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState<string | undefined>(undefined);
 
-  const handleAnswer = async (answer: { type: 'text'; text: string } | { type: 'audio'; blob: Blob; contentType: string }) => {
+  const goToReport = () => navigate(`/s/${sessionId}/report`);
+
+  const handleAnswer = async (turn: Turn, answer: PanelAnswer) => {
     if (answer.type === 'audio') {
-      // TODO: Upload audio and transcribe (task 18 endpoints)
-      // For now, just submit as text placeholder
+      // Audio upload and transcription arrive with task 18; until then show a reviewable stub.
       setIsTranscribing(true);
-      // Simulate transcription delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsTranscribing(false);
-      setTranscript('This is a placeholder transcript. Transcription will be implemented in task 18.');
+      setTranscript('Transcription is not available yet. Type or edit your answer here.');
       return;
     }
-
+    const edited = transcript !== undefined;
     try {
-      await submitAnswer.mutateAsync({
-        turnId: currentTurn.id,
-        text: answer.text,
+      const res = await submitAnswer.mutateAsync({
+        turnId: turn.id,
+        answer: { text: answer.text, source: edited ? 'transcribed' : 'typed', edited },
       });
+      setFeedback({ evaluation: res.evaluation, hasNext: res.next !== null });
       setTranscript(undefined);
     } catch {
-      // Error is handled by React Query error state
+      // The mutation error is rendered below.
     }
   };
 
   const handleContinue = () => {
-    // Refetch interview to get next question
-    interview.refetch();
+    if (feedback && !feedback.hasNext) {
+      goToReport();
+      return;
+    }
+    setFeedback(null);
     setShowTimer(true);
     setTranscript(undefined);
   };
@@ -77,14 +87,10 @@ export default function InterviewPage() {
         <ErrorState
           title="Interview failed to load"
           message={userMessage(interview.error)}
-          action={
-            <Button onClick={() => interview.refetch()}>
-              Retry
-            </Button>
-          }
+          action={<Button onClick={() => interview.refetch()}>Retry</Button>}
           secondaryAction={
-            <Button variant="secondary" onClick={() => navigate('/')}>
-              Go home
+            <Button variant="secondary" onClick={() => navigate(`/s/${sessionId}/analysis`)}>
+              Back to analysis
             </Button>
           }
         />
@@ -93,7 +99,6 @@ export default function InterviewPage() {
   }
 
   const data = interview.data;
-
   if (!data || data.turns.length === 0) {
     return (
       <Page title="Interview">
@@ -101,64 +106,73 @@ export default function InterviewPage() {
           title="No interview questions"
           message="The interview has not been started yet."
           action={
-            <Button onClick={() => navigate(`/s/${sessionId}/analysis`)}>
-              Go back to analysis
-            </Button>
+            <Button onClick={() => navigate(`/s/${sessionId}/analysis`)}>Back to analysis</Button>
           }
         />
       </Page>
     );
   }
 
-  // Find current turn (first unanswered question)
-  const currentTurnIndex = data.turns.findIndex((t) => !t.evaluation);
-  const currentTurn = currentTurnIndex >= 0 ? data.turns[currentTurnIndex] : null;
+  const currentTurn = data.turns.find((t) => t.status !== 'evaluated');
 
-  // If all questions answered, navigate to report
-  if (!currentTurn) {
-    navigate(`/s/${sessionId}/report`);
-    return null;
+  // Everything answered and no feedback pending: the interview is over.
+  if (!currentTurn && !feedback) {
+    return (
+      <Page title="Interview complete">
+        <ErrorState
+          title="Interview complete"
+          message="You answered every question. Your readiness report is ready."
+          action={<Button onClick={goToReport}>View your report</Button>}
+        />
+      </Page>
+    );
   }
 
-  // Show feedback if current turn has evaluation
-  const showFeedback = currentTurn.evaluation !== undefined;
+  // Build progress segments (Req 9.3): follow-ups render as sub-steps.
+  const pendingId = feedback ? undefined : currentTurn?.id;
+  const segments: Segment[] = data.turns.map((turn) => ({
+    id: turn.id,
+    label:
+      turn.kind === 'follow_up' ? `Question ${turn.label} (follow-up)` : `Question ${turn.label}`,
+    state:
+      turn.id === pendingId ? 'current' : turn.status === 'evaluated' ? 'complete' : 'upcoming',
+    subStep: turn.kind === 'follow_up',
+  }));
 
-  // Build progress segments (Req 9.3)
-  const segments: Segment[] = data.turns.map((turn, idx) => {
-    const isFollowUp = turn.type === 'follow-up';
-    const hasAnswer = turn.evaluation !== undefined;
-    const isCurrent = idx === currentTurnIndex;
-
-    return {
-      label: isFollowUp ? `Q${turn.primaryIndex} Follow-up` : `Question ${turn.primaryIndex}`,
-      state: hasAnswer ? 'complete' : isCurrent ? 'current' : 'future',
-    };
-  });
-
-  const questionNumber = currentTurn.primaryIndex;
+  const shown = feedback ? undefined : currentTurn;
+  const questionNumber =
+    (shown ?? data.turns.filter((t) => t.status === 'evaluated').at(-1))?.index ?? 1;
   const totalQuestions = LIMITS.interview.primaryQuestions;
 
   return (
     <Page
       title={`Question ${questionNumber} of ${totalQuestions}`}
-      lead={showFeedback ? 'Review your feedback below' : 'Take your time to provide a thoughtful answer'}
+      lead={
+        feedback ? 'Review your feedback below' : 'Take your time to provide a thoughtful answer'
+      }
     >
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-col gap-6">
-          {/* Progress indicator (Req 9.3) */}
-          <SegmentedProgress segments={segments} />
+          <SegmentedProgress
+            segments={segments}
+            summary={`Question ${questionNumber} of ${totalQuestions}`}
+          />
 
-          {!showFeedback && (
+          {shown && (
             <>
-              {/* Question card */}
-              <QuestionCard turn={currentTurn} />
+              <QuestionCard turn={shown} />
 
-              {/* Prep timer (Req 9.3, WCAG 2.2.1) */}
+              {/* Optional prep timer (Req 9.3, WCAG 2.2.1) */}
               {showTimer && <PrepTimer onHide={() => setShowTimer(false)} />}
 
-              {/* Answer panel (Req 10.1, 10.2, 10.3) */}
+              {submitAnswer.isError && (
+                <p role="alert" className="text-small font-medium text-error-700">
+                  {userMessage(submitAnswer.error)}
+                </p>
+              )}
+
               <AnswerPanel
-                onSubmit={handleAnswer}
+                onSubmit={(answer) => void handleAnswer(shown, answer)}
                 isSubmitting={submitAnswer.isPending}
                 isTranscribing={isTranscribing}
                 transcript={transcript}
@@ -167,11 +181,11 @@ export default function InterviewPage() {
             </>
           )}
 
-          {/* Feedback (Req 11.1, 11.5) */}
-          {showFeedback && currentTurn.evaluation && (
+          {feedback && (
             <FeedbackCard
-              evaluation={currentTurn.evaluation}
+              evaluation={feedback.evaluation}
               onContinue={handleContinue}
+              isLast={!feedback.hasNext}
               isContinuing={interview.isFetching}
             />
           )}
