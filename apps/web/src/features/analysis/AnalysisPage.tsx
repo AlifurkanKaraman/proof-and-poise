@@ -34,11 +34,7 @@ export default function AnalysisPage() {
   if (analysis.isLoading) {
     return (
       <Page title="Analysis">
-        <LoadingStage
-          title="Analyzing your profile"
-          stages={ANALYSIS_STAGES}
-          current={0}
-        />
+        <LoadingStage title="Analyzing your profile" stages={ANALYSIS_STAGES} current={0} />
       </Page>
     );
   }
@@ -49,11 +45,7 @@ export default function AnalysisPage() {
         <ErrorState
           title="Analysis failed"
           message={userMessage(analysis.error)}
-          action={
-            <Button onClick={() => analysis.refetch()}>
-              Retry
-            </Button>
-          }
+          action={<Button onClick={() => analysis.refetch()}>Retry</Button>}
           secondaryAction={
             <Button variant="secondary" onClick={() => navigate('/')}>
               Go home
@@ -72,24 +64,31 @@ export default function AnalysisPage() {
         <ErrorState
           title="No analysis data"
           message="The analysis has not been started yet."
-          action={
-            <Button onClick={() => navigate('/')}>
-              Go home
-            </Button>
-          }
+          action={<Button onClick={() => navigate('/')}>Go home</Button>}
         />
       </Page>
     );
   }
 
-  if (data.status === 'queued' || data.status === 'processing') {
-    const stage = data.status === 'queued' ? 0 : 1;
+  if (data.status === 'queued' || data.status === 'running') {
+    // Map analysis stage to LoadingStage index
+    const stageIndex =
+      data.status === 'queued'
+        ? 0
+        : data.stage === 'reading_resume'
+          ? 1
+          : data.stage === 'mapping_competencies'
+            ? 2
+            : data.stage === 'checking_evidence'
+              ? 3
+              : 4;
+
     return (
       <Page title="Analysis">
         <LoadingStage
           title="Analyzing your profile"
           stages={ANALYSIS_STAGES}
-          current={stage}
+          current={stageIndex}
         />
       </Page>
     );
@@ -101,11 +100,7 @@ export default function AnalysisPage() {
         <ErrorState
           title="Analysis failed"
           message="We encountered an issue while analyzing your profile. Please try again."
-          action={
-            <Button onClick={() => navigate('/prepare')}>
-              Start over
-            </Button>
-          }
+          action={<Button onClick={() => navigate('/prepare')}>Start over</Button>}
           secondaryAction={
             <Button variant="secondary" onClick={() => navigate('/')}>
               Go home

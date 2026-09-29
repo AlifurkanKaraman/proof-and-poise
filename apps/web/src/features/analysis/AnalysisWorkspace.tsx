@@ -22,7 +22,7 @@ export function AnalysisWorkspace({
   // Group competencies by importance
   const required = competencies.filter((c) => c.importance === 'required');
   const preferred = competencies.filter((c) => c.importance === 'preferred');
-  const bonus = competencies.filter((c) => c.importance === 'bonus');
+  const contextual = competencies.filter((c) => c.importance === 'contextual');
 
   // Group recommendations by trust label
   const missingEvidence = recommendations.filter((r) => r.trustLabel === 'missing_evidence');
@@ -38,9 +38,7 @@ export function AnalysisWorkspace({
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="competencies">
-            Competencies ({competencies.length})
-          </TabsTrigger>
+          <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
           <TabsTrigger value="recommendations">
             Recommendations ({recommendations.length})
           </TabsTrigger>
@@ -88,7 +86,7 @@ export function AnalysisWorkspace({
                     {required.length} required competencies
                   </strong>
                   {', '}
-                  {preferred.length} preferred, and {bonus.length} bonus
+                  {preferred.length} preferred, and {contextual.length} contextual
                 </p>
                 <p>
                   <strong className="font-semibold text-ink-950">
@@ -119,14 +117,12 @@ export function AnalysisWorkspace({
 
         <TabsContent value="competencies">
           <div className="flex flex-col gap-8">
-            {required.length > 0 && (
-              <CompetencySection title="Required" competencies={required} />
-            )}
+            {required.length > 0 && <CompetencySection title="Required" competencies={required} />}
             {preferred.length > 0 && (
               <CompetencySection title="Preferred" competencies={preferred} />
             )}
-            {bonus.length > 0 && (
-              <CompetencySection title="Bonus" competencies={bonus} />
+            {contextual.length > 0 && (
+              <CompetencySection title="Contextual" competencies={contextual} />
             )}
           </div>
         </TabsContent>
@@ -244,8 +240,9 @@ interface CompetencyCardProps {
 function CompetencyCard({ competency }: CompetencyCardProps) {
   const strengthMap = {
     strong: { status: 'verified' as const, label: 'Strong' },
+    moderate: { status: 'weak' as const, label: 'Moderate' },
     weak: { status: 'weak' as const, label: 'Weak' },
-    unverified: { status: 'missing' as const, label: 'Unverified' },
+    none: { status: 'missing' as const, label: 'No Evidence' },
   };
   const { status, label } = strengthMap[competency.strength];
 
@@ -276,9 +273,7 @@ function CompetencyCard({ competency }: CompetencyCardProps) {
             </blockquote>
           ))}
           {competency.evidence.length > 2 && (
-            <p className="text-caption text-ink-700">
-              +{competency.evidence.length - 2} more
-            </p>
+            <p className="text-caption text-ink-700">+{competency.evidence.length - 2} more</p>
           )}
         </div>
       )}
@@ -332,17 +327,12 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
     <div
       className={cn(
         'rounded-lg border p-6',
-        isMissing
-          ? 'border-amber-700/20 bg-amber-50'
-          : 'border-line-200 bg-paper-0',
+        isMissing ? 'border-amber-700/20 bg-amber-50' : 'border-line-200 bg-paper-0',
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-4">
         <p className="text-small font-semibold text-ink-950">{recommendation.reason}</p>
-        <StatusBadge
-          status={isMissing ? 'missing' : 'rewording'}
-          className="shrink-0"
-        />
+        <StatusBadge status={isMissing ? 'missing' : 'rewording'} className="shrink-0" />
       </div>
 
       <div className="flex flex-col gap-3">

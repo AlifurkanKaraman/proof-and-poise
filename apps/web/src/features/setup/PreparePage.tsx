@@ -34,7 +34,8 @@ export default function PreparePage() {
   const startAnalysis = useStartAnalysis(sessionId ?? '');
 
   const isResumeValid =
-    resumeData.resumeText.length >= LIMITS.resumeText.min && resumeData.resumeText.length <= LIMITS.resumeText.max;
+    resumeData.resumeText.length >= LIMITS.resumeText.min &&
+    resumeData.resumeText.length <= LIMITS.resumeText.max;
 
   const isJobValid =
     jobData.company.trim().length > 0 &&
@@ -57,10 +58,13 @@ export default function PreparePage() {
     if (!isJobValid || !sessionId) return;
     try {
       await startAnalysis.mutateAsync({
-        resume: resumeData.resumeText,
-        job: jobData.jobDescription,
-        company: jobData.company,
-        role: jobData.role,
+        resume: { kind: 'text', text: resumeData.resumeText },
+        job: {
+          description: jobData.jobDescription,
+          company: jobData.company,
+          role: jobData.role,
+          interviewType: 'behavioral_mixed',
+        },
       });
       navigate(`/s/${sessionId}/analysis`);
     } catch {
@@ -92,7 +96,8 @@ export default function PreparePage() {
               rows={12}
               placeholder="Paste your resume here..."
               error={
-                resumeData.resumeText.length > 0 && resumeData.resumeText.length < LIMITS.resumeText.min
+                resumeData.resumeText.length > 0 &&
+                resumeData.resumeText.length < LIMITS.resumeText.min
                   ? `Resume must be at least ${LIMITS.resumeText.min} characters.`
                   : undefined
               }
@@ -146,7 +151,8 @@ export default function PreparePage() {
                 rows={10}
                 placeholder="Paste the job description here..."
                 error={
-                  jobData.jobDescription.length > 0 && jobData.jobDescription.length < LIMITS.jobText.min
+                  jobData.jobDescription.length > 0 &&
+                  jobData.jobDescription.length < LIMITS.jobText.min
                     ? `Job description must be at least ${LIMITS.jobText.min} characters.`
                     : undefined
                 }
