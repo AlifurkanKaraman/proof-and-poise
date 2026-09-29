@@ -1,13 +1,13 @@
 import { LIMITS, type Evaluation, type Turn } from '@proof-and-poise/shared';
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Page } from '../../app/Page';
 import { ErrorState } from '../../components/states/ErrorState';
 import { LoadingStage } from '../../components/states/LoadingStage';
 import { Button } from '../../components/ui/Button';
 import { SegmentedProgress, type Segment } from '../../components/ui/SegmentedProgress';
 import { userMessage } from '../../lib/api/errors';
-import { useInterview, useSubmitAnswer } from '../../lib/api/queries';
+import { useInterview, useStartPractice, useSubmitAnswer } from '../../lib/api/queries';
 import { AnswerPanel, type PanelAnswer } from './AnswerPanel';
 import { FeedbackCard } from './FeedbackCard';
 import { PrepTimer } from './PrepTimer';
@@ -29,6 +29,21 @@ export default function InterviewPage() {
 
   const interview = useInterview(sessionId);
   const submitAnswer = useSubmitAnswer(sessionId);
+
+  // "Practice again" from the report arrives as ?practice=<turnId> (Req 12.3, task 20).
+  const [searchParams] = useSearchParams();
+  const practiceId = searchParams.get('practice');
+  const startPractice = useStartPractice(sessionId);
+  const practiceStarted = useRef(false);
+  const { mutate: mutatePractice } = startPractice;
+  useEffect(() => {
+    if (!practiceId || practiceStarted.current) return;
+    practiceStarted.current = true;
+    mutatePractice(practiceId, {
+      // Drop the param so a reload does not create another attempt.
+      onSuccess: () => navigate(`/s/${sessionId}/interview`, { replace: true }),
+    });
+  }, [practiceId, mutatePractice, navigate, sessionId]);
 
   const [showTimer, setShowTimer] = useState(true);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -69,7 +84,19 @@ export default function InterviewPage() {
     setTranscript(undefined);
   };
 
-  if (interview.isLoading) {
+  if (practiceId && startPractice.isError) {
+    return (
+      <Page title="Practice">
+        <ErrorState
+          title="Could not start practice"
+          message={userMessage(startPractice.error)}
+          action={<Button onClick={goToReport}>Back to your report</Button>}
+        />
+      </Page>
+    );
+  }
+
+  if (interview.isLoading || (practiceId && !startPractice.isError)) {
     return (
       <Page title="Interview">
         <LoadingStage
