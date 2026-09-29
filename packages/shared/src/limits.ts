@@ -27,7 +27,8 @@ export const LIMITS = {
   },
   recording: { maxSeconds: 120 },
   answer: { min: 20, max: 3_000 },
-  confirmation: { min: 30, max: 500, maxPerSession: 3 },
+  /** `rewriteTimeoutSec` bounds the confirmRewrite model call inside the 25 s API Lambda. */
+  confirmation: { min: 30, max: 500, maxPerSession: 3, rewriteTimeoutSec: 15 },
   analysis: {
     competencies: { min: 6, max: 12 },
     keywords: { min: 8, max: 30 },

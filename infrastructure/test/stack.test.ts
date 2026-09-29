@@ -257,12 +257,27 @@ describe('ProofAndPoiseStack', () => {
     });
   });
 
-  it('lets the api invoke only the worker, and grants the api no Bedrock access', () => {
+  it('routes POST decision and confirmations (task 13)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/recommendations/{recId}/decision',
+      'POST /v1/sessions/{sessionId}/confirmations',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('lets the api invoke only the worker and call only the configured model (confirmRewrite)', () => {
     const statements = policyStatements('ApiFunction');
     const invoke = statements.filter((s) => actionsOf(s).includes('lambda:InvokeFunction'));
     expect(invoke).toHaveLength(1);
     expect(JSON.stringify(invoke[0]?.Resource)).toContain('AnalysisWorkerFunction');
-    expect(statements.flatMap(actionsOf).filter((a) => a.startsWith('bedrock:'))).toEqual([]);
+
+    const bedrockActions = statements.flatMap(actionsOf).filter((a) => a.startsWith('bedrock:'));
+    expect(bedrockActions).toEqual(['bedrock:InvokeModel']);
+    const bedrock = statements.find((s) => actionsOf(s).includes('bedrock:InvokeModel'))!;
+    const resources = JSON.stringify(bedrock.Resource);
+    expect(resources).toContain(':inference-profile/us.amazon.nova-lite-v1:0');
+    expect(resources).not.toMatch(/foundation-model\/\*|inference-profile\/\*/);
   });
 
   it('scopes worker grants to the table, resumes/*, and the Nova Lite ARNs (design §11)', () => {
