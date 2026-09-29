@@ -1,0 +1,154 @@
+/**
+ * Print stylesheet for readiness report (Req 12.4).
+ * Uses native browser printing, not PDF export.
+ */
+
+@media print {
+  /* Hide non-printable elements */
+  .print\\:hidden,
+  nav,
+  header,
+  footer,
+  button:not(.print-show),
+  [role="navigation"],
+  [role="banner"] {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* Reset containers */
+  .print-page {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Prevent page breaks inside elements */
+  .rounded-lg,
+  .border,
+  section,
+  article,
+  blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Remove backgrounds and adjust colors for print */
+  .bg-paper-0,
+  .bg-paper-50,
+  .bg-indigo-50,
+  .bg-emerald-50,
+  .bg-amber-50,
+  .bg-error-50 {
+    background: white !important;
+  }
+
+  .border-line-200,
+  .border-indigo-600\\/20,
+  .border-emerald-700\\/20,
+  .border-amber-700\\/20 {
+    border: 1px solid #ccc !important;
+  }
+
+  /* Ensure text is readable */
+  .text-ink-950,
+  .text-ink-700,
+  .text-ink-500,
+  .text-indigo-900,
+  .text-emerald-900,
+  .text-amber-900 {
+    color: black !important;
+  }
+
+  .text-indigo-600,
+  .text-indigo-700,
+  .text-emerald-700,
+  .text-amber-700,
+  .text-error-700 {
+    color: #333 !important;
+  }
+
+  /* Headers */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 18pt;
+    margin-bottom: 12pt;
+  }
+
+  h2 {
+    font-size: 14pt;
+    margin-bottom: 8pt;
+  }
+
+  h3 {
+    font-size: 12pt;
+    margin-bottom: 6pt;
+  }
+
+  /* Links */
+  a {
+    color: black;
+    text-decoration: none;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #666;
+  }
+
+  /* Score ring - ensure visibility */
+  svg {
+    max-width: 120px !important;
+  }
+
+  /* Tables and grids */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > * {
+    margin-bottom: 8pt;
+  }
+
+  /* Spacing */
+  .gap-8,
+  .gap-6,
+  .gap-4 {
+    gap: 12pt !important;
+  }
+
+  /* Accordions - force expand all in print */
+  [aria-expanded] {
+    display: block !important;
+  }
+
+  /* Remove interactive indicators */
+  .hover\\:bg-paper-50:hover {
+    background: white !important;
+  }
+
+  /* Footer on each page */
+  @bottom-center {
+    content: "Proof & Poise - Interview Readiness Report";
+    font-size: 9pt;
+    color: #666;
+  }
+}
