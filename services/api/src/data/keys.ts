@@ -9,6 +9,7 @@ export const SK = {
   meta: 'META',
   input: 'INPUT',
   analysis: 'ANALYSIS',
+  interview: 'INTERVIEW',
   report: 'REPORT',
   rate: 'RATE',
   budget: 'BUDGET',

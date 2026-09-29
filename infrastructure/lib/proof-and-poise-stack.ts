@@ -356,6 +356,8 @@ export class ProofAndPoiseStack extends Stack {
       ['/v1/sessions/{sessionId}/analysis', [HttpMethod.GET, HttpMethod.POST]],
       ['/v1/sessions/{sessionId}/recommendations/{recId}/decision', [HttpMethod.POST]],
       ['/v1/sessions/{sessionId}/confirmations', [HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/interview', [HttpMethod.GET, HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/turns/{turnId}/answer', [HttpMethod.POST]],
     ];
     for (const [path, methods] of apiRoutes) httpApi.addRoutes({ path, methods, integration });
 

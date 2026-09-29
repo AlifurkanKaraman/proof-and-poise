@@ -61,6 +61,8 @@ export const LIMITS = {
     prepTimerSec: 30,
     /** Bonus added to a competency's plan priority when the candidate flagged or confirmed it. */
     priorityBonus: 0.5,
+    /** Bounds each interview model call inside the 25 s API Lambda. */
+    modelTimeoutSec: 20,
   },
   quotas: {
     analyses: 2,

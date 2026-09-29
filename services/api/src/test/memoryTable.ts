@@ -59,6 +59,8 @@ export class MemoryTable {
           attr('#s') === values[':ready'] &&
           (item['rev'] === undefined || item['rev'] === values[':rev'])
         );
+      case 'attribute_exists(PK) AND rev = :rev':
+        return item !== undefined && item['rev'] === values[':rev'];
       case '#s IN (:queued, :running)':
         return [values[':queued'], values[':running']].includes(attr('#s'));
       case '#c < :max':

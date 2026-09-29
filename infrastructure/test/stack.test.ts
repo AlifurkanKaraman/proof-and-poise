@@ -266,6 +266,16 @@ describe('ProofAndPoiseStack', () => {
     }
   });
 
+  it('routes the interview start, read, and answer endpoints (task 17)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/interview',
+      'GET /v1/sessions/{sessionId}/interview',
+      'POST /v1/sessions/{sessionId}/turns/{turnId}/answer',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
   it('lets the api invoke only the worker and call only the configured model (confirmRewrite)', () => {
     const statements = policyStatements('ApiFunction');
     const invoke = statements.filter((s) => actionsOf(s).includes('lambda:InvokeFunction'));

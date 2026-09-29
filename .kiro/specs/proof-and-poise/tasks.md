@@ -108,7 +108,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Integrate task 15 against the real endpoints from 17 and 18. Test on Chrome, Firefox, desktop Safari, and iOS Safari. Test the microphone-denied path.
   - deps: 15, 17, 18. _Requirements: 10.2, 10.4_
 
-- [ ] 17. ⛓ [B] Interview API
+- [x] 17. ⛓ [B] Interview API
   - `POST/GET /interview` (the `generateQuestions` model call; server-side selection B1, R1, GAP, B2, R2; idempotent; locks decisions). `POST …/answer` (validation, quota, `evaluateAnswer`, weighted score computation, the follow-up rule, next turn, 409 on duplicates). Demo fallback to the labeled sample feedback on `UPSTREAM_UNAVAILABLE` or `CAPACITY_REACHED`.
   - Rubric and fairness prompt rules (no judgment of accent or fluency, no inferences). Unit tests with a mocked Bedrock client, including guaranteed-follow-up scenarios.
   - deps: 9, 13. _Requirements: 9.1, 9.3–9.4, 11.1–11.5, 13.4_
