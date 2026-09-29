@@ -113,9 +113,9 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Rubric and fairness prompt rules (no judgment of accent or fluency, no inferences). Unit tests with a mocked Bedrock client, including guaranteed-follow-up scenarios.
   - deps: 9, 13. _Requirements: 9.1, 9.3–9.4, 11.1–11.5, 13.4_
 
-- [ ] 18. ⛓ [B] Audio upload and transcription
+- [x] 18. ⛓ [B] Audio upload and transcription
   - Presigned audio POST (≤ 10 MB, allowed types). `POST …/transcription` (daily minute budget, `StartTranscriptionJob` with the output written to `transcripts/<sessionId>/`, and `IdentifyLanguage` off with `en-US`/`en-GB`/`en-IN` options documented). `GET …/transcription` (lazy poll; once done, read the transcript, then delete the audio, transcript, and job). Error mapping leads to the typed fallback.
-  - Verify the Transcribe → S3 permissions in dev with a real 10 s recording.
+  - Verify the Transcribe → S3 permissions in dev with a real 10 s recording. **Not done:** needs a deploy, which was not authorized. Code and IAM are covered by mocked-SDK and CDK assertion tests only.
   - deps: 8. _Requirements: 10.4, 10.6–10.7, 16.4_
 
 ## Phase 3: Report, hardening, release (D4–D5)

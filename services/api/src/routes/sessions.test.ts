@@ -1,5 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { LambdaClient } from '@aws-sdk/client-lambda';
+import { TranscribeClient } from '@aws-sdk/client-transcribe';
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import {
   BatchWriteCommand,
@@ -45,6 +46,7 @@ function router() {
       clients: {
         ddb: DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' })),
         lambda: new LambdaClient({ region: 'us-east-1' }),
+        transcribe: new TranscribeClient({ region: 'us-east-1' }),
         s3: new S3Client({
           region: 'us-east-1',
           credentials: { accessKeyId: 'test-key-id', secretAccessKey: 'test-secret' },

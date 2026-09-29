@@ -2,6 +2,7 @@ import { routes } from '@proof-and-poise/shared';
 import { AnalysisRepository } from './data/analysisRepository';
 import { QuotaCounters } from './data/quotas';
 import { SessionRepository } from './data/sessionRepository';
+import { TranscriptionRepository } from './data/transcriptionRepository';
 import { authenticate } from './lib/auth';
 import type { AwsClients } from './lib/aws';
 import type { Env } from './lib/env';
@@ -11,14 +12,16 @@ import type { SaltProvider } from './lib/salt';
 import { getAnalysis, startAnalysis } from './routes/analysis';
 import { health } from './routes/health';
 import { createSession, deleteSession, getSession } from './routes/sessions';
+import { getTranscription, presignAudio, startTranscription } from './routes/transcription';
 import { presignResume } from './routes/uploads';
 import { AnalysisService } from './services/analysisService';
 import { SessionService } from './services/sessionService';
+import { TranscriptionService } from './services/transcriptionService';
 import { UploadService } from './services/uploadService';
 
 export interface AppDeps {
   env: Pick<Env, 'TABLE_NAME' | 'BUCKET_NAME' | 'WORKER_FUNCTION_NAME'>;
-  clients: Pick<AwsClients, 'ddb' | 's3' | 'lambda'>;
+  clients: Pick<AwsClients, 'ddb' | 's3' | 'lambda' | 'transcribe'>;
   salt: SaltProvider;
   now?: () => number;
 }
@@ -49,6 +52,15 @@ export function createRouter(log: Logger = defaultLogger, deps?: AppDeps): Route
     log,
     now,
   });
+  const transcription = new TranscriptionService({
+    repo: new TranscriptionRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    quotas,
+    transcribe: deps.clients.transcribe,
+    s3: deps.clients.s3,
+    bucketName: deps.env.BUCKET_NAME,
+    log,
+    now,
+  });
 
   return new Router(log, (sessionId, headers) => authenticate(repo, sessionId, headers, now()))
     .add(routes.health, health)
@@ -57,5 +69,8 @@ export function createRouter(log: Logger = defaultLogger, deps?: AppDeps): Route
     .add(routes.deleteSession, deleteSession(sessions))
     .add(routes.presignResume, presignResume(uploads))
     .add(routes.startAnalysis, startAnalysis(analysis))
-    .add(routes.getAnalysis, getAnalysis(analysis));
+    .add(routes.getAnalysis, getAnalysis(analysis))
+    .add(routes.presignAudio, presignAudio(uploads))
+    .add(routes.startTranscription, startTranscription(transcription))
+    .add(routes.getTranscription, getTranscription(transcription));
 }

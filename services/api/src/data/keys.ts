@@ -36,6 +36,11 @@ export const ipRateKey = (ipHash: string, nowMs: number): ItemKey => ({
   SK: SK.rate,
 });
 
+export const transcriptionKey = (sessionId: string, turnId: string): ItemKey => ({
+  PK: sessionPk(sessionId),
+  SK: `TRANSCRIPTION#${turnId}`,
+});
+
 export const budgetKey = (nowMs: number): ItemKey => ({
   PK: `GLOBAL#${dayBucket(nowMs)}`,
   SK: SK.budget,

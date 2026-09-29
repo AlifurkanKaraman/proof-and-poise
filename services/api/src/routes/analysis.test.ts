@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import { TranscribeClient } from '@aws-sdk/client-transcribe';
 import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, S3Client } from '@aws-sdk/client-s3';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
@@ -73,7 +74,12 @@ const log = () => createLogger((l) => logLines.push(l));
 function router() {
   return createRouter(log(), {
     env: { TABLE_NAME: TABLE, BUCKET_NAME: BUCKET, WORKER_FUNCTION_NAME: WORKER },
-    clients: { ddb, s3, lambda: new LambdaClient({ region: 'us-east-1', credentials: creds }) },
+    clients: {
+      ddb,
+      s3,
+      lambda: new LambdaClient({ region: 'us-east-1', credentials: creds }),
+      transcribe: new TranscribeClient({ region: 'us-east-1', credentials: creds }),
+    },
     salt: () => Promise.resolve('s'.repeat(64)),
     now: () => now,
   });
