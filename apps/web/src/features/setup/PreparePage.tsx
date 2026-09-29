@@ -1,17 +1,13 @@
 import { Briefcase, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { LIMITS } from '@proof-and-poise/shared';
 import { Page } from '../../app/Page';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Stepper } from '../../components/ui/Stepper';
 import { Textarea } from '../../components/ui/Textarea';
 import { useCreateSession, useStartAnalysis } from '../../lib/api/queries';
-
-const RESUME_MIN = 200;
-const RESUME_MAX = 12_000;
-const JOB_MIN = 100;
-const JOB_MAX = 8_000;
 
 interface ResumeData {
   resumeText: string;
@@ -38,13 +34,13 @@ export default function PreparePage() {
   const startAnalysis = useStartAnalysis(sessionId ?? '');
 
   const isResumeValid =
-    resumeData.resumeText.length >= RESUME_MIN && resumeData.resumeText.length <= RESUME_MAX;
+    resumeData.resumeText.length >= LIMITS.resumeText.min && resumeData.resumeText.length <= LIMITS.resumeText.max;
 
   const isJobValid =
     jobData.company.trim().length > 0 &&
     jobData.role.trim().length > 0 &&
-    jobData.jobDescription.length >= JOB_MIN &&
-    jobData.jobDescription.length <= JOB_MAX;
+    jobData.jobDescription.length >= LIMITS.jobText.min &&
+    jobData.jobDescription.length <= LIMITS.jobText.max;
 
   const handleResumeNext = async () => {
     if (!isResumeValid) return;
@@ -90,14 +86,14 @@ export default function PreparePage() {
               hint="Paste your resume or a summary of your relevant experience. This is analyzed privately and never shared."
               value={resumeData.resumeText}
               onChange={(e) => setResumeData({ resumeText: e.target.value })}
-              minLength={RESUME_MIN}
-              maxLength={RESUME_MAX}
+              minLength={LIMITS.resumeText.min}
+              maxLength={LIMITS.resumeText.max}
               required
               rows={12}
               placeholder="Paste your resume here..."
               error={
-                resumeData.resumeText.length > 0 && resumeData.resumeText.length < RESUME_MIN
-                  ? `Resume must be at least ${RESUME_MIN} characters.`
+                resumeData.resumeText.length > 0 && resumeData.resumeText.length < LIMITS.resumeText.min
+                  ? `Resume must be at least ${LIMITS.resumeText.min} characters.`
                   : undefined
               }
             />
@@ -144,14 +140,14 @@ export default function PreparePage() {
                 hint="Paste the full job posting or key requirements. We'll analyze how well your background matches."
                 value={jobData.jobDescription}
                 onChange={(e) => setJobData({ ...jobData, jobDescription: e.target.value })}
-                minLength={JOB_MIN}
-                maxLength={JOB_MAX}
+                minLength={LIMITS.jobText.min}
+                maxLength={LIMITS.jobText.max}
                 required
                 rows={10}
                 placeholder="Paste the job description here..."
                 error={
-                  jobData.jobDescription.length > 0 && jobData.jobDescription.length < JOB_MIN
-                    ? `Job description must be at least ${JOB_MIN} characters.`
+                  jobData.jobDescription.length > 0 && jobData.jobDescription.length < LIMITS.jobText.min
+                    ? `Job description must be at least ${LIMITS.jobText.min} characters.`
                     : undefined
                 }
               />
