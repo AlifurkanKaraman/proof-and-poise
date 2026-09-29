@@ -2,6 +2,7 @@ import { routes } from '@proof-and-poise/shared';
 import { AnalysisRepository } from './data/analysisRepository';
 import { InterviewRepository } from './data/interviewRepository';
 import { QuotaCounters } from './data/quotas';
+import { ReportRepository } from './data/reportRepository';
 import { SessionRepository } from './data/sessionRepository';
 import { authenticate } from './lib/auth';
 import type { AwsClients } from './lib/aws';
@@ -13,11 +14,13 @@ import { getAnalysis, startAnalysis } from './routes/analysis';
 import { createConfirmation, decideRecommendation } from './routes/decisions';
 import { health } from './routes/health';
 import { getInterview, startInterview, submitAnswer } from './routes/interview';
+import { createReport, getReport, startPractice } from './routes/report';
 import { createSession, deleteSession, getSession } from './routes/sessions';
 import { presignResume } from './routes/uploads';
 import { AnalysisService } from './services/analysisService';
 import { DecisionService } from './services/decisionService';
 import { InterviewService } from './services/interviewService';
+import { ReportService } from './services/reportService';
 import { SessionService } from './services/sessionService';
 import { UploadService } from './services/uploadService';
 
@@ -79,6 +82,17 @@ export function createRouter(log: Logger = defaultLogger, deps?: AppDeps): Route
     now,
   });
 
+  const reports = new ReportService({
+    reports: new ReportRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    interviews: new InterviewRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    analyses: new AnalysisRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    sessions: repo,
+    quotas,
+    model: { bedrock: deps.clients.bedrock, modelId: deps.env.MODEL_ID, quotas, log, now },
+    log,
+    now,
+  });
+
   return new Router(log, (sessionId, headers) => authenticate(repo, sessionId, headers, now()))
     .add(routes.health, health)
     .add(routes.createSession, createSession(sessions))
@@ -91,5 +105,8 @@ export function createRouter(log: Logger = defaultLogger, deps?: AppDeps): Route
     .add(routes.createConfirmation, createConfirmation(decisions))
     .add(routes.startInterview, startInterview(interview))
     .add(routes.getInterview, getInterview(interview))
-    .add(routes.submitAnswer, submitAnswer(interview));
+    .add(routes.submitAnswer, submitAnswer(interview))
+    .add(routes.createReport, createReport(reports))
+    .add(routes.getReport, getReport(reports))
+    .add(routes.startPractice, startPractice(interview));
 }
