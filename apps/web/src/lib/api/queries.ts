@@ -11,12 +11,16 @@ import type {
   AnswerRequest,
   ConfirmationRequest,
   DecisionRequest,
+  JobInput,
+  ResumeInput,
   SessionMode,
 } from '@proof-and-poise/shared';
+import { LIMITS } from '@proof-and-poise/shared';
 import { clearSession, saveSession } from '../session';
 import { applyOptimisticDecision, mergeConfirmation, mergeDecision } from './cache';
 import { isApiError, isRetryable } from './errors';
 import { api } from './index';
+import { uploadToPresignedPost } from './upload';
 
 export const queryKeys = {
   session: (sessionId: string) => ['session', sessionId] as const,
@@ -77,6 +81,42 @@ export function useStartAnalysis(sessionId: string) {
       api.request('startAnalysis', { params: { sessionId }, body }),
     // Reset so polling restarts from the first backoff step.
     onSuccess: () => qc.resetQueries({ queryKey: queryKeys.analysis(sessionId) }),
+  });
+}
+
+/** Resume as chosen in setup: pasted text, or a PDF that still has to be uploaded. */
+export type SetupResume = { kind: 'text'; text: string } | { kind: 'file'; file: File };
+
+export interface SetupSubmission {
+  sessionId: string;
+  resume: SetupResume;
+  job: JobInput;
+}
+
+/**
+ * Setup kick-off (Req 4.1, 5.1): for a PDF, presign → POST the file → start the analysis
+ * with the upload key; for text, start the analysis directly. Resolves with the session ID.
+ */
+export function useSubmitSetup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ sessionId, resume, job }: SetupSubmission) => {
+      let input: ResumeInput;
+      if (resume.kind === 'file') {
+        const presigned = await api.request('presignResume', {
+          params: { sessionId },
+          body: { contentType: LIMITS.resumeUpload.contentType, size: resume.file.size },
+        });
+        await uploadToPresignedPost(presigned, resume.file);
+        input = { kind: 'upload', key: presigned.key };
+      } else {
+        input = resume;
+      }
+      await api.request('startAnalysis', { params: { sessionId }, body: { resume: input, job } });
+      return sessionId;
+    },
+    // Reset so polling restarts from the first backoff step.
+    onSuccess: (sessionId) => qc.resetQueries({ queryKey: queryKeys.analysis(sessionId) }),
   });
 }
 
