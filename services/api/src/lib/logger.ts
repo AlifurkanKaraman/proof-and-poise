@@ -18,6 +18,13 @@ export interface LogFields {
   inputTokens?: number;
   outputTokens?: number;
   durationMs?: number;
+  /** Model task name, e.g. `analyze` (design §7.2). */
+  task?: string;
+  /** 1-based model call attempt (1 = first call, 2 = repair retry). */
+  attempt?: number;
+  /** Counts only, never content (design §7.4). */
+  discardedQuotes?: number;
+  discardedRecommendations?: number;
 }
 
 type FieldKind = 'string' | 'number';
@@ -31,6 +38,10 @@ const ALLOWED: Record<keyof LogFields, FieldKind> = {
   inputTokens: 'number',
   outputTokens: 'number',
   durationMs: 'number',
+  task: 'string',
+  attempt: 'number',
+  discardedQuotes: 'number',
+  discardedRecommendations: 'number',
 };
 
 /** Allowlisted string values must look like identifiers, not free text. */

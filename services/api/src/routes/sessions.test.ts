@@ -1,4 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { LambdaClient } from '@aws-sdk/client-lambda';
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import {
   BatchWriteCommand,
@@ -40,9 +41,10 @@ function router() {
   return createRouter(
     createLogger((l) => logLines.push(l)),
     {
-      env: { TABLE_NAME: TABLE, BUCKET_NAME: BUCKET },
+      env: { TABLE_NAME: TABLE, BUCKET_NAME: BUCKET, WORKER_FUNCTION_NAME: 'worker-test' },
       clients: {
         ddb: DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' })),
+        lambda: new LambdaClient({ region: 'us-east-1' }),
         s3: new S3Client({
           region: 'us-east-1',
           credentials: { accessKeyId: 'test-key-id', secretAccessKey: 'test-secret' },

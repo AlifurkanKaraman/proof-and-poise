@@ -23,11 +23,20 @@ export const EnvSchema = z.object({
   ALLOWED_ORIGINS: csv,
   /** SSM parameter name holding the IP-hash salt; the value is read at cold start (Req 16.3). */
   IP_HASH_SALT_PARAM: z.string().regex(/^\/[A-Za-z0-9_.\-/]{1,1010}$/),
-  // Added by the analysis-worker task. Optional until then.
-  WORKER_FUNCTION_NAME: z.string().min(1).optional(),
+  /** Analysis worker, invoked asynchronously by `POST /analysis` (design §2). */
+  WORKER_FUNCTION_NAME: z.string().min(1).max(140),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+/** The analysis worker only needs storage and the model (design §11). */
+export const WorkerEnvSchema = EnvSchema.pick({
+  APP_STAGE: true,
+  TABLE_NAME: true,
+  BUCKET_NAME: true,
+  MODEL_ID: true,
+});
+export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;
 
 export class EnvError extends Error {
   override readonly name = 'EnvError';
@@ -40,7 +49,18 @@ export class EnvError extends Error {
 }
 
 export function loadEnv(source: Record<string, string | undefined>): Env {
-  const result = EnvSchema.safeParse(source);
+  return parseEnv(EnvSchema, source);
+}
+
+export function loadWorkerEnv(source: Record<string, string | undefined>): WorkerEnv {
+  return parseEnv(WorkerEnvSchema, source);
+}
+
+function parseEnv<S extends z.ZodType>(
+  schema: S,
+  source: Record<string, string | undefined>,
+): z.infer<S> {
+  const result = schema.safeParse(source);
   if (!result.success) {
     const keys = [...new Set(result.error.issues.map((i) => String(i.path[0] ?? '?')))];
     throw new EnvError(keys);

@@ -42,6 +42,19 @@ describe('logger redaction (Req 15.3)', () => {
     expect(pickAllowed({ latencyMs: Number.NaN, inputTokens: 12 })).toEqual({ inputTokens: 12 });
   });
 
+  it('keeps model-call counters but drops model content fields', () => {
+    expect(
+      pickAllowed({
+        task: 'analyze',
+        attempt: 2,
+        discardedQuotes: 3,
+        discardedRecommendations: 1,
+        toolInput: { quote: SECRET_RESUME },
+        validationIssues: ['competencies.0.name: too_big'],
+      }),
+    ).toEqual({ task: 'analyze', attempt: 2, discardedQuotes: 3, discardedRecommendations: 1 });
+  });
+
   it('logs errors as { code, name } only, never the message or stack', () => {
     const { lines, log } = capture();
     const err = Object.assign(new Error(`Validation failed for ${SECRET_ANSWER}`), {

@@ -1,7 +1,7 @@
 /**
- * ProofAndPoiseStack: walking skeleton (task 4).
- * DynamoDB single table, private upload bucket, `api` Lambda, and an HTTP API with
- * stage throttling. No VPC, no NAT, no always-on compute (Req 16.6).
+ * ProofAndPoiseStack: DynamoDB single table, private upload bucket, the `api` Lambda, the
+ * async `analysis-worker` Lambda (task 9), and an HTTP API with stage throttling.
+ * No VPC, no NAT, no always-on compute (Req 16.6).
  */
 import { fileURLToPath } from 'node:url';
 import {
@@ -40,6 +40,32 @@ const repoPath = (rel: string) => fileURLToPath(new URL(`../../${rel}`, import.m
 
 export const API_THROTTLE = { rateLimit: 10, burstLimit: 20 } as const;
 export const EPHEMERAL_PREFIXES = ['resumes/', 'audio/', 'transcripts/'] as const;
+
+/** Regions each cross-Region inference profile prefix can route to (us-east-1 stacks). */
+const PROFILE_REGIONS: Record<string, readonly string[]> = {
+  us: ['us-east-1', 'us-east-2', 'us-west-2'],
+};
+
+/**
+ * IAM resources for Converse on `modelId` (Req 15.2). A profile ID like
+ * `us.amazon.nova-lite-v1:0` needs the inference-profile ARN and the underlying
+ * foundation-model ARN in every Region the profile routes to; a bare model ID needs only
+ * the foundation model in this Region.
+ */
+export function bedrockModelArns(stack: Stack, modelId: string): string[] {
+  const geo = /^([a-z]+)\.(.+)$/.exec(modelId);
+  const profileRegions = geo ? PROFILE_REGIONS[geo[1] ?? ''] : undefined;
+  const foundationModel = geo?.[2];
+  if (!profileRegions || !foundationModel) {
+    return [`arn:${stack.partition}:bedrock:${stack.region}::foundation-model/${modelId}`];
+  }
+  return [
+    `arn:${stack.partition}:bedrock:${stack.region}:${stack.account}:inference-profile/${modelId}`,
+    ...profileRegions.map(
+      (r) => `arn:${stack.partition}:bedrock:${r}::foundation-model/${foundationModel}`,
+    ),
+  ];
+}
 
 /** SSM parameter holding the IP-hash salt (Req 16.3, design §11). */
 export const saltParameterName = (stage: string) => `/proof-and-poise/${stage}/ip-hash-salt`;
@@ -202,8 +228,44 @@ export class ProofAndPoiseStack extends Stack {
     // The salt must exist before the api reads it at cold start.
     apiFn.node.addDependency(salt);
 
+    // --- analysis worker Lambda (design §2): invoked asynchronously by POST /analysis ----
+    const workerFn = new NodejsFunction(this, 'AnalysisWorkerFunction', {
+      functionName: `${prefix}-analysis-worker`,
+      entry: repoPath('services/api/src/handlers/analysisWorker.ts'),
+      handler: 'handler',
+      projectRoot: repoPath(''),
+      depsLockFilePath: repoPath('pnpm-lock.yaml'),
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.ARM_64,
+      memorySize: 1024,
+      timeout: Duration.seconds(90),
+      // The worker records `failed` itself and ignores non-queued analyses, so Lambda's
+      // async retries would only add cost. A lost run shows as failed after 120 s (Req 5.5).
+      retryAttempts: 0,
+      logGroup: new LogGroup(this, 'AnalysisWorkerLogs', {
+        logGroupName: `/aws/lambda/${prefix}-analysis-worker`,
+        retention: RetentionDays.TWO_WEEKS,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
+      environment: {
+        APP_STAGE: stage,
+        TABLE_NAME: table.tableName,
+        BUCKET_NAME: bucket.bucketName,
+        MODEL_ID: modelId,
+        NODE_OPTIONS: '--enable-source-maps',
+      },
+      bundling: {
+        format: OutputFormat.CJS,
+        target: 'node22',
+        minify: true,
+        sourceMap: true,
+        externalModules: [],
+      },
+    });
+    apiFn.addEnvironment('WORKER_FUNCTION_NAME', workerFn.functionName);
+
     // Least privilege (Req 15.2, design §11). Grants arrive with the routes that need them;
-    // Bedrock, Transcribe, and worker invoke come in later tasks.
+    // api-side Bedrock and Transcribe come in later tasks.
     // Sessions, auth, quotas, rate limit, and global budget (task 8).
     table.grant(
       apiFn,
@@ -239,6 +301,26 @@ export class ProofAndPoiseStack extends Stack {
     apiFn.addToRolePolicy(
       new PolicyStatement({ actions: ['ssm:GetParameter'], resources: [saltParamArn] }),
     );
+    // POST /analysis invokes the worker asynchronously (task 9). Only this function.
+    workerFn.grantInvoke(apiFn);
+
+    // Worker: its own session items and the global budget counter (task 9).
+    table.grant(workerFn, 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem');
+    // Read the uploaded resume, then delete it (Req 4.3).
+    workerFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:GetObject', 's3:DeleteObject'],
+        resources: [bucket.arnForObjects('resumes/*')],
+      }),
+    );
+    // Converse on the configured model only: the cross-Region inference profile plus the
+    // foundation model in each Region the profile routes to (design §11).
+    workerFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['bedrock:InvokeModel'],
+        resources: bedrockModelArns(this, modelId),
+      }),
+    );
 
     // --- HTTP API with stage throttling (Req 16.1) and CORS allowlist (Req 15.6) ------
     const httpApi = new HttpApi(this, 'HttpApi', {
@@ -263,6 +345,7 @@ export class ProofAndPoiseStack extends Stack {
       ['/v1/sessions', [HttpMethod.POST]],
       ['/v1/sessions/{sessionId}', [HttpMethod.GET, HttpMethod.DELETE]],
       ['/v1/sessions/{sessionId}/uploads/resume', [HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/analysis', [HttpMethod.GET, HttpMethod.POST]],
     ];
     for (const [path, methods] of apiRoutes) httpApi.addRoutes({ path, methods, integration });
 

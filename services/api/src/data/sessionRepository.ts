@@ -7,6 +7,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
 import {
@@ -86,6 +87,20 @@ export class SessionRepository {
       expiresAt: String(item['expiresAt']),
       ttl: Number(item['ttl']),
     };
+  }
+
+  /** Updates the stage used to restore the user after a reload (Req 2.6). */
+  async setStage(sessionId: string, stage: SessionStage): Promise<void> {
+    await this.ddb.send(
+      new UpdateCommand({
+        TableName: this.tableName,
+        Key: metaKey(sessionId),
+        UpdateExpression: 'SET #st = :stage',
+        ConditionExpression: 'attribute_exists(PK)',
+        ExpressionAttributeNames: { '#st': 'stage' },
+        ExpressionAttributeValues: { ':stage': stage },
+      }),
+    );
   }
 
   /** Deletes every item under the session PK (Query + BatchWrite, Req 2.5). Returns the count. */
