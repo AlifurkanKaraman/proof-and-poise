@@ -37,6 +37,31 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  e2e:
+    name: E2E and accessibility (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @proof-and-poise/web exec playwright install --with-deps chromium webkit
+      - run: pnpm --filter @proof-and-poise/web e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
   secrets:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
