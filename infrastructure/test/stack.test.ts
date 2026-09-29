@@ -1,8 +1,8 @@
-import { App } from 'aws-cdk-lib';
+import { App, Stack } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { resolveConfig } from '../lib/config';
-import { ProofAndPoiseStack } from '../lib/proof-and-poise-stack';
+import { bedrockModelArns, ProofAndPoiseStack } from '../lib/proof-and-poise-stack';
 
 let template: Template;
 
@@ -36,6 +36,35 @@ function allIamActions(): string[] {
     Array.isArray(s.Action) ? s.Action : s.Action ? [s.Action] : [],
   );
 }
+
+type PolicyStatementJson = { Action: string | string[]; Resource: unknown; Condition?: unknown };
+
+const actionsOf = (s: PolicyStatementJson) => (Array.isArray(s.Action) ? s.Action : [s.Action]);
+
+/** Statements of the inline policy attached to the role of the function with this logical ID prefix. */
+function policyStatements(fnLogicalId: string): PolicyStatementJson[] {
+  const policy = Object.values(template.findResources('AWS::IAM::Policy')).find((p) =>
+    JSON.stringify(p.Properties.Roles).includes(`${fnLogicalId}ServiceRole`),
+  );
+  expect(policy).toBeDefined();
+  return policy!.Properties.PolicyDocument.Statement as PolicyStatementJson[];
+}
+
+describe('bedrockModelArns', () => {
+  it('uses only the in-Region foundation model for a bare model ID', () => {
+    const stack = new Stack(new App(), 'Bare', { env: { region: 'us-east-1' } });
+    const arns = bedrockModelArns(stack, 'amazon.nova-lite-v1:0');
+    expect(arns).toHaveLength(1);
+    expect(arns[0]).toMatch(/:bedrock:us-east-1::foundation-model\/amazon\.nova-lite-v1:0$/);
+  });
+
+  it('adds the inference profile and its US Regions for a us. profile ID', () => {
+    const stack = new Stack(new App(), 'Profile', { env: { region: 'us-east-1' } });
+    const arns = bedrockModelArns(stack, 'us.amazon.nova-lite-v1:0');
+    expect(arns).toHaveLength(4);
+    expect(arns[0]).toMatch(/:inference-profile\/us\.amazon\.nova-lite-v1:0$/);
+  });
+});
 
 describe('ProofAndPoiseStack', () => {
   it('has no NAT gateway or VPC (Req 16.6)', () => {
@@ -188,6 +217,78 @@ describe('ProofAndPoiseStack', () => {
       ':parameter/proof-and-poise/dev/ip-hash-salt',
     );
     expect(byAction('ssm:PutParameter')).toBeUndefined();
+  });
+
+  it('runs the analysis worker on arm64 nodejs22.x, 1024 MB, 90 s, no retries (task 9)', () => {
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'proof-and-poise-dev-analysis-worker',
+      Runtime: 'nodejs22.x',
+      Architectures: ['arm64'],
+      MemorySize: 1024,
+      Timeout: 90,
+      Environment: {
+        Variables: Match.objectLike({ MODEL_ID: 'us.amazon.nova-lite-v1:0', APP_STAGE: 'dev' }),
+      },
+    });
+    template.hasResourceProperties('AWS::Lambda::EventInvokeConfig', {
+      MaximumRetryAttempts: 0,
+    });
+    template.hasResourceProperties('AWS::Logs::LogGroup', {
+      LogGroupName: '/aws/lambda/proof-and-poise-dev-analysis-worker',
+      RetentionInDays: 14,
+    });
+    // No reserved concurrency while the account limit is 10 (product.md).
+    const fns = Object.values(template.findResources('AWS::Lambda::Function'));
+    expect(fns.some((f) => f.Properties.ReservedConcurrentExecutions !== undefined)).toBe(false);
+  });
+
+  it('routes POST and GET /analysis and tells the api which worker to invoke', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/analysis',
+      'GET /v1/sessions/{sessionId}/analysis',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'proof-and-poise-dev-api',
+      Environment: {
+        Variables: Match.objectLike({ WORKER_FUNCTION_NAME: Match.anyValue() }),
+      },
+    });
+  });
+
+  it('lets the api invoke only the worker, and grants the api no Bedrock access', () => {
+    const statements = policyStatements('ApiFunction');
+    const invoke = statements.filter((s) => actionsOf(s).includes('lambda:InvokeFunction'));
+    expect(invoke).toHaveLength(1);
+    expect(JSON.stringify(invoke[0]?.Resource)).toContain('AnalysisWorkerFunction');
+    expect(statements.flatMap(actionsOf).filter((a) => a.startsWith('bedrock:'))).toEqual([]);
+  });
+
+  it('scopes worker grants to the table, resumes/*, and the Nova Lite ARNs (design §11)', () => {
+    const statements = policyStatements('AnalysisWorkerFunction');
+    const byAction = (a: string) => statements.find((s) => actionsOf(s).includes(a));
+    expect(actionsOf(byAction('dynamodb:GetItem')!)).toEqual([
+      'dynamodb:GetItem',
+      'dynamodb:PutItem',
+      'dynamodb:UpdateItem',
+    ]);
+    const s3 = byAction('s3:GetObject')!;
+    expect(actionsOf(s3)).toEqual(['s3:GetObject', 's3:DeleteObject']);
+    expect(JSON.stringify(s3.Resource)).toContain('/resumes/*');
+    expect(JSON.stringify(s3.Resource)).not.toMatch(/audio|transcripts/);
+
+    const bedrock = byAction('bedrock:InvokeModel')!;
+    expect(actionsOf(bedrock)).toEqual(['bedrock:InvokeModel']);
+    const resources = JSON.stringify(bedrock.Resource);
+    expect(resources).toContain(':inference-profile/us.amazon.nova-lite-v1:0');
+    for (const region of ['us-east-1', 'us-east-2', 'us-west-2']) {
+      expect(resources).toContain(`:bedrock:${region}::foundation-model/amazon.nova-lite-v1:0`);
+    }
+    expect(resources).not.toMatch(/foundation-model\/\*|inference-profile\/\*/);
+    const actions = statements.flatMap(actionsOf);
+    expect(actions).not.toContain('s3:PutObject');
+    expect(actions).not.toContain('lambda:InvokeFunction');
   });
 
   it('grants no bedrock:* or * wildcard actions', () => {

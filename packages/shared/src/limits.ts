@@ -37,6 +37,11 @@ export const LIMITS = {
     minExtractedChars: 200,
     /** Target end-to-end time budget (Req 5.5). */
     timeoutSec: 60,
+    /**
+     * A queued or running analysis older than this is reported as failed (lost async
+     * invoke or a worker that hit its Lambda timeout), so the client can retry (Req 5.5).
+     */
+    staleAfterSec: 120,
   },
   grounding: {
     /** Quotes shorter than this never count as grounded (design §7.4). */

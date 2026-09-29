@@ -69,7 +69,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - `POST/GET/DELETE /sessions` (token hash, TTL, demo seeding, IP-hash rate limit with the SSM salt), the bearer auth middleware, the quota counter helper, the global budget counter, and the presigned resume POST (300 s, size and type conditions, session-scoped key).
   - deps: 3, 4. _Requirements: 2.1–2.5, 4.1–4.2, 16.2–16.4_
 
-- [ ] 9. ⛓ [B] Bedrock structured invocation and the analysis worker
+- [x] 9. ⛓ [B] Bedrock structured invocation and the analysis worker
   - `invokeStructured` (Converse, forced tool use, zod-to-json-schema, maxTokens and temperature per task, one repair retry, token-count logging only, budget check).
   - The worker Lambda: fetch the PDF → check magic bytes → run `unpdf` extraction (≤ 4 pages) → **delete the object** → truncate the text → call the model → apply the grounding filters, strength caps, and label validation → compute parseability, keywords, and scores → persist. `POST/GET /analysis` with async invoke and status stages.
   - Evaluate the prompt against the demo fixture plus 3 varied sample resumes. Record the pass rate in `docs/`.
