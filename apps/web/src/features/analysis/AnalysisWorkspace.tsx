@@ -1,9 +1,9 @@
 import { Award, Lightbulb, Target } from 'lucide-react';
-import type { EvidenceMap } from '@proof-and-poise/shared';
+import type { EvidenceMap, Strength } from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
 import { ScoreRing } from '../../components/ui/ScoreRing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
-import { StatusBadge } from '../../components/ui/StatusBadge';
+import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
 
 interface AnalysisWorkspaceProps {
@@ -22,7 +22,7 @@ export function AnalysisWorkspace({
   // Group competencies by importance
   const required = competencies.filter((c) => c.importance === 'required');
   const preferred = competencies.filter((c) => c.importance === 'preferred');
-  const bonus = competencies.filter((c) => c.importance === 'bonus');
+  const contextual = competencies.filter((c) => c.importance === 'contextual');
 
   // Group recommendations by trust label
   const missingEvidence = recommendations.filter((r) => r.trustLabel === 'missing_evidence');
@@ -38,9 +38,7 @@ export function AnalysisWorkspace({
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="competencies">
-            Competencies ({competencies.length})
-          </TabsTrigger>
+          <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
           <TabsTrigger value="recommendations">
             Recommendations ({recommendations.length})
           </TabsTrigger>
@@ -88,7 +86,7 @@ export function AnalysisWorkspace({
                     {required.length} required competencies
                   </strong>
                   {', '}
-                  {preferred.length} preferred, and {bonus.length} bonus
+                  {preferred.length} preferred, and {contextual.length} contextual
                 </p>
                 <p>
                   <strong className="font-semibold text-ink-950">
@@ -119,14 +117,12 @@ export function AnalysisWorkspace({
 
         <TabsContent value="competencies">
           <div className="flex flex-col gap-8">
-            {required.length > 0 && (
-              <CompetencySection title="Required" competencies={required} />
-            )}
+            {required.length > 0 && <CompetencySection title="Required" competencies={required} />}
             {preferred.length > 0 && (
               <CompetencySection title="Preferred" competencies={preferred} />
             )}
-            {bonus.length > 0 && (
-              <CompetencySection title="Bonus" competencies={bonus} />
+            {contextual.length > 0 && (
+              <CompetencySection title="Contextual" competencies={contextual} />
             )}
           </div>
         </TabsContent>
@@ -179,7 +175,7 @@ export function AnalysisWorkspace({
                     {keyword.term}
                   </p>
                   {keyword.required && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-caption font-medium text-amber-700">
+                    <span className="rounded border border-amber-700/20 bg-amber-50 px-1.5 py-0.5 text-caption font-medium text-amber-700">
                       Required
                     </span>
                   )}
@@ -208,7 +204,7 @@ function ScoreCard({ label, value, icon: Icon, description }: ScoreCardProps) {
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg border border-line-200 bg-paper-0 p-6">
       <div className="flex w-full items-center justify-between">
-        <Icon className="size-5 text-indigo-600" />
+        <Icon aria-hidden="true" className="size-5 text-indigo-600" />
         <ScoreRing value={value} label="" size={64} tone={tone} />
       </div>
       <div className="w-full">
@@ -241,13 +237,16 @@ interface CompetencyCardProps {
   competency: EvidenceMap['competencies'][number];
 }
 
+/** Every contract strength gets an icon + text badge, never color alone (Req 14.3, design §9.3). */
+export const STRENGTH_BADGES: Record<Strength, { status: EvidenceStatus; label: string }> = {
+  strong: { status: 'verified', label: 'Strong evidence' },
+  moderate: { status: 'verified', label: 'Moderate evidence' },
+  weak: { status: 'weak', label: 'Weak evidence' },
+  none: { status: 'missing', label: 'No evidence' },
+};
+
 function CompetencyCard({ competency }: CompetencyCardProps) {
-  const strengthMap = {
-    strong: { status: 'verified' as const, label: 'Strong' },
-    weak: { status: 'weak' as const, label: 'Weak' },
-    unverified: { status: 'missing' as const, label: 'Unverified' },
-  };
-  const { status, label } = strengthMap[competency.strength];
+  const { status, label } = STRENGTH_BADGES[competency.strength];
 
   return (
     <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
@@ -271,14 +270,12 @@ function CompetencyCard({ competency }: CompetencyCardProps) {
             >
               "{evidence.quote}"
               <footer className="mt-1 text-caption not-italic text-ink-700">
-                — {evidence.source === 'resume' ? 'From Resume' : 'Confirmed by you'}
+                — {evidence.source === 'resume' ? 'From your resume' : 'Confirmed by you'}
               </footer>
             </blockquote>
           ))}
           {competency.evidence.length > 2 && (
-            <p className="text-caption text-ink-700">
-              +{competency.evidence.length - 2} more
-            </p>
+            <p className="text-caption text-ink-700">+{competency.evidence.length - 2} more</p>
           )}
         </div>
       )}
@@ -332,17 +329,12 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
     <div
       className={cn(
         'rounded-lg border p-6',
-        isMissing
-          ? 'border-amber-700/20 bg-amber-50'
-          : 'border-line-200 bg-paper-0',
+        isMissing ? 'border-amber-700/20 bg-amber-50' : 'border-line-200 bg-paper-0',
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-4">
         <p className="text-small font-semibold text-ink-950">{recommendation.reason}</p>
-        <StatusBadge
-          status={isMissing ? 'missing' : 'rewording'}
-          className="shrink-0"
-        />
+        <StatusBadge status={isMissing ? 'missing' : 'rewording'} className="shrink-0" />
       </div>
 
       <div className="flex flex-col gap-3">

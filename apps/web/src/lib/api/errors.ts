@@ -55,6 +55,11 @@ const USER_MESSAGES: Record<ErrorCode, string> = {
   INTERNAL: 'Something went wrong on our side. Try again.',
 };
 
+/** Message for an error code reported in a status body, e.g. a failed analysis. */
+export function codeMessage(code: ErrorCode): string {
+  return USER_MESSAGES[code];
+}
+
 export function userMessage(error: unknown): string {
   if (!isApiError(error)) return USER_MESSAGES.INTERNAL;
   if (error.kind === 'network')
