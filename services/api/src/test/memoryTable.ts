@@ -4,7 +4,7 @@
  * anything else so tests can't silently pass against unmodeled behavior.
  */
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import type { AwsStub } from 'aws-sdk-client-mock';
 
 type Item = Record<string, unknown>;
@@ -36,6 +36,10 @@ export class MemoryTable {
       const existing = this.items.get(key(input.Item));
       if (!this.condition(input.ConditionExpression, existing, input)) throw failed();
       this.put(input.Item);
+      return {};
+    });
+    mock.on(DeleteCommand).callsFake(({ Key }: { Key: Item }) => {
+      this.items.delete(key(Key));
       return {};
     });
     mock.on(UpdateCommand).callsFake((input: UpdateInput) => this.update(input));

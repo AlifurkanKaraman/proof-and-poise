@@ -171,6 +171,46 @@ describe('ProofAndPoiseStack', () => {
     }
   });
 
+  it('routes audio upload and transcription start/poll (task 18)', () => {
+    for (const key of [
+      'POST /v1/sessions/{sessionId}/turns/{turnId}/uploads/audio',
+      'POST /v1/sessions/{sessionId}/turns/{turnId}/transcription',
+      'GET /v1/sessions/{sessionId}/turns/{turnId}/transcription',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: key });
+    }
+  });
+
+  it('grants the api audio/transcript S3 access and exactly three Transcribe job actions (task 18)', () => {
+    const statements = policyStatements('ApiFunction');
+    const withAction = (a: string) =>
+      statements.filter((s) => actionsOf(s).includes(a)).map((s) => JSON.stringify(s.Resource));
+
+    // Presigning audio and Transcribe's transcript write: audio/* and transcripts/* only.
+    expect(withAction('s3:PutObject').some((r) => /audio\/\*.*transcripts\/\*/.test(r))).toBe(true);
+    const gets = withAction('s3:GetObject').join('');
+    expect(gets).toContain('/audio/*');
+    expect(gets).toContain('/transcripts/*');
+    expect(gets).not.toContain('/resumes/*');
+
+    const transcribe = statements.find((s) =>
+      actionsOf(s).includes('transcribe:GetTranscriptionJob'),
+    );
+    expect(actionsOf(transcribe!)).toEqual([
+      'transcribe:StartTranscriptionJob',
+      'transcribe:GetTranscriptionJob',
+      'transcribe:DeleteTranscriptionJob',
+    ]);
+    // The service has no resource-level permissions for job APIs (documented in the stack).
+    expect(transcribe!.Resource).toBe('*');
+    // The worker gets no Transcribe access.
+    expect(
+      policyStatements('AnalysisWorkerFunction')
+        .flatMap(actionsOf)
+        .filter((a) => a.startsWith('transcribe:')),
+    ).toEqual([]);
+  });
+
   it('passes the salt parameter name, not the salt, to the api Lambda (Req 16.3)', () => {
     template.hasResourceProperties('AWS::Lambda::Function', {
       FunctionName: 'proof-and-poise-dev-api',

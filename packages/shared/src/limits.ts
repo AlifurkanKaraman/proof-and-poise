@@ -26,6 +26,15 @@ export const LIMITS = {
     presignExpiresSec: 300,
   },
   recording: { maxSeconds: 120 },
+  /**
+   * Amazon Transcribe batch settings (Req 10.4). `IdentifyLanguage` is off: identification
+   * adds latency and can pick the wrong language for short clips. Jobs use `languageCode`;
+   * `en-GB` and `en-IN` are the supported alternatives if a demo needs them.
+   */
+  transcribe: {
+    languageCode: 'en-US',
+    alternativeLanguageCodes: ['en-GB', 'en-IN'],
+  },
   answer: { min: 20, max: 3_000 },
   /** `rewriteTimeoutSec` bounds the confirmRewrite model call inside the 25 s API Lambda. */
   confirmation: { min: 30, max: 500, maxPerSession: 3, rewriteTimeoutSec: 15 },

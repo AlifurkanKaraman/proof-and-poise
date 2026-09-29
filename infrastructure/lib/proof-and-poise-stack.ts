@@ -265,7 +265,7 @@ export class ProofAndPoiseStack extends Stack {
     apiFn.addEnvironment('WORKER_FUNCTION_NAME', workerFn.functionName);
 
     // Least privilege (Req 15.2, design §11). Grants arrive with the routes that need them;
-    // api-side Transcribe comes in a later task; Bedrock is for confirmRewrite only (task 13).
+    // api-side Bedrock is for confirmRewrite and the interview (tasks 13, 17); Transcribe for task 18.
     // Sessions, auth, quotas, rate limit, and global budget (task 8).
     table.grant(
       apiFn,
@@ -281,6 +281,34 @@ export class ProofAndPoiseStack extends Stack {
       new PolicyStatement({
         actions: ['s3:PutObject'],
         resources: [bucket.arnForObjects('resumes/*')],
+      }),
+    );
+    // Audio answers (task 18, Req 10.4, 10.6). The role signs the presigned audio POST
+    // (PutObject on audio/*), reads the finished transcript, and Transcribe reads the audio and
+    // writes the transcript with these same caller permissions (no separate data-access
+    // role; the write to transcripts/* is what the dev verification in task 18 confirms).
+    apiFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:PutObject'],
+        resources: [bucket.arnForObjects('audio/*'), bucket.arnForObjects('transcripts/*')],
+      }),
+    );
+    apiFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: [bucket.arnForObjects('audio/*'), bucket.arnForObjects('transcripts/*')],
+      }),
+    );
+    // Transcribe job APIs don't support resource-level permissions, so `*` is required
+    // (design §11). Only these three actions; no ListTranscriptionJobs or vocabulary APIs.
+    apiFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          'transcribe:StartTranscriptionJob',
+          'transcribe:GetTranscriptionJob',
+          'transcribe:DeleteTranscriptionJob',
+        ],
+        resources: ['*'],
       }),
     );
     // DELETE /sessions/{id}: list and delete the session's objects (Req 2.5).
@@ -358,6 +386,8 @@ export class ProofAndPoiseStack extends Stack {
       ['/v1/sessions/{sessionId}/confirmations', [HttpMethod.POST]],
       ['/v1/sessions/{sessionId}/interview', [HttpMethod.GET, HttpMethod.POST]],
       ['/v1/sessions/{sessionId}/turns/{turnId}/answer', [HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/turns/{turnId}/uploads/audio', [HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/turns/{turnId}/transcription', [HttpMethod.GET, HttpMethod.POST]],
     ];
     for (const [path, methods] of apiRoutes) httpApi.addRoutes({ path, methods, integration });
 

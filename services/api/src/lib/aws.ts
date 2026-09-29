@@ -4,6 +4,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SSMClient } from '@aws-sdk/client-ssm';
+import { TranscribeClient } from '@aws-sdk/client-transcribe';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 export interface AwsClients {
@@ -13,6 +14,7 @@ export interface AwsClients {
   lambda: LambdaClient;
   /** Only `POST /confirmations` calls the model from the API (design §7, confirmRewrite). */
   bedrock: BedrockRuntimeClient;
+  transcribe: TranscribeClient;
 }
 
 export interface WorkerClients {
@@ -34,6 +36,7 @@ export function createAwsClients(): AwsClients {
     ssm: new SSMClient({}),
     lambda: new LambdaClient({}),
     bedrock: new BedrockRuntimeClient({ maxAttempts: 2 }),
+    transcribe: new TranscribeClient({}),
   };
 }
 
