@@ -11,6 +11,8 @@ export interface AwsClients {
   s3: S3Client;
   ssm: SSMClient;
   lambda: LambdaClient;
+  /** Only `POST /confirmations` calls the model from the API (design §7, confirmRewrite). */
+  bedrock: BedrockRuntimeClient;
 }
 
 export interface WorkerClients {
@@ -31,6 +33,7 @@ export function createAwsClients(): AwsClients {
     s3: new S3Client({}),
     ssm: new SSMClient({}),
     lambda: new LambdaClient({}),
+    bedrock: new BedrockRuntimeClient({ maxAttempts: 2 }),
   };
 }
 

@@ -265,7 +265,7 @@ export class ProofAndPoiseStack extends Stack {
     apiFn.addEnvironment('WORKER_FUNCTION_NAME', workerFn.functionName);
 
     // Least privilege (Req 15.2, design §11). Grants arrive with the routes that need them;
-    // api-side Bedrock and Transcribe come in later tasks.
+    // api-side Transcribe comes in a later task; Bedrock is for confirmRewrite only (task 13).
     // Sessions, auth, quotas, rate limit, and global budget (task 8).
     table.grant(
       apiFn,
@@ -303,6 +303,14 @@ export class ProofAndPoiseStack extends Stack {
     );
     // POST /analysis invokes the worker asynchronously (task 9). Only this function.
     workerFn.grantInvoke(apiFn);
+    // POST /confirmations calls confirmRewrite on the configured model only (task 13):
+    // same Region-scoped ARNs as the worker, nothing broader.
+    apiFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['bedrock:InvokeModel'],
+        resources: bedrockModelArns(this, modelId),
+      }),
+    );
 
     // Worker: its own session items and the global budget counter (task 9).
     table.grant(workerFn, 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem');
@@ -346,6 +354,10 @@ export class ProofAndPoiseStack extends Stack {
       ['/v1/sessions/{sessionId}', [HttpMethod.GET, HttpMethod.DELETE]],
       ['/v1/sessions/{sessionId}/uploads/resume', [HttpMethod.POST]],
       ['/v1/sessions/{sessionId}/analysis', [HttpMethod.GET, HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/recommendations/{recId}/decision', [HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/confirmations', [HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/interview', [HttpMethod.GET, HttpMethod.POST]],
+      ['/v1/sessions/{sessionId}/turns/{turnId}/answer', [HttpMethod.POST]],
     ];
     for (const [path, methods] of apiRoutes) httpApi.addRoutes({ path, methods, integration });
 

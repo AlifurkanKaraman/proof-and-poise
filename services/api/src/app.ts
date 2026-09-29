@@ -1,5 +1,6 @@
 import { routes } from '@proof-and-poise/shared';
 import { AnalysisRepository } from './data/analysisRepository';
+import { InterviewRepository } from './data/interviewRepository';
 import { QuotaCounters } from './data/quotas';
 import { SessionRepository } from './data/sessionRepository';
 import { authenticate } from './lib/auth';
@@ -9,16 +10,20 @@ import { logger as defaultLogger, type Logger } from './lib/logger';
 import { Router } from './lib/router';
 import type { SaltProvider } from './lib/salt';
 import { getAnalysis, startAnalysis } from './routes/analysis';
+import { createConfirmation, decideRecommendation } from './routes/decisions';
 import { health } from './routes/health';
+import { getInterview, startInterview, submitAnswer } from './routes/interview';
 import { createSession, deleteSession, getSession } from './routes/sessions';
 import { presignResume } from './routes/uploads';
 import { AnalysisService } from './services/analysisService';
+import { DecisionService } from './services/decisionService';
+import { InterviewService } from './services/interviewService';
 import { SessionService } from './services/sessionService';
 import { UploadService } from './services/uploadService';
 
 export interface AppDeps {
-  env: Pick<Env, 'TABLE_NAME' | 'BUCKET_NAME' | 'WORKER_FUNCTION_NAME'>;
-  clients: Pick<AwsClients, 'ddb' | 's3' | 'lambda'>;
+  env: Pick<Env, 'TABLE_NAME' | 'BUCKET_NAME' | 'WORKER_FUNCTION_NAME' | 'MODEL_ID'>;
+  clients: Pick<AwsClients, 'ddb' | 's3' | 'lambda' | 'bedrock'>;
   salt: SaltProvider;
   now?: () => number;
 }
@@ -50,6 +55,30 @@ export function createRouter(log: Logger = defaultLogger, deps?: AppDeps): Route
     now,
   });
 
+  const decisions = new DecisionService({
+    analyses: new AnalysisRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    quotas,
+    model: {
+      bedrock: deps.clients.bedrock,
+      modelId: deps.env.MODEL_ID,
+      quotas,
+      log,
+      now,
+    },
+    log,
+    now,
+  });
+
+  const interview = new InterviewService({
+    interviews: new InterviewRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    analyses: new AnalysisRepository(deps.clients.ddb, deps.env.TABLE_NAME),
+    sessions: repo,
+    quotas,
+    model: { bedrock: deps.clients.bedrock, modelId: deps.env.MODEL_ID, quotas, log, now },
+    log,
+    now,
+  });
+
   return new Router(log, (sessionId, headers) => authenticate(repo, sessionId, headers, now()))
     .add(routes.health, health)
     .add(routes.createSession, createSession(sessions))
@@ -57,5 +86,10 @@ export function createRouter(log: Logger = defaultLogger, deps?: AppDeps): Route
     .add(routes.deleteSession, deleteSession(sessions))
     .add(routes.presignResume, presignResume(uploads))
     .add(routes.startAnalysis, startAnalysis(analysis))
-    .add(routes.getAnalysis, getAnalysis(analysis));
+    .add(routes.getAnalysis, getAnalysis(analysis))
+    .add(routes.decideRecommendation, decideRecommendation(decisions))
+    .add(routes.createConfirmation, createConfirmation(decisions))
+    .add(routes.startInterview, startInterview(interview))
+    .add(routes.getInterview, getInterview(interview))
+    .add(routes.submitAnswer, submitAnswer(interview));
 }

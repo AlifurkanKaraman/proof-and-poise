@@ -1,3 +1,4 @@
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
@@ -41,10 +42,16 @@ function router() {
   return createRouter(
     createLogger((l) => logLines.push(l)),
     {
-      env: { TABLE_NAME: TABLE, BUCKET_NAME: BUCKET, WORKER_FUNCTION_NAME: 'worker-test' },
+      env: {
+        TABLE_NAME: TABLE,
+        BUCKET_NAME: BUCKET,
+        WORKER_FUNCTION_NAME: 'worker-test',
+        MODEL_ID: 'us.amazon.nova-lite-v1:0',
+      },
       clients: {
         ddb: DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' })),
         lambda: new LambdaClient({ region: 'us-east-1' }),
+        bedrock: new BedrockRuntimeClient({ region: 'us-east-1' }),
         s3: new S3Client({
           region: 'us-east-1',
           credentials: { accessKeyId: 'test-key-id', secretAccessKey: 'test-secret' },

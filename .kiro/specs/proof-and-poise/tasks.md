@@ -88,7 +88,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Overview tab (Job Match, Evidence Coverage, Keyword Coverage, and Parseability rings with "How is this calculated?" disclosures, plus the top 3 strengths and gaps), Competencies tab (matrix with strength and importance filters, expandable evidence with source labels, evidence-thread motion), Recommendations tab (cards per trust label, with accept/reject/undo made optimistic with rollback; missing-evidence cards offer the confirm and practice actions), Resume tab (working resume with highlights and "Copy as text"). Score-change toasts show the reason. Integrate against `develop` API at the end of D2.
   - deps: 6, 11. _Requirements: 5.6–5.7, 6.2–6.4, 7.1, 7.4–7.7, 14.2_
 
-- [ ] 13. ⛓ [B] Decisions and confirmations API
+- [x] 13. ⛓ [B] Decisions and confirmations API
   - `POST …/decision` (accept, reject, or reset; locked once the interview starts; working-resume recompute; keyword coverage; score event). `POST /confirmations` (attestation required, 30–500 chars, max 3, strength cap, `confirmRewrite` model call with grounding against the resume plus the statement, interview priority).
   - deps: 9. _Requirements: 6.4, 7.5–7.6, 8.1–8.5_
 
@@ -108,7 +108,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Integrate task 15 against the real endpoints from 17 and 18. Test on Chrome, Firefox, desktop Safari, and iOS Safari. Test the microphone-denied path.
   - deps: 15, 17, 18. _Requirements: 10.2, 10.4_
 
-- [ ] 17. ⛓ [B] Interview API
+- [x] 17. ⛓ [B] Interview API
   - `POST/GET /interview` (the `generateQuestions` model call; server-side selection B1, R1, GAP, B2, R2; idempotent; locks decisions). `POST …/answer` (validation, quota, `evaluateAnswer`, weighted score computation, the follow-up rule, next turn, 409 on duplicates). Demo fallback to the labeled sample feedback on `UPSTREAM_UNAVAILABLE` or `CAPACITY_REACHED`.
   - Rubric and fairness prompt rules (no judgment of accent or fluency, no inferences). Unit tests with a mocked Bedrock client, including guaranteed-follow-up scenarios.
   - deps: 9, 13. _Requirements: 9.1, 9.3–9.4, 11.1–11.5, 13.4_
