@@ -25,6 +25,8 @@ export interface LogFields {
   /** Counts only, never content (design §7.4). */
   discardedQuotes?: number;
   discardedRecommendations?: number;
+  /** Bedrock `stopReason`, a fixed enum such as `tool_use` or `max_tokens`. */
+  stopReason?: string;
 }
 
 type FieldKind = 'string' | 'number';
@@ -42,6 +44,7 @@ const ALLOWED: Record<keyof LogFields, FieldKind> = {
   attempt: 'number',
   discardedQuotes: 'number',
   discardedRecommendations: 'number',
+  stopReason: 'string',
 };
 
 /** Allowlisted string values must look like identifiers, not free text. */

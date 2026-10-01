@@ -92,7 +92,9 @@ export const LIMITS = {
     ttlDays: 3,
   },
   model: {
-    analyze: { maxTokens: 3_000, temperature: 0.2 },
+    // Nova Lite's output maximum. 3,000 truncated the tool call on long resumes, which
+    // Bedrock reports as ModelErrorException (Req 16.5).
+    analyze: { maxTokens: 5_000, temperature: 0.2 },
     confirmRewrite: { maxTokens: 400, temperature: 0.2 },
     generateQuestions: { maxTokens: 1_000, temperature: 0.5 },
     evaluateAnswer: { maxTokens: 800, temperature: 0.2 },

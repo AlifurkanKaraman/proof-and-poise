@@ -62,7 +62,7 @@ describe('invokeStructured (design §7.1)', () => {
     await expect(invokeStructured(deps(), request())).resolves.toEqual(output);
 
     const [input] = calls();
-    expect(input?.inferenceConfig).toEqual(LIMITS.model.analyze); // 3000 tokens, 0.2 (Req 16.5)
+    expect(input?.inferenceConfig).toEqual(LIMITS.model.analyze); // 5000 tokens, 0.2 (Req 16.5)
     expect(input?.toolConfig?.toolChoice).toEqual({ tool: { name: ANALYZE_TOOL_NAME } });
     const spec = input?.toolConfig?.tools?.[0]?.toolSpec;
     expect(spec?.name).toBe(ANALYZE_TOOL_NAME);
@@ -119,12 +119,34 @@ describe('invokeStructured (design §7.1)', () => {
     expect(calls()).toHaveLength(2);
   });
 
-  it('treats a max_tokens stop as invalid output', async () => {
+  it('treats a max_tokens stop as invalid output and asks for a shorter call', async () => {
     bedrockMock
       .on(ConverseCommand)
       .resolvesOnce({ ...toolReply(demoModelOutput()), stopReason: 'max_tokens' })
       .resolvesOnce(toolReply(demoModelOutput()));
     await expect(invokeStructured(deps(), request())).resolves.toBeDefined();
+    expect(calls()).toHaveLength(2);
+    expect(calls()[1]?.messages?.[0]?.content?.[0]?.text).toContain('cut off or malformed');
+    const first = logLines.map((l) => JSON.parse(l)).find((l) => l.event === 'model_call');
+    expect(first).toMatchObject({ stopReason: 'max_tokens' });
+  });
+  it('repairs after a ModelErrorException (malformed or truncated tool call)', async () => {
+    bedrockMock
+      .on(ConverseCommand)
+      .rejectsOnce(Object.assign(new Error('invalid ToolUse'), { name: 'ModelErrorException' }))
+      .resolvesOnce(toolReply(demoModelOutput()));
+    await expect(invokeStructured(deps(), request())).resolves.toBeDefined();
+    expect(calls()[1]?.messages?.[0]?.content?.[0]?.text).toContain('cut off or malformed');
+    expect(logLines.join('\n')).not.toContain('invalid ToolUse');
+    expect(consumeGlobal).toHaveBeenCalledTimes(2);
+  });
+  it('throws MODEL_OUTPUT_INVALID, not UPSTREAM_UNAVAILABLE, after two ModelErrorExceptions', async () => {
+    bedrockMock
+      .on(ConverseCommand)
+      .rejects(Object.assign(new Error('invalid ToolUse'), { name: 'ModelErrorException' }));
+    await expect(invokeStructured(deps(), request())).rejects.toMatchObject({
+      code: 'MODEL_OUTPUT_INVALID',
+    });
     expect(calls()).toHaveLength(2);
   });
 
