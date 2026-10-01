@@ -5,13 +5,15 @@ import { Dialog, DialogContent, DialogTrigger, DialogClose } from '../../compone
 interface DeleteDataDialogProps {
   onConfirm: () => void;
   isDeleting?: boolean;
+  /** A failed delete; the dialog stays open so the candidate can try again. */
+  error?: string | null;
 }
 
 /**
  * "Delete my data" confirmation dialog (Req 2.5).
  * Deletes all session records and S3 objects. Token becomes 401 after deletion.
  */
-export function DeleteDataDialog({ onConfirm, isDeleting }: DeleteDataDialogProps) {
+export function DeleteDataDialog({ onConfirm, isDeleting, error = null }: DeleteDataDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -40,6 +42,13 @@ export function DeleteDataDialog({ onConfirm, isDeleting }: DeleteDataDialogProp
               </p>
             </div>
           </div>
+
+          {error && (
+            <p role="alert" className="flex items-start gap-2 text-small text-error-700">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>Your data was not deleted. {error}</span>
+            </p>
+          )}
 
           <div className="flex gap-3">
             <DialogClose asChild>

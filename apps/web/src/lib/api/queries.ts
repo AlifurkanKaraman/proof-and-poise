@@ -11,6 +11,7 @@ import type {
   AnswerRequest,
   ConfirmationRequest,
   DecisionRequest,
+  InterviewState,
   JobInput,
   ResumeInput,
   SessionMode,
@@ -20,6 +21,7 @@ import { clearSession, saveSession } from '../session';
 import { applyOptimisticDecision, mergeConfirmation, mergeDecision } from './cache';
 import { isApiError, isRetryable } from './errors';
 import { api } from './index';
+import { transcribeRecording, type TranscribeInput } from './transcription';
 import { uploadToPresignedPost } from './upload';
 
 export const queryKeys = {
@@ -222,8 +224,19 @@ export function useSubmitAnswer(sessionId: string) {
       if (!error || (isApiError(error) && error.code === 'CONFLICT')) {
         void qc.invalidateQueries({ queryKey: queryKeys.interview(sessionId) });
         void qc.invalidateQueries({ queryKey: queryKeys.analysis(sessionId) });
+        // A scored answer (e.g. a practice attempt) makes the stored report stale; the API then
+        // reads it as NOT_FOUND until it is rebuilt, so drop the cached copy (Req 12.3).
+        qc.removeQueries({ queryKey: queryKeys.report(sessionId), exact: true });
       }
     },
+  });
+}
+
+/** Recorded answer → reviewable transcript (Req 10.4): upload, transcribe, poll. */
+export function useTranscribeRecording(sessionId: string) {
+  return useMutation({
+    mutationFn: (input: Omit<TranscribeInput, 'sessionId'>) =>
+      transcribeRecording({ ...input, sessionId }),
   });
 }
 
@@ -232,7 +245,16 @@ export function useStartPractice(sessionId: string) {
   return useMutation({
     mutationFn: (turnId: string) =>
       api.request('startPractice', { params: { sessionId }, body: { turnId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.interview(sessionId) }),
+    onSuccess: ({ turn }) => {
+      // Show the practice turn right away instead of a cached "interview complete" state;
+      // the API reuses an open attempt, so only append it once.
+      qc.setQueryData<InterviewState>(queryKeys.interview(sessionId), (old) =>
+        old && !old.turns.some((t) => t.id === turn.id)
+          ? { ...old, turns: [...old.turns, turn] }
+          : old,
+      );
+      return qc.invalidateQueries({ queryKey: queryKeys.interview(sessionId) });
+    },
   });
 }
 

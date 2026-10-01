@@ -1,8 +1,9 @@
-import type { Report, Turn } from '@proof-and-poise/shared';
+import type { ErrorCode, Report, Turn } from '@proof-and-poise/shared';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { ReportView } from './ReportPage';
+import { ApiError } from '../../lib/api/errors';
+import { ReportView, reportProblem } from './ReportPage';
 
 const dimensions = {
   relevance: { score: 3, rationale: 'On topic.' },
@@ -142,6 +143,20 @@ describe('ReportView', () => {
     expect(props.onPracticeAgain).toHaveBeenCalledWith('q1');
   });
 
+  it('disables practice once every practice attempt is used (Req 12.3)', async () => {
+    const q = report.questions[0]!;
+    const attempt = (n: number) => turn(`p${n}`, '1', 'practice', q.primary.question);
+    renderView({
+      report: {
+        ...report,
+        questions: [{ ...q, practiceAttempts: [attempt(1), attempt(2), attempt(3)] }],
+      },
+    });
+    expect(screen.getByText(/used every practice attempt/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Question 1/ }));
+    expect(screen.getByRole('button', { name: /practice this question again/i })).toBeDisabled();
+  });
+
   it('wires print and delete-data confirmation (Req 2.5)', async () => {
     const props = renderView();
     await userEvent.click(screen.getByRole('button', { name: /^print$/i }));
@@ -151,5 +166,21 @@ describe('ReportView', () => {
     expect(props.onDelete).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: /delete everything/i }));
     expect(props.onDelete).toHaveBeenCalled();
+  });
+});
+
+describe('reportProblem', () => {
+  const err = (kind: 'http' | 'network', code: ErrorCode) =>
+    new ApiError({ kind, code, message: code, route: 'createReport' });
+
+  it('retries only failures where trying again can help', () => {
+    expect(reportProblem(err('network', 'INTERNAL')).canRetry).toBe(true);
+    for (const code of ['CAPACITY_REACHED', 'MODEL_OUTPUT_INVALID', 'INTERNAL'] as const) {
+      expect(reportProblem(err('http', code)).canRetry).toBe(true);
+    }
+    for (const code of ['CONFLICT', 'NOT_FOUND', 'QUOTA_EXCEEDED', 'UNAUTHORIZED'] as const) {
+      expect(reportProblem(err('http', code)).canRetry).toBe(false);
+    }
+    expect(reportProblem(err('http', 'QUOTA_EXCEEDED')).home).toBe(true);
   });
 });

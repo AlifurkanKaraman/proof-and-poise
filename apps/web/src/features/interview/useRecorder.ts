@@ -87,6 +87,30 @@ interface UseRecorderResult {
 }
 
 /**
+ * MediaRecorder formats in preference order, each mapped to the upload content type it is
+ * sent as (`LIMITS.audioUpload.contentTypes`). Chrome and Firefox record WebM/Opus,
+ * Safari (desktop and iOS) records MP4/AAC; Ogg is a last resort for older Firefox.
+ */
+export const RECORDER_FORMATS: readonly { mimeType: string; contentType: AudioContentType }[] = [
+  { mimeType: 'audio/webm;codecs=opus', contentType: 'audio/webm' },
+  { mimeType: 'audio/webm', contentType: 'audio/webm' },
+  { mimeType: 'audio/mp4', contentType: 'audio/mp4' },
+  { mimeType: 'audio/ogg;codecs=opus', contentType: 'audio/ogg' },
+  { mimeType: 'audio/ogg', contentType: 'audio/ogg' },
+];
+
+/** First recorder format the browser supports, or null when none of the allowed ones are. */
+export function pickRecorderFormat(
+  isTypeSupported: (mimeType: string) => boolean,
+): { mimeType: string; contentType: AudioContentType } | null {
+  const allowed: readonly string[] = LIMITS.audioUpload.contentTypes;
+  return (
+    RECORDER_FORMATS.find((f) => allowed.includes(f.contentType) && isTypeSupported(f.mimeType)) ??
+    null
+  );
+}
+
+/**
  * Hook for audio recording with microphone permission management.
  * Implements Req 10.1 (recording controls) and 10.2 (microphone states).
  */
@@ -105,22 +129,24 @@ export function useRecorder(): UseRecorderResult {
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
   const contentTypeRef = useRef<AudioContentType | null>(null);
+  const mimeTypeRef = useRef<string | null>(null);
   const [contentType, setContentType] = useState<AudioContentType | null>(null);
 
-  // Cleanup on unmount
+  // Latest recording URL, so the unmount cleanup can revoke it without re-running.
+  const urlRef = useRef<string | null>(null);
+  useEffect(() => {
+    urlRef.current = state.phase === 'recorded' || state.phase === 'playing' ? state.url : null;
+  }, [state]);
+
+  // Cleanup on unmount only: stopping the stream on every state change would kill the mic.
   useEffect(() => {
     return () => {
-      if (timerRef.current !== null) {
-        clearInterval(timerRef.current);
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (state.phase === 'recorded' || state.phase === 'playing') {
-        URL.revokeObjectURL(state.url);
-      }
+      if (timerRef.current !== null) clearInterval(timerRef.current);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      audioRef.current?.pause();
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
-  }, [state]);
+  }, []);
 
   const requestMicrophone = async () => {
     // Check if MediaRecorder is supported
@@ -135,9 +161,10 @@ export function useRecorder(): UseRecorderResult {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Negotiate content type (Req 10.5: webm, mp4, ogg)
-      const preferredTypes: AudioContentType[] = ['audio/webm', 'audio/mp4', 'audio/ogg'];
-      const supportedType = preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
+      // Negotiate a recorder format the upload contract accepts (Req 10.4).
+      const negotiated = pickRecorderFormat((t) => MediaRecorder.isTypeSupported(t));
+      const supportedType = negotiated?.contentType;
+      mimeTypeRef.current = negotiated?.mimeType ?? null;
 
       if (!supportedType) {
         dispatch({ type: 'mic-unsupported' });
@@ -162,7 +189,9 @@ export function useRecorder(): UseRecorderResult {
     if (!streamRef.current || !contentTypeRef.current) return;
 
     chunksRef.current = [];
-    const recorder = new MediaRecorder(streamRef.current, { mimeType: contentTypeRef.current });
+    const recorder = new MediaRecorder(streamRef.current, {
+      mimeType: mimeTypeRef.current ?? contentTypeRef.current,
+    });
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) {

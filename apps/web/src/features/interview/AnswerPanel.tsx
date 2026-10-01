@@ -1,6 +1,6 @@
 import { Keyboard, Mic, Pause, Play, RotateCcw, Send } from 'lucide-react';
 import { useState } from 'react';
-import { LIMITS } from '@proof-and-poise/shared';
+import { LIMITS, type AudioContentType } from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { Textarea } from '../../components/ui/Textarea';
@@ -9,7 +9,15 @@ import { cn } from '../../lib/cn';
 import { useRecorder } from './useRecorder';
 
 export type PanelAnswer =
-  { type: 'text'; text: string } | { type: 'audio'; blob: Blob; contentType: string };
+  | { type: 'text'; text: string }
+  | { type: 'audio'; blob: Blob; contentType: AudioContentType; durationMs: number }
+  | { type: 'transcript'; text: string };
+
+export interface TranscriptionProblem {
+  message: string;
+  /** False for quota errors: retrying the same recording cannot succeed. */
+  canRetry: boolean;
+}
 
 interface AnswerPanelProps {
   onSubmit: (answer: PanelAnswer) => void;
@@ -17,6 +25,9 @@ interface AnswerPanelProps {
   isTranscribing?: boolean | undefined;
   transcript?: string | undefined;
   onTranscriptEdit?: (text: string) => void;
+  /** Clears the transcript under review (Re-record). */
+  onDiscardTranscript?: () => void;
+  transcriptionError?: TranscriptionProblem | null | undefined;
   className?: string;
 }
 
@@ -30,6 +41,8 @@ export function AnswerPanel({
   isTranscribing,
   transcript,
   onTranscriptEdit,
+  onDiscardTranscript,
+  transcriptionError,
   className,
 }: AnswerPanelProps) {
   const [activeTab, setActiveTab] = useState<'record' | 'type'>('record');
@@ -37,14 +50,37 @@ export function AnswerPanel({
   const recorder = useRecorder();
 
   const handleRecordSubmit = () => {
-    if (recorder.state.phase === 'recorded' && recorder.contentType) {
+    const { state } = recorder;
+    if ((state.phase === 'recorded' || state.phase === 'playing') && recorder.contentType) {
+      if (state.phase === 'playing') recorder.pausePlayback();
       onSubmit({
         type: 'audio',
-        blob: recorder.state.blob,
+        blob: state.blob,
         contentType: recorder.contentType,
+        durationMs: state.durationMs,
       });
     }
   };
+
+  // "Type instead" keeps what the candidate has so far (Req 10.2): the transcript, if any.
+  const typeInstead = () => {
+    if (transcript && typedAnswer.trim() === '') setTypedAnswer(transcript);
+    setActiveTab('type');
+  };
+
+  const reRecord = () => {
+    recorder.reset();
+    onDiscardTranscript?.();
+  };
+
+  const hasTranscript = transcript !== undefined;
+  const transcriptLength = transcript?.trim().length ?? 0;
+  const typeInsteadButton = (
+    <Button variant="secondary" onClick={typeInstead} className="mt-3">
+      <Keyboard className="mr-2 size-4" aria-hidden />
+      Type instead
+    </Button>
+  );
 
   const handleTypeSubmit = () => {
     const trimmed = typedAnswer.trim();
@@ -58,10 +94,15 @@ export function AnswerPanel({
     typedAnswer.trim().length <= LIMITS.answer.max;
 
   const canSubmitAudio =
-    recorder.state.phase === 'recorded' &&
+    (recorder.state.phase === 'recorded' || recorder.state.phase === 'playing') &&
     !isSubmitting &&
-    !isTranscribing &&
-    (transcript ? transcript.trim().length >= LIMITS.answer.min : true);
+    !isTranscribing;
+
+  const canSubmitTranscript =
+    hasTranscript &&
+    transcriptLength >= LIMITS.answer.min &&
+    transcriptLength <= LIMITS.answer.max &&
+    !isSubmitting;
 
   const canSubmitText = isTypeValid && !isSubmitting;
 
@@ -108,6 +149,7 @@ export function AnswerPanel({
                   Please enable microphone access in your browser settings, then refresh the page.
                   Or switch to the <strong>Type</strong> tab to write your answer.
                 </p>
+                {typeInsteadButton}
               </div>
             )}
 
@@ -118,6 +160,7 @@ export function AnswerPanel({
                   No microphone detected or this page is not served over HTTPS. Please switch to the{' '}
                   <strong>Type</strong> tab to write your answer.
                 </p>
+                {typeInsteadButton}
               </div>
             )}
 
@@ -130,6 +173,7 @@ export function AnswerPanel({
                   Your browser doesn't support the required audio formats. Please switch to the{' '}
                   <strong>Type</strong> tab to write your answer.
                 </p>
+                {typeInsteadButton}
               </div>
             )}
 
@@ -165,7 +209,7 @@ export function AnswerPanel({
 
             {(recorder.state.phase === 'recorded' || recorder.state.phase === 'playing') &&
               !isTranscribing &&
-              !transcript && (
+              !hasTranscript && (
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between rounded border border-line-200 bg-paper-50 p-4">
                     <div>
@@ -212,20 +256,39 @@ export function AnswerPanel({
                     className="w-full"
                   >
                     <Send className="mr-2 size-5" aria-hidden />
-                    {isSubmitting ? 'Submitting...' : 'Submit Answer'}
+                    {isSubmitting ? 'Submitting...' : 'Transcribe answer'}
                   </Button>
                 </div>
               )}
 
+            {/* Transcription failure: retry, re-record, or type instead (Req 10.2, 10.4) */}
+            {transcriptionError && !isTranscribing && !hasTranscript && (
+              <div role="alert" className="rounded border border-error-700/20 bg-paper-50 p-4">
+                <p className="text-small font-semibold text-error-700">
+                  We could not transcribe your recording
+                </p>
+                <p className="mt-2 text-small text-ink-700">{transcriptionError.message}</p>
+                <div className="flex flex-wrap gap-3">
+                  {transcriptionError.canRetry && canSubmitAudio && (
+                    <Button onClick={handleRecordSubmit} className="mt-3">
+                      <RotateCcw className="mr-2 size-4" aria-hidden />
+                      Try again
+                    </Button>
+                  )}
+                  {typeInsteadButton}
+                </div>
+              </div>
+            )}
+
             {/* Transcription review (Req 10.5) */}
             {isTranscribing && (
-              <div className="flex flex-col items-center gap-4 py-8">
+              <div role="status" className="flex flex-col items-center gap-4 py-8">
                 <Spinner className="size-8" />
                 <p className="text-small text-ink-700">Transcribing your answer...</p>
               </div>
             )}
 
-            {transcript && onTranscriptEdit && (
+            {hasTranscript && onTranscriptEdit && (
               <div className="flex flex-col gap-4">
                 <div>
                   <p className="mb-2 text-small font-semibold text-ink-950">
@@ -242,17 +305,22 @@ export function AnswerPanel({
                     maxLength={LIMITS.answer.max}
                     rows={6}
                     label="Transcript"
+                    error={
+                      transcriptLength < LIMITS.answer.min
+                        ? `Answer must be at least ${LIMITS.answer.min} characters.`
+                        : undefined
+                    }
                   />
                 </div>
 
                 <div className="flex gap-3">
-                  <Button variant="secondary" onClick={recorder.reset} disabled={isSubmitting}>
+                  <Button variant="secondary" onClick={reRecord} disabled={isSubmitting}>
                     <RotateCcw className="mr-2 size-4" aria-hidden />
                     Re-record
                   </Button>
                   <Button
-                    onClick={() => onSubmit({ type: 'text', text: transcript })}
-                    disabled={!canSubmitAudio}
+                    onClick={() => onSubmit({ type: 'transcript', text: transcript.trim() })}
+                    disabled={!canSubmitTranscript}
                     className="flex-1"
                   >
                     <Send className="mr-2 size-5" aria-hidden />
