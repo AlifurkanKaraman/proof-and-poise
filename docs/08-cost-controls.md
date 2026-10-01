@@ -29,25 +29,25 @@ All stack resources carry the tags `app=proof-and-poise` and `stage=<stage>`. To
 
 ## AWS Budgets setup
 
-Status: planned for task 23, **not created yet**. The first two budgets in an account are free.
+Status: created through the CLI in task 23 (2026-10-01): `proof-and-poise-5usd` and `proof-and-poise-8usd`. The first two budgets in an account are free.
 
 Console steps:
 
 1. Billing and Cost Management → Budgets → Create budget → Customize → Cost budget, monthly.
-2. Budget `proof-and-poise-5`: amount $5, alert at 100% of actual cost, email the team.
-3. Budget `proof-and-poise-8`: amount $8, alerts at 100% of actual and 100% of forecasted cost.
+2. Budget `proof-and-poise-5usd`: amount $5, alerts at 80% of actual and 100% of forecasted cost, email the team.
+3. Budget `proof-and-poise-8usd`: amount $8, same two alerts.
 
 CLI alternative (replace the placeholders; get the account ID with `aws sts get-caller-identity --query Account --output text` and don't commit it):
 
 ```sh
 aws budgets create-budget --account-id <account-id> \
-  --budget '{"BudgetName":"proof-and-poise-5","BudgetLimit":{"Amount":"5","Unit":"USD"},"TimeUnit":"MONTHLY","BudgetType":"COST"}' \
-  --notifications-with-subscribers '[{"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":100,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"<team-email>"}]}]'
+  --budget '{"BudgetName":"proof-and-poise-5usd","BudgetLimit":{"Amount":"5","Unit":"USD"},"TimeUnit":"MONTHLY","BudgetType":"COST"}' \
+  --notifications-with-subscribers '[{"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":80,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"<team-email>"}]},{"Notification":{"NotificationType":"FORECASTED","ComparisonOperator":"GREATER_THAN","Threshold":100,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"<team-email>"}]}]'
 ```
 
-Repeat with `proof-and-poise-8` and `"Amount":"8"`.
+Repeat with `proof-and-poise-8usd` and `"Amount":"8"`.
 
-`TODO(user): confirm both budgets were created and on what date.`
+CloudWatch alarms (Lambda errors, API 5xx) also email through the stage's SNS topic; see [11-deploy-and-teardown.md](11-deploy-and-teardown.md#deploy-the-backend).
 
 ## At $10
 

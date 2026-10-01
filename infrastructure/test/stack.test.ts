@@ -366,6 +366,49 @@ describe('ProofAndPoiseStack', () => {
     expect(actions).not.toContain('lambda:InvokeFunction');
   });
 
+  it('creates the alarm topic with no subscription when alarmEmail is not set (task 23)', () => {
+    template.hasResourceProperties('AWS::SNS::Topic', { TopicName: 'proof-and-poise-dev-alarms' });
+    template.resourceCountIs('AWS::SNS::Subscription', 0);
+  });
+
+  it('alarms on Lambda errors ≥ 1 and HTTP API 5xx ≥ 5 per 5 minutes, to SNS (Req 17.6)', () => {
+    template.resourceCountIs('AWS::CloudWatch::Alarm', 3);
+    const common = {
+      Period: 300,
+      Statistic: 'Sum',
+      EvaluationPeriods: 1,
+      ComparisonOperator: 'GreaterThanOrEqualToThreshold',
+      TreatMissingData: 'notBreaching',
+      AlarmActions: [{ Ref: Match.stringLikeRegexp('^AlarmTopic') }],
+    };
+    for (const [name, fnId] of [
+      ['proof-and-poise-dev-api-errors', 'ApiFunction'],
+      ['proof-and-poise-dev-analysis-worker-errors', 'AnalysisWorkerFunction'],
+    ] as const) {
+      template.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        ...common,
+        AlarmName: name,
+        Namespace: 'AWS/Lambda',
+        MetricName: 'Errors',
+        Threshold: 1,
+        Dimensions: [
+          { Name: 'FunctionName', Value: { Ref: Match.stringLikeRegexp(`^${fnId}[0-9A-F]{8}$`) } },
+        ],
+      });
+    }
+    template.hasResourceProperties('AWS::CloudWatch::Alarm', {
+      ...common,
+      AlarmName: 'proof-and-poise-dev-api-5xx',
+      Namespace: 'AWS/ApiGateway',
+      MetricName: '5xx',
+      Threshold: 5,
+      Dimensions: Match.arrayWith([
+        { Name: 'ApiId', Value: { Ref: Match.stringLikeRegexp('^HttpApi') } },
+        { Name: 'Stage', Value: '$default' },
+      ]),
+    });
+  });
+
   it('grants no bedrock:* or * wildcard actions', () => {
     const actions = allIamActions();
     expect(actions).not.toContain('bedrock:*');
@@ -408,6 +451,36 @@ describe('resolveConfig', () => {
       'https://develop.example.amplifyapp.com',
       'http://localhost:5173',
     ]);
+  });
+});
+
+describe('alarmEmail context (task 23)', () => {
+  it('subscribes the address to the prod alarm topic', () => {
+    const app = new App({
+      context: { stage: 'prod', alarmEmail: 'alerts@example.com', 'aws:cdk:bundling-stacks': [] },
+    });
+    const t = Template.fromStack(
+      new ProofAndPoiseStack(app, 'TestAlarms', {
+        config: resolveConfig(app),
+        env: { region: 'us-east-1' },
+      }),
+    );
+    t.hasResourceProperties('AWS::SNS::Topic', { TopicName: 'proof-and-poise-prod-alarms' });
+    t.resourceCountIs('AWS::SNS::Subscription', 1);
+    t.hasResourceProperties('AWS::SNS::Subscription', {
+      Protocol: 'email',
+      Endpoint: 'alerts@example.com',
+      TopicArn: { Ref: Match.stringLikeRegexp('^AlarmTopic') },
+    });
+    t.hasResourceProperties('AWS::CloudWatch::Alarm', {
+      AlarmName: 'proof-and-poise-prod-api-5xx',
+    });
+  });
+
+  it('rejects a malformed address', () => {
+    expect(() =>
+      resolveConfig(new App({ context: { stage: 'prod', alarmEmail: 'not-an-email' } })),
+    ).toThrow(/Invalid alarmEmail/);
   });
 });
 
