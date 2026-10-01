@@ -221,7 +221,7 @@ Target: AWS "Zero to Shipped" Shipathon. Submission deadline October 2, 2026. Tw
 2. Per-session quotas SHALL be enforced with DynamoDB conditional updates: 2 analyses, 3 confirmations, 10 answer evaluations (5 primary, 2 follow-up, 3 practice), 2 report generations, and 8 transcriptions.
 3. Session creation SHALL be limited to 10 per hashed client IP per hour. The hash is a salted SHA-256 and the raw IP is never stored.
 4. A global daily circuit breaker SHALL cap Bedrock calls at 1,500/day and Transcribe audio at 60 minutes/day. When a cap is reached, THE API SHALL return 503 with code `CAPACITY_REACHED`. The UI SHALL explain the situation and point to the demo fixture and the typed fallback.
-5. Model output tokens SHALL be capped per call type: analysis 3,000; question generation 1,000; evaluation (with a candidate follow-up) 800; confirmation rewrite 400; report 1,200. Temperature SHALL be 0.2 for analysis and evaluation, and 0.5 for question generation.
+5. Model output tokens SHALL be capped per call type: analysis 5,000 (the Nova Lite maximum); question generation 1,000; evaluation (with a candidate follow-up) 800; confirmation rewrite 400; report 1,200. Temperature SHALL be 0.2 for analysis and evaluation, and 0.5 for question generation.
 6. There SHALL be no provisioned throughput, NAT gateway, VPC, always-on compute, OpenSearch, RDS, ECS/EKS, paid WAF, or vector database.
 7. The docs SHALL include AWS Budget alert setup at $5 and $8, with an $10 action notice.
 

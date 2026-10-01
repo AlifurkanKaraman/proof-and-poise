@@ -49,10 +49,17 @@ describe('logger redaction (Req 15.3)', () => {
         attempt: 2,
         discardedQuotes: 3,
         discardedRecommendations: 1,
+        stopReason: 'max_tokens',
         toolInput: { quote: SECRET_RESUME },
         validationIssues: ['competencies.0.name: too_big'],
       }),
-    ).toEqual({ task: 'analyze', attempt: 2, discardedQuotes: 3, discardedRecommendations: 1 });
+    ).toEqual({
+      task: 'analyze',
+      attempt: 2,
+      discardedQuotes: 3,
+      discardedRecommendations: 1,
+      stopReason: 'max_tokens',
+    });
   });
 
   it('logs errors as { code, name } only, never the message or stack', () => {

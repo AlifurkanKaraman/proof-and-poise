@@ -219,7 +219,7 @@ Every change to an input creates `ScoreEvent { metric, before, after, reason, so
 
 | Task | Input (approx tokens) | maxTokens | Temp | Where |
 |---|---|---|---|---|
-| analyze (competencies, evidence, keywords, recs) | ≤ 6k | 3,000 | 0.2 | worker |
+| analyze (competencies, evidence, keywords, recs) | ≤ 6k | 5,000 | 0.2 | worker |
 | confirmRewrite | ≤ 3.5k | 400 | 0.2 | api |
 | generateQuestions | ≤ 5k | 1,000 | 0.5 | api |
 | evaluateAnswer (+ candidate follow-up) | ≤ 5k | 800 | 0.2 | api |

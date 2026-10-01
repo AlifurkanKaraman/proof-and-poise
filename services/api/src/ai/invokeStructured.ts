@@ -12,6 +12,9 @@
  *   input, and validation messages never reach the logger.
  * - If the model rejects `toolChoice: { tool }`, it falls back to `auto` plus an instruction
  *   to call the tool; validation still gates the result.
+ * - A truncated or malformed tool call (`max_tokens` stop, or Bedrock's
+ *   `ModelErrorException`) counts as invalid output, not an outage: it gets the repair retry
+ *   and ends in `MODEL_OUTPUT_INVALID`.
  */
 import {
   ConverseCommand,
@@ -55,8 +58,20 @@ const MAX_ATTEMPTS = 2;
 
 type Attempt<T> = { ok: true; value: T } | { ok: false; issues: string[] };
 
+/** Marker for a tool call that was cut off or malformed (design §7.1). */
+const TRUNCATED = Symbol('truncated');
+
+/** Bedrock's error when a model produces an invalid or incomplete tool call. */
+const isModelError = (err: unknown) =>
+  typeof err === 'object' &&
+  err !== null &&
+  (err as { name?: unknown }).name === 'ModelErrorException';
+
+const TRUNCATED_ISSUE =
+  'Your previous call was cut off or malformed. Use fewer items and shorter quotes and text.';
+
 function toolInput(res: ConverseCommandOutput, toolName: string): unknown {
-  if (res.stopReason === 'max_tokens') return undefined;
+  if (res.stopReason === 'max_tokens') return TRUNCATED;
   const blocks: ContentBlock[] = res.output?.message?.content ?? [];
   for (const b of blocks) {
     if (b.toolUse?.name === toolName) return b.toolUse.input;
@@ -84,6 +99,7 @@ export async function invokeStructured<S extends z.ZodType>(
   let issues: string[] = [];
 
   const validate = (input: unknown): Attempt<z.infer<S>> => {
+    if (input === TRUNCATED) return { ok: false, issues: [TRUNCATED_ISSUE] };
     if (input === undefined) return { ok: false, issues: [`No ${req.toolName} tool call.`] };
     const parsed = req.schema.safeParse(input);
     if (!parsed.success) return { ok: false, issues: compactIssues(parsed.error) };
@@ -114,7 +130,7 @@ export async function invokeStructured<S extends z.ZodType>(
       fallbackInstruction = `\n\nAlways respond by calling the ${req.toolName} tool exactly once.`;
       return send(deps, req, attempt, input(), false);
     });
-    const result = validate(toolInput(res, req.toolName));
+    const result = validate(res === TRUNCATED ? TRUNCATED : toolInput(res, req.toolName));
     if (result.ok) return result.value;
     issues = result.issues;
     deps.log.warn('model_output_invalid', { task: req.task, attempt });
@@ -135,7 +151,7 @@ async function send<S extends z.ZodType>(
   attempt: number,
   input: ConverseInput,
   rethrowValidation: boolean,
-): Promise<ConverseCommandOutput> {
+): Promise<ConverseCommandOutput | typeof TRUNCATED> {
   // Throws CAPACITY_REACHED before any Bedrock call once today's cap is used (Req 16.4).
   await deps.quotas.consumeGlobal('bedrockCalls', 1, deps.now());
   const started = deps.now();
@@ -152,10 +168,20 @@ async function send<S extends z.ZodType>(
       inputTokens: res.usage?.inputTokens ?? 0,
       outputTokens: res.usage?.outputTokens ?? 0,
       durationMs: deps.now() - started,
+      ...(res.stopReason ? { stopReason: res.stopReason } : {}),
     });
     return res;
   } catch (err) {
     if (rethrowValidation && isToolChoiceRejection(err)) throw err;
+    if (isModelError(err)) {
+      // The model's tool call was malformed or too long; repairable, not an outage.
+      deps.log.warn('model_call_truncated', {
+        task: req.task,
+        attempt,
+        durationMs: deps.now() - started,
+      });
+      return TRUNCATED;
+    }
     deps.log.error('model_call_failed', err, {
       task: req.task,
       attempt,
