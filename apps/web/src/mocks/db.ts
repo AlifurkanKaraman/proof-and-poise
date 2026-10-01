@@ -19,6 +19,7 @@ import {
   STRENGTH_ORDER,
   toScore100,
   type AnalysisRequest,
+  type AudioContentType,
   type AnalysisStatusResponse,
   type AnswerRequest,
   type AnswerResponse,
@@ -516,12 +517,17 @@ export function createMockDb(options: MockDbOptions = {}) {
     return { turn };
   }
 
-  function presignAudio(s: MockSession, turnId: string): PresignedPostResponse {
+  function presignAudio(
+    s: MockSession,
+    turnId: string,
+    contentType: AudioContentType = 'audio/webm',
+  ): PresignedPostResponse {
     findTurn(requireInterview(s), turnId);
-    const key = `audio/${s.id}/${turnId}.webm`;
+    // Same key shape as the real API: the extension carries the media format (Req 10.4).
+    const key = `audio/${s.id}/${turnId}.${contentType.slice('audio/'.length)}`;
     return {
       url: MOCK_UPLOAD_URL,
-      fields: { key },
+      fields: { key, 'Content-Type': contentType },
       key,
       expiresIn: LIMITS.audioUpload.presignExpiresSec,
     };

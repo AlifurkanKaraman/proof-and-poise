@@ -20,6 +20,7 @@ import { clearSession, saveSession } from '../session';
 import { applyOptimisticDecision, mergeConfirmation, mergeDecision } from './cache';
 import { isApiError, isRetryable } from './errors';
 import { api } from './index';
+import { transcribeRecording, type TranscribeInput } from './transcription';
 import { uploadToPresignedPost } from './upload';
 
 export const queryKeys = {
@@ -224,6 +225,14 @@ export function useSubmitAnswer(sessionId: string) {
         void qc.invalidateQueries({ queryKey: queryKeys.analysis(sessionId) });
       }
     },
+  });
+}
+
+/** Recorded answer → reviewable transcript (Req 10.4): upload, transcribe, poll. */
+export function useTranscribeRecording(sessionId: string) {
+  return useMutation({
+    mutationFn: (input: Omit<TranscribeInput, 'sessionId'>) =>
+      transcribeRecording({ ...input, sessionId }),
   });
 }
 

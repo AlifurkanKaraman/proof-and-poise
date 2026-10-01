@@ -1,4 +1,4 @@
-import { LIMITS, type Evaluation, type Turn } from '@proof-and-poise/shared';
+import { LIMITS, type AnswerRequest, type Evaluation, type Turn } from '@proof-and-poise/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Page } from '../../app/Page';
@@ -6,9 +6,14 @@ import { ErrorState } from '../../components/states/ErrorState';
 import { LoadingStage } from '../../components/states/LoadingStage';
 import { Button } from '../../components/ui/Button';
 import { SegmentedProgress, type Segment } from '../../components/ui/SegmentedProgress';
-import { userMessage } from '../../lib/api/errors';
-import { useInterview, useStartPractice, useSubmitAnswer } from '../../lib/api/queries';
-import { AnswerPanel, type PanelAnswer } from './AnswerPanel';
+import { isApiError, userMessage } from '../../lib/api/errors';
+import {
+  useInterview,
+  useStartPractice,
+  useSubmitAnswer,
+  useTranscribeRecording,
+} from '../../lib/api/queries';
+import { AnswerPanel, type PanelAnswer, type TranscriptionProblem } from './AnswerPanel';
 import { FeedbackCard } from './FeedbackCard';
 import { PrepTimer } from './PrepTimer';
 import { QuestionCard } from './QuestionCard';
@@ -18,8 +23,26 @@ interface Feedback {
   hasNext: boolean;
 }
 
+/** Transcript under review: what the service returned and the candidate's edited copy. */
+interface Review {
+  original: string;
+  text: string;
+}
+
+/** Recording/transcription failures the candidate can act on (Req 10.2, 10.4). */
+export function transcriptionProblem(error: unknown): TranscriptionProblem {
+  const code = isApiError(error) ? error.code : 'INTERNAL';
+  if (code === 'QUOTA_EXCEEDED') {
+    return {
+      message: 'You have used the recording allowance for this session. Type your answer instead.',
+      canRetry: false,
+    };
+  }
+  return { message: userMessage(error), canRetry: true };
+}
+
 /**
- * Interview room page (Task 15, Req 9.2, 9.3, 10.1-10.3, 10.5, 11.1).
+ * Interview room page (Tasks 15-16, Req 9.2, 9.3, 10.1-10.5, 11.1).
  * Distraction-free layout with question, prep timer, answer capture, and feedback.
  */
 export default function InterviewPage() {
@@ -29,6 +52,11 @@ export default function InterviewPage() {
 
   const interview = useInterview(sessionId);
   const submitAnswer = useSubmitAnswer(sessionId);
+  const transcribe = useTranscribeRecording(sessionId);
+
+  // Abort in-flight polling when leaving the page.
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // "Practice again" from the report arrives as ?practice=<turnId> (Req 12.3, task 20).
   const [searchParams] = useSearchParams();
@@ -47,30 +75,49 @@ export default function InterviewPage() {
 
   const [showTimer, setShowTimer] = useState(true);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcript, setTranscript] = useState<string | undefined>(undefined);
+  const [review, setReview] = useState<Review | null>(null);
+  const [problem, setProblem] = useState<TranscriptionProblem | null>(null);
 
   const goToReport = () => navigate(`/s/${sessionId}/report`);
 
-  const handleAnswer = async (turn: Turn, answer: PanelAnswer) => {
-    if (answer.type === 'audio') {
-      // Audio upload and transcription arrive with task 18; until then show a reviewable stub.
-      setIsTranscribing(true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsTranscribing(false);
-      setTranscript('Transcription is not available yet. Type or edit your answer here.');
-      return;
-    }
-    const edited = transcript !== undefined;
+  const submit = async (turn: Turn, answer: AnswerRequest) => {
     try {
-      const res = await submitAnswer.mutateAsync({
-        turnId: turn.id,
-        answer: { text: answer.text, source: edited ? 'transcribed' : 'typed', edited },
-      });
+      const res = await submitAnswer.mutateAsync({ turnId: turn.id, answer });
       setFeedback({ evaluation: res.evaluation, hasNext: res.next !== null });
-      setTranscript(undefined);
+      setReview(null);
+      setProblem(null);
     } catch {
       // The mutation error is rendered below.
+    }
+  };
+
+  const handleAnswer = async (turn: Turn, answer: PanelAnswer) => {
+    if (answer.type === 'text') {
+      await submit(turn, { text: answer.text, source: 'typed', edited: false });
+      return;
+    }
+    if (answer.type === 'transcript') {
+      // Req 10.4: the reviewed transcript is submitted; `edited` records any change.
+      const edited = review !== null && answer.text !== review.original.trim();
+      await submit(turn, { text: answer.text, source: 'transcribed', edited });
+      return;
+    }
+    // Recorded: upload → transcribe → poll; the candidate reviews before submitting.
+    setProblem(null);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      const text = await transcribe.mutateAsync({
+        turnId: turn.id,
+        blob: answer.blob,
+        contentType: answer.contentType,
+        durationMs: answer.durationMs,
+        signal: controller.signal,
+      });
+      if (!controller.signal.aborted) setReview({ original: text, text });
+    } catch (error) {
+      if (!controller.signal.aborted) setProblem(transcriptionProblem(error));
     }
   };
 
@@ -81,7 +128,8 @@ export default function InterviewPage() {
     }
     setFeedback(null);
     setShowTimer(true);
-    setTranscript(undefined);
+    setReview(null);
+    setProblem(null);
   };
 
   if (practiceId && startPractice.isError) {
@@ -201,9 +249,14 @@ export default function InterviewPage() {
               <AnswerPanel
                 onSubmit={(answer) => void handleAnswer(shown, answer)}
                 isSubmitting={submitAnswer.isPending}
-                isTranscribing={isTranscribing}
-                transcript={transcript}
-                onTranscriptEdit={setTranscript}
+                isTranscribing={transcribe.isPending}
+                transcript={review?.text}
+                onTranscriptEdit={(text) => setReview((r) => (r ? { ...r, text } : r))}
+                onDiscardTranscript={() => {
+                  setReview(null);
+                  setProblem(null);
+                }}
+                transcriptionError={problem}
               />
             </>
           )}

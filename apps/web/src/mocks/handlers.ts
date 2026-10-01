@@ -52,7 +52,8 @@ function createResolvers(db: MockDb): { [N in RouteName]: Resolver<N> } {
       if (!s.interview) throw new MockApiError('NOT_FOUND', 'The interview has not started.');
       return s.interview;
     },
-    presignAudio: ({ session, params }) => db.presignAudio(need(session), param(params, 'turnId')),
+    presignAudio: ({ session, params, body }) =>
+      db.presignAudio(need(session), param(params, 'turnId'), body.contentType),
     startTranscription: ({ session, params }) =>
       db.startTranscription(need(session), param(params, 'turnId')),
     getTranscription: ({ session, params }) =>
