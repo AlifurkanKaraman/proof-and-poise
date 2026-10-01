@@ -26,7 +26,15 @@ export default defineConfig({
       },
     },
     {
+      // Device presets pick the browser: 'Pixel 7' is Chromium, 'iPhone 12' is WebKit.
       name: 'chromium-mobile',
+      use: {
+        ...devices['Pixel 7'],
+        viewport: { width: 375, height: 667 },
+      },
+    },
+    {
+      name: 'webkit-mobile',
       use: {
         ...devices['iPhone 12'],
         viewport: { width: 375, height: 667 },

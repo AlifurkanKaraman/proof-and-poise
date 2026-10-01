@@ -71,6 +71,7 @@ export function PrepTimer({ onHide, className }: PrepTimerProps) {
           <Button
             variant="secondary"
             size="sm"
+            className="min-w-11"
             onClick={togglePause}
             aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
           >
@@ -81,7 +82,13 @@ export function PrepTimer({ onHide, className }: PrepTimerProps) {
             )}
           </Button>
         )}
-        <Button variant="secondary" size="sm" onClick={onHide} aria-label="Hide timer">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="min-w-11"
+          onClick={onHide}
+          aria-label="Hide timer"
+        >
           <X className="size-4" aria-hidden />
         </Button>
       </div>

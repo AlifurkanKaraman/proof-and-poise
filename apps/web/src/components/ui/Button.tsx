@@ -23,7 +23,7 @@ export const buttonVariants = cva(
       },
       size: {
         // min-h-11 keeps a 44px touch target on every size (Req 14.6).
-        sm: 'min-h-11 px-3 text-small sm:min-h-9',
+        sm: 'min-h-11 px-3 text-small',
         md: 'min-h-11 px-4 text-body',
         lg: 'min-h-12 px-6 text-body',
       },

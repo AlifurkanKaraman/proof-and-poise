@@ -40,13 +40,19 @@ export function RootLayout() {
         <div className="mx-auto flex max-w-content flex-wrap gap-6 px-4 py-8 text-small sm:px-6">
           <Link
             to="/privacy"
-            className={cn('rounded-sm underline-offset-4 hover:underline', focusRingOnDark)}
+            className={cn(
+              'inline-flex min-h-11 items-center rounded-sm underline-offset-4 hover:underline',
+              focusRingOnDark,
+            )}
           >
             Privacy
           </Link>
           <Link
             to="/ethics"
-            className={cn('rounded-sm underline-offset-4 hover:underline', focusRingOnDark)}
+            className={cn(
+              'inline-flex min-h-11 items-center rounded-sm underline-offset-4 hover:underline',
+              focusRingOnDark,
+            )}
           >
             Ethical AI
           </Link>
