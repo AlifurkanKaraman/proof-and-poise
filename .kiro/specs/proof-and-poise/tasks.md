@@ -124,7 +124,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Readiness ring with the two-term explanation, the summary, the competency status list, per-question feedback accordions (with follow-ups nested), strongest evidence, weakest areas, STAR outlines, and three prioritized actions. "Practice again" on questions below Proficient, with a before/after comparison and a score event. Print stylesheet. "Delete my data" with a confirmation dialog.
   - deps: 6. _Requirements: 2.5, 12.1–12.4_
 
-- [ ] 20. [A] Report and practice integration
+- [x] 20. [A] Report and practice integration
   - deps: 19, 21. _Requirements: 12.3_
 
 - [x] 21. ⛓ [B] Report and practice API

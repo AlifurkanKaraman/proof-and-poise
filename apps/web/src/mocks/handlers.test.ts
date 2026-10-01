@@ -166,6 +166,12 @@ describe('mock API handlers', () => {
       body: { turnId: 't1' },
     });
     expect(practice).toMatchObject({ kind: 'practice', parentTurnId: 't1', label: '1' });
+    // Like the API, an unanswered attempt is reused rather than spending another one.
+    await expect(
+      api.request('startPractice', { params: p, body: { turnId: 't1' } }),
+    ).resolves.toEqual({ turn: practice });
+    // The open attempt makes the stored report stale only once it is answered.
+    await expect(api.request('getReport', { params: p })).resolves.toEqual(report);
     const practiced = await api.request('submitAnswer', {
       params: { ...p, turnId: practice.id },
       body: { text: DEMO_SAMPLE_ANSWERS['1a'], source: 'typed', edited: false },

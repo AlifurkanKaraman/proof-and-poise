@@ -1,5 +1,6 @@
 import {
   AnalysisStageSchema,
+  canPracticeAgain,
   capStrength,
   competencyReadiness,
   decideFollowUp,
@@ -135,7 +136,8 @@ export function questionRows(state: InterviewState): ScoredQuestionRow[] {
         (t) => t.kind === 'follow_up' && t.parentTurnId === primary.id,
       );
       const practiceAttempts = state.turns.filter(
-        (t) => t.kind === 'practice' && t.parentTurnId === primary.id,
+        // Only answered attempts, as in shared `reportQuestions`.
+        (t) => t.kind === 'practice' && t.parentTurnId === primary.id && t.evaluation !== undefined,
       );
       const p = primary.evaluation?.weightedScore;
       if (p === undefined) {
@@ -499,6 +501,16 @@ export function createMockDb(options: MockDbOptions = {}) {
     if (!PRIMARY_KINDS.includes(parent.kind) || parent.status !== 'evaluated') {
       throw new MockApiError('CONFLICT', 'Practice is available for evaluated primary questions.');
     }
+    // Same rules as the API (Req 12.3): an open attempt is reused, and only questions still
+    // below Proficient can be practiced.
+    const open = state.turns.find(
+      (t) => t.kind === 'practice' && t.parentTurnId === parent.id && t.status === 'asked',
+    );
+    if (open) return { turn: open };
+    const best = questionRows(state).find((r) => r.primary.id === parent.id)?.bestScore ?? null;
+    if (best === null || !canPracticeAgain(best)) {
+      throw new MockApiError('CONFLICT', 'This question is already at Proficient or above.');
+    }
     if (s.counters.practice >= LIMITS.quotas.practiceEvaluations) {
       throw new MockApiError('QUOTA_EXCEEDED', 'You have used all practice attempts.');
     }
@@ -611,14 +623,19 @@ export function createMockDb(options: MockDbOptions = {}) {
   }
 
   function createReport(s: MockSession): Report {
-    if (s.interview?.status !== 'complete') {
+    // Same errors as the API's ReportService.create (design §8).
+    if (!s.interview) throw new MockApiError('NOT_FOUND', 'The interview has not started.');
+    if (s.interview.status !== 'complete') {
       throw new MockApiError('CONFLICT', 'Finish the interview before creating the report.');
     }
     if (!s.report) {
-      if (s.counters.reports >= LIMITS.quotas.reports) {
-        throw new MockApiError('QUOTA_EXCEEDED', 'You have used all reports for this session.');
+      // Demo reports use fixed narrative text and don't count against the quota.
+      if (s.mode !== 'demo') {
+        if (s.counters.reports >= LIMITS.quotas.reports) {
+          throw new MockApiError('QUOTA_EXCEEDED', 'You have used all reports for this session.');
+        }
+        s.counters.reports++;
       }
-      s.counters.reports++;
       s.report = buildReport(s);
     }
     s.stage = 'report';

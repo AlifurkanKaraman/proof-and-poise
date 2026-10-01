@@ -41,6 +41,20 @@ export function transcriptionProblem(error: unknown): TranscriptionProblem {
   return { message: userMessage(error), canRetry: true };
 }
 
+/** `POST /practice` errors in candidate terms (Req 12.3, design §8). */
+function practiceMessage(error: unknown): string {
+  if (isApiError(error) && error.kind === 'http') {
+    if (error.code === 'QUOTA_EXCEEDED') {
+      return `You have used all ${LIMITS.quotas.practiceEvaluations} practice attempts for this session.`;
+    }
+    if (error.code === 'CONFLICT') {
+      return 'This question is already at Proficient or above, so there is nothing to practice.';
+    }
+    if (error.code === 'NOT_FOUND') return 'We could not find that question in your interview.';
+  }
+  return userMessage(error);
+}
+
 /**
  * Interview room page (Tasks 15-16, Req 9.2, 9.3, 10.1-10.5, 11.1).
  * Distraction-free layout with question, prep timer, answer capture, and feedback.
@@ -137,7 +151,7 @@ export default function InterviewPage() {
       <Page title="Practice">
         <ErrorState
           title="Could not start practice"
-          message={userMessage(startPractice.error)}
+          message={practiceMessage(startPractice.error)}
           action={<Button onClick={goToReport}>Back to your report</Button>}
         />
       </Page>

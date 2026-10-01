@@ -13,6 +13,8 @@ import { cn } from '../../lib/cn';
 interface FeedbackAccordionProps {
   questions: ReportQuestion[];
   onPracticeAgain?: ((turnId: string) => void) | undefined;
+  /** Practice attempts left (LIMITS.quotas.practiceEvaluations); 0 disables the button. */
+  practiceRemaining?: number;
   className?: string;
 }
 
@@ -41,6 +43,7 @@ const KIND_LABELS: Record<Turn['kind'], string> = {
 export function FeedbackAccordion({
   questions,
   onPracticeAgain,
+  practiceRemaining = Infinity,
   className,
 }: FeedbackAccordionProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -106,14 +109,22 @@ export function FeedbackAccordion({
                 )}
 
                 {offerPractice && onPracticeAgain && (
-                  <Button
-                    onClick={() => onPracticeAgain(primary.id)}
-                    variant="secondary"
-                    size="sm"
-                    className="mt-4"
-                  >
-                    Practice this question again
-                  </Button>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <Button
+                      onClick={() => onPracticeAgain(primary.id)}
+                      variant="secondary"
+                      size="sm"
+                      disabled={practiceRemaining <= 0}
+                      aria-describedby={practiceRemaining <= 0 ? `${panelId}-quota` : undefined}
+                    >
+                      Practice this question again
+                    </Button>
+                    {practiceRemaining <= 0 && (
+                      <span id={`${panelId}-quota`} className="text-caption text-ink-700">
+                        No practice attempts left in this session.
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             )}
