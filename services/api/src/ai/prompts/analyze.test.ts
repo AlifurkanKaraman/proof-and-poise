@@ -6,6 +6,7 @@ import {
   ANALYZE_SYSTEM_PROMPT,
   checkAnalysisOutput,
   isJobKeyword,
+  isWorkCondition,
 } from './analyze';
 
 describe('checkAnalysisOutput job grounding (design §7.4)', () => {
@@ -47,6 +48,18 @@ describe('checkAnalysisOutput job grounding (design §7.4)', () => {
     const out = demoModelOutput();
     for (const c of out.competencies) c.jobQuote = 'Secret phrase that is not in the job';
     expect(checkAnalysisOutput(out, DEMO_JOB).join('\n')).not.toContain('Secret phrase');
+  });
+});
+
+describe('isWorkCondition', () => {
+  it('flags working conditions, not skills', () => {
+    const wc = (jobQuote: string, name = 'Requirement') => isWorkCondition({ name, jobQuote });
+    expect(wc('Work 40 hours/week, and overtime as required')).toBe(true);
+    expect(wc('Are 18 years of age or older')).toBe(true);
+    expect(wc('Willingness to travel up to 25%')).toBe(true);
+    expect(wc('Must be authorized to work in the US')).toBe(true);
+    expect(wc('Join the team on-call rotation after onboarding', 'On-call')).toBe(false);
+    expect(wc('3+ years building production web apps with React')).toBe(false);
   });
 });
 

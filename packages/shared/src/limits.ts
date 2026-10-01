@@ -47,6 +47,8 @@ export const LIMITS = {
     jobQuote: { maxChars: 200 },
     /** A `rewording_only` card must change at least this many words to be worth showing. */
     minRewordingChangedWords: 3,
+    /** ...and may grow the line by at most this many words, so it can't append new claims. */
+    maxRewordingAddedWords: 3,
     /** Above this share of keywords that just repeat competency names, ask for a repair. */
     maxCompetencyNameKeywordShare: 0.5,
     /** Minimum extracted characters before extraction counts as successful (Req 4.4). */

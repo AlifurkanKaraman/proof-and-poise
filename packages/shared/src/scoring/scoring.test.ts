@@ -93,6 +93,12 @@ describe('capStrength', () => {
       cap: null,
     });
   });
+  it('lets a single Education line prove a credential', () => {
+    expect(capStrength('strong', [{ source: 'resume', section: 'education' }])).toEqual({
+      strength: 'strong',
+      cap: null,
+    });
+  });
   it('leaves strength backed by two resume quotes alone', () => {
     expect(
       capStrength('strong', [

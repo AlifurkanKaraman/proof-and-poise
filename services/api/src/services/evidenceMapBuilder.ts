@@ -8,7 +8,10 @@
  *   in the job, are dropped (design §7.4).
  * - Recommendations must have `originalText` in the resume (Req 7.2), add no unsupported
  *   numbers or terms (Req 7.3), and carry a label that passes validation (design §7.4).
- *   Trivial `rewording_only` cards are dropped. At most 10 are kept (Req 7.8).
+ *   Trivial or padded `rewording_only` cards and rewrites of role or date headings are
+ *   dropped. At
+ *   most 10 are kept (Req 7.8).
+ * - Competencies about working conditions (hours, age, travel, ...) are dropped (design §7.4).
  * - Keyword matches, parseability, and scores are computed, never taken from the model
  *   (Req 6.1).
  * The result is parsed with the stored EvidenceMap schema before it can become state.
@@ -34,7 +37,7 @@ import {
   type JobInput,
   type Recommendation,
 } from '@proof-and-poise/shared';
-import { isJobKeyword, jobSources } from '../ai/prompts/analyze';
+import { isJobKeyword, isUsableCompetency } from '../ai/prompts/analyze';
 import { ApiError } from '../lib/errors';
 
 export interface BuildEvidenceMapInput {
@@ -56,6 +59,16 @@ export interface BuildEvidenceMapResult {
     discardedKeywords: number;
   };
 }
+
+/** A role, company, or date heading: has a month-year or a year range (design §7.4). */
+const HEADING_DATE =
+  /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(?:19|20)\d{2}\b|\b(?:19|20)\d{2}\s*[-–]\s*(?:(?:19|20)\d{2}|present|current|now)\b/i;
+
+export function isHeadingLine(text: string): boolean {
+  return HEADING_DATE.test(text);
+}
+
+const wordCount = (text: string) => normalize(text).split(' ').filter(Boolean).length;
 
 /** Words added plus words removed, counted as multisets of normalized tokens. */
 export function changedWordCount(original: string, proposed: string): number {
@@ -94,7 +107,7 @@ export function buildEvidenceMap({
   let evidenceSeq = 0;
 
   // --- Competencies: job grounding, evidence grounding, then strength caps -------------
-  const fromJob = output.competencies.filter((c) => isGroundedQuote(c.jobQuote, jobSources(job)));
+  const fromJob = output.competencies.filter((c) => isUsableCompetency(c, job));
   const discardedCompetencies = output.competencies.length - fromJob.length;
   const competencies: Competency[] = fromJob.map((c) => {
     const seen = new Set<string>();
@@ -168,6 +181,13 @@ export function buildEvidenceMap({
       r.trustLabel === 'rewording_only' &&
       r.proposedText !== null &&
       changedWordCount(r.originalText, r.proposedText) < LIMITS.analysis.minRewordingChangedWords;
+    // A wording-only change that grows the line is adding claims (design §7.4).
+    const padded =
+      r.trustLabel === 'rewording_only' &&
+      r.proposedText !== null &&
+      wordCount(r.proposedText) - wordCount(r.originalText) >
+        LIMITS.analysis.maxRewordingAddedWords;
+    const heading = r.trustLabel !== 'missing_evidence' && isHeadingLine(r.originalText);
     const check = validateRecommendation(
       {
         trustLabel: r.trustLabel,
@@ -181,6 +201,8 @@ export function buildEvidenceMap({
       !competency ||
       unchanged ||
       trivial ||
+      padded ||
+      heading ||
       !check.ok ||
       recommendations.length >= LIMITS.analysis.recommendations.max
     ) {

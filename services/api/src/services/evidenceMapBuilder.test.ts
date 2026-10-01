@@ -8,7 +8,7 @@ import {
   type AnalysisModelOutput,
 } from '@proof-and-poise/shared';
 import { demoModelOutput } from '../test/fixtures';
-import { buildEvidenceMap, changedWordCount } from './evidenceMapBuilder';
+import { buildEvidenceMap, changedWordCount, isHeadingLine } from './evidenceMapBuilder';
 
 const build = (output: AnalysisModelOutput) =>
   buildEvidenceMap({ output, resumeText: DEMO_RESUME_TEXT, job: DEMO_JOB, inputKind: 'text' });
@@ -187,6 +187,57 @@ describe('buildEvidenceMap (design §6–§7.4)', () => {
     expect(evidenceMap.recommendations).toEqual([]);
     expect(stats.discardedRecommendations).toBe(1);
   });
+  it('drops working-condition competencies even when quoted from the job', () => {
+    const output = demoModelOutput();
+    const job = {
+      ...DEMO_JOB,
+      description: `${DEMO_JOB.description}\n- Work 40 hours/week, and overtime as required.`,
+    };
+    output.competencies[6]!.jobQuote = 'Work 40 hours/week, and overtime as required';
+    const { evidenceMap, stats } = buildEvidenceMap({
+      output,
+      resumeText: DEMO_RESUME_TEXT,
+      job,
+      inputKind: 'text',
+    });
+    expect(stats.discardedCompetencies).toBe(1);
+    expect(evidenceMap.competencies.map((c) => c.id)).not.toContain('c7');
+  });
+  it('drops rewording that appends unsupported claims', () => {
+    const output = demoModelOutput();
+    output.recommendations = [
+      {
+        competencyId: 'c5',
+        originalText:
+          'Modeled bookings in DynamoDB and wrote integration tests for the booking rules.',
+        proposedText:
+          'Modeled bookings in DynamoDB and wrote integration tests for the booking rules, ensuring they met the project requirements.',
+        reason: 'Adds purpose.',
+        trustLabel: 'rewording_only',
+        sourceQuotes: [],
+      },
+    ];
+    const { evidenceMap, stats } = build(output);
+    expect(evidenceMap.recommendations).toEqual([]);
+    expect(stats.discardedRecommendations).toBe(1);
+  });
+  it('drops rewrites of role or date headings', () => {
+    const output = demoModelOutput();
+    output.recommendations = [
+      {
+        competencyId: 'c1',
+        originalText: 'Campus Room Finder (capstone, team of four), Sep 2024 – May 2025',
+        proposedText:
+          'Campus Room Finder capstone project with a team of four, from September 2024 to May 2025',
+        reason: 'Consistency.',
+        trustLabel: 'rewording_only',
+        sourceQuotes: [],
+      },
+    ];
+    const { evidenceMap, stats } = build(output);
+    expect(evidenceMap.recommendations).toEqual([]);
+    expect(stats.discardedRecommendations).toBe(1);
+  });
   it('caps a single experience quote at moderate (design §6.1)', () => {
     const output = demoModelOutput();
     const c7 = output.competencies.find((c) => c.id === 'c7')!;
@@ -194,6 +245,28 @@ describe('buildEvidenceMap (design §6–§7.4)', () => {
     const built = build(output).evidenceMap.competencies.find((c) => c.id === 'c7')!;
     expect(built.evidence).toHaveLength(1);
     expect(built.strength).toBe('moderate');
+  });
+});
+
+describe('isHeadingLine', () => {
+  it('recognizes role and date headings, not achievement bullets', () => {
+    expect(
+      isHeadingLine('Software Developer Intern Florence, Alabama IPWatch May. 2026 – Aug. 2026'),
+    ).toBe(true);
+    expect(
+      isHeadingLine(
+        'Full Stack Developer Istanbul, Turkey Turkish Airlines Technology Apr. 2023 – Oct. 2024',
+      ),
+    ).toBe(true);
+    expect(
+      isHeadingLine(
+        'Smart Tourism Assistant | MERN Stack (MongoDB, Express, React, Node) 2022 – 2023',
+      ),
+    ).toBe(true);
+    expect(isHeadingLine('Cut p95 query time from 900 ms to 350 ms with a Redis cache.')).toBe(
+      false,
+    );
+    expect(isHeadingLine('Selected as a finalist in Teknofest 2022.')).toBe(false);
   });
 });
 

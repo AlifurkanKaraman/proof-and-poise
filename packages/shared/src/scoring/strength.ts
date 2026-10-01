@@ -20,8 +20,9 @@ const minStrength = (a: Strength, b: Strength): Strength =>
  * - Only confirmations → at most `moderate` (Req 8.2).
  * - Only a single resume quote from the Skills section (plus no confirmation) → at most `weak`.
  *   With a confirmation as well, the confirmation cap (`moderate`) applies instead.
- * - Only a single resume quote from experience or projects (no confirmation) → at most
- *   `moderate`. `strong` needs two independent pieces of evidence.
+ * - Only a single resume quote from experience, projects, or other sections (no
+ *   confirmation) → at most `moderate`. `strong` needs two independent pieces of evidence.
+ *   An Education line is exempt: one line fully proves a degree or certification.
  */
 export function capStrength(
   proposed: Strength,
@@ -43,7 +44,7 @@ export function capStrength(
     const strength = minStrength(proposed, 'weak');
     return { strength, cap: strength !== proposed ? 'skills_only' : null };
   }
-  if (resume.length === 1 && confirmations.length === 0) {
+  if (resume.length === 1 && confirmations.length === 0 && resume[0]?.section !== 'education') {
     const strength = minStrength(proposed, 'moderate');
     return { strength, cap: strength !== proposed ? 'single_quote' : null };
   }
