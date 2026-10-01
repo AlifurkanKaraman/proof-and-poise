@@ -143,3 +143,24 @@ For each screen, verify:
 - Manual keyboard and screen reader tests catch the rest
 - Document any known issues with remediation plan
 - Re-test after fixing issues
+
+## Audit results (2026-09-29, automated)
+
+`e2e/a11y-audit.spec.ts` runs on every screen (landing, privacy, ethics, prepare, 404, analysis, interview, report) at 375, 768 and 1280 px.
+
+Verified automatically:
+
+- axe (WCAG 2.0/2.1/2.2 A and AA, including color contrast): 0 violations.
+- No horizontal overflow at any of the three widths.
+- Every button, link, tab and field is at least 44 x 44 px (off-screen skip link and the visually hidden file input are exempt).
+- Landing: Tab reaches the controls and each shows a visible focus indicator (Chromium only; Safari needs Option+Tab to reach links).
+- Interview: the Type tab, textarea and Submit answer work by keyboard.
+- Report: the delete dialog opens by keyboard, closes with Escape and returns focus to its trigger.
+- Reduced motion: no animation or transition longer than 0.3 s on the report.
+
+Found and fixed:
+
+- Footer links (Privacy, Ethical AI) were 21 px tall; small buttons (Print, Delete my data, Pause and Hide timer, the header CTA) were 36 px; now 44 px.
+- "Practice this question again" on the report opened the interview without starting a practice attempt; `InterviewPage` now starts it from `?practice=` (covered by an e2e test).
+
+Not verified (needs a person or real devices): screen reader announcements (NVDA/VoiceOver), iOS Safari and Firefox runs, microphone-denied flow, a full keyboard-only pass on the real recording tab, and per-screen error and empty states in the browser.
