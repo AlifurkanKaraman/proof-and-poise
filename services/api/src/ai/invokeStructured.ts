@@ -48,6 +48,11 @@ export interface StructuredRequest<S extends z.ZodType> {
   user: string;
   /** Semantic checks beyond the schema (e.g. unique IDs). Returns issue strings; [] = ok. */
   check?: (output: z.infer<S>) => string[];
+  /**
+   * Advisory checks: issues trigger the repair retry, but output that passes `schema` and
+   * `check` is never rejected for them. If the retry is worse, the earlier output is used.
+   */
+  softCheck?: (output: z.infer<S>) => string[];
   /** Epoch ms after which the call is aborted (Req 5.5). */
   deadlineMs?: number;
 }
@@ -56,7 +61,7 @@ export interface StructuredRequest<S extends z.ZodType> {
 const MAX_REPAIR_ISSUES = 20;
 const MAX_ATTEMPTS = 2;
 
-type Attempt<T> = { ok: true; value: T } | { ok: false; issues: string[] };
+type Attempt<T> = { ok: true; value: T } | { ok: false; issues: string[]; usable?: T };
 
 /** Marker for a tool call that was cut off or malformed (design §7.1). */
 const TRUNCATED = Symbol('truncated');
@@ -98,13 +103,18 @@ export async function invokeStructured<S extends z.ZodType>(
   let fallbackInstruction = '';
   let issues: string[] = [];
 
-  const validate = (input: unknown): Attempt<z.infer<S>> => {
+  let usable: z.infer<S> | undefined;
+  const validate = (input: unknown, last: boolean): Attempt<z.infer<S>> => {
     if (input === TRUNCATED) return { ok: false, issues: [TRUNCATED_ISSUE] };
     if (input === undefined) return { ok: false, issues: [`No ${req.toolName} tool call.`] };
     const parsed = req.schema.safeParse(input);
     if (!parsed.success) return { ok: false, issues: compactIssues(parsed.error) };
     const semantic = req.check?.(parsed.data) ?? [];
-    return semantic.length > 0 ? { ok: false, issues: semantic } : { ok: true, value: parsed.data };
+    if (semantic.length > 0) return { ok: false, issues: semantic };
+    const soft = last ? [] : (req.softCheck?.(parsed.data) ?? []);
+    return soft.length > 0
+      ? { ok: false, issues: soft, usable: parsed.data }
+      : { ok: true, value: parsed.data };
   };
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -130,11 +140,15 @@ export async function invokeStructured<S extends z.ZodType>(
       fallbackInstruction = `\n\nAlways respond by calling the ${req.toolName} tool exactly once.`;
       return send(deps, req, attempt, input(), false);
     });
-    const result = validate(res === TRUNCATED ? TRUNCATED : toolInput(res, req.toolName));
+    const last = attempt === MAX_ATTEMPTS;
+    const result = validate(res === TRUNCATED ? TRUNCATED : toolInput(res, req.toolName), last);
     if (result.ok) return result.value;
+    if (result.usable !== undefined) usable = result.usable;
     issues = result.issues;
     deps.log.warn('model_output_invalid', { task: req.task, attempt });
   }
+  // The retry failed hard, but an earlier answer passed every required check.
+  if (usable !== undefined) return usable;
   throw new ApiError('MODEL_OUTPUT_INVALID');
 }
 

@@ -69,6 +69,7 @@ export class AnalysisWorker {
       const { evidenceMap, stats } = buildEvidenceMap({
         output,
         resumeText: text,
+        job: input.job,
         inputKind: input.resumeKind,
       });
       log.info('analysis_grounding', stats);

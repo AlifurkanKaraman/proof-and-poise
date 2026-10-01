@@ -186,6 +186,7 @@ Weights: importance `w`: required = 3, preferred = 2, contextual = 1. Strength v
   - With no grounded resume quote and no confirmation, strength is `none`.
   - With only a confirmation, strength is at most `moderate`.
   - With only a single quote that comes from the Skills section, strength is at most `weak`. A listed skill isn't demonstrated experience.
+  - With only a single quote from experience or projects and no confirmation, strength is at most `moderate`. `strong` needs two independent pieces of evidence.
 - This gives the UI a plain explanation for each strength, e.g. "Weak: listed in Skills only, not shown in experience or projects."
 
 ### 6.2 Formulas (C = competencies, all results rounded to integers)
@@ -237,6 +238,8 @@ Every change to an input creates `ScoreEvent { metric, before, after, reason, so
 - `normalize(s)`: NFKC, lowercase, collapse whitespace, unify quotes and dashes, and strip bullet glyphs.
 - `isGroundedQuote(quote, sources)` is true when `normalize(quote)` is a substring of `normalize(source)` for some source. Quotes must be ≥ 12 characters, so trivial matches don't count.
 - `novelTerms(proposed, original, allowedSources)` returns (a) numeric tokens (`\d`, `%`, `$`, `k`/`M` suffixes) in `proposed` that aren't found in `allowedSources`, and (b) keyword or tech-dictionary terms in `proposed` that aren't found in `allowedSources`. Any hit means the recommendation is discarded, and the count is logged without content.
+- Job grounding: each competency's `jobQuote` must be a grounded quote of the job description or role; ungrounded competencies are dropped. Each keyword must appear in the normalized job text; others are dropped. If fewer than the minimum competencies or keywords survive, or more than half the keywords just repeat competency names, the output gets the repair retry.
+- A `rewording_only` card that changes fewer than 3 words is dropped as trivial.
 - Trust label assignment is validated. A label of `rewording_only` requires `novelTerms` to be empty *and* no new keyword matches. A label of `verified_from_resume` requires every added term to appear elsewhere in the resume, and `sourceEvidenceIds` must point to that quote.
 
 ## 8. API contract (packages/shared/contracts, base `/v1`)

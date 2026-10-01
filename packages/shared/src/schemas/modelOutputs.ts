@@ -27,6 +27,8 @@ export const AnalysisModelCompetencySchema = z.strictObject({
   id: CompetencyIdSchema,
   name: str(80),
   description: str(300),
+  /** Verbatim job-description phrase this competency comes from; grounded server-side. */
+  jobQuote: str(LIMITS.analysis.jobQuote.maxChars),
   importance: ImportanceSchema,
   category: CompetencyCategorySchema,
   evidence: z
@@ -44,8 +46,11 @@ export const AnalysisModelRecommendationSchema = z.strictObject({
   reason: str(400),
   /** The model cannot assign `confirmed_by_candidate`; only confirmations produce that. */
   trustLabel: z.enum(['verified_from_resume', 'missing_evidence', 'rewording_only']),
-  /** Verbatim resume quotes supporting the change; resolved to evidence IDs server-side. */
-  sourceQuotes: z.array(str(400)).max(3),
+  /**
+   * Verbatim resume quotes supporting the change; resolved to evidence IDs server-side.
+   * Models sometimes omit it; missing means none, and `verified_from_resume` still needs one.
+   */
+  sourceQuotes: z.array(str(400)).max(3).default([]),
 });
 
 export const AnalysisModelOutputSchema = z.strictObject({

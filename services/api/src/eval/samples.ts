@@ -182,6 +182,54 @@ const NEW_GRAD_MESSY: EvalCase = {
   },
 };
 
+const SYSTEMS_PERF: EvalCase = {
+  id: 'fullstack-to-systems-performance',
+  focus:
+    'Experienced full-stack engineer applying to a Linux performance role; strong languages, no OS profiling or kernel work',
+  expectedGap: /perf\b|profil|linux|kernel|benchmark|operating system/i,
+  resumeText: lines(
+    'Daniel Okafor (fictional)   daniel.okafor@example.com',
+    'EXPERIENCE',
+    'Software Engineer, Brightline Logistics (fictional company), 2022 – 2025',
+    '- Rewrote the order-search service in Java with Spring Boot and Hibernate, cutting p95 query time from 900 ms to 350 ms.',
+    '- Added a Redis cache in front of PostgreSQL for shipment lookups, reducing database load by 40%.',
+    '- Diagnosed production incidents in a Java and Vue.js system used by 3,000 dispatchers and wrote the postmortems.',
+    '- Built role-based access control for the customer portal with Keycloak.',
+    'Backend Developer Intern, Harbor Payments (fictional company), Summer 2021',
+    '- Implemented a C# service that reconciles card settlements and wrote unit tests with xUnit.',
+    'PROJECTS',
+    '- Route planner (course project): implemented Dijkstra and A* in C++ with a binary heap and compared their runtimes.',
+    'EDUCATION',
+    'B.S. in Computer Engineering, Lakeview University (fictional), 2022',
+    'SKILLS',
+    'Languages: Java, C#, C++, Python, SQL',
+    'Frameworks: Spring Boot, Hibernate, Vue.js, React',
+    'Cloud & Infrastructure: AWS (EC2, S3, RDS), Docker, Kubernetes',
+  ),
+  job: {
+    role: 'Software Development Engineer, Performance',
+    company: 'Contoso Cloud (fictional company)',
+    interviewType: 'technical_mixed',
+    description: lines(
+      'Software Development Engineer, Performance - Contoso Cloud (fictional company)',
+      '',
+      'Key job responsibilities',
+      '- Enhance architectures and algorithms for optimal performance.',
+      '- Use tools like perf, sysstat, and sysctl to identify bottlenecks.',
+      '- Monitor and analyze processor, OS, and workload metrics.',
+      '- Contribute to Linux kernel improvements and other open source projects.',
+      '- Enhance our internal benchmarking tool and build automation.',
+      '',
+      'Basic qualifications',
+      '- Experience programming with at least one modern language such as Java, C++, or C# including object-oriented design.',
+      '- Experience with data structure implementation and basic algorithm development.',
+      '',
+      'Preferred qualifications',
+      "- Bachelor's degree in computer science or equivalent.",
+      '- Experience with distributed, multi-tiered systems and relational databases.',
+    ),
+  },
+};
 export const DEMO_CASE: EvalCase = {
   id: 'demo-fixture',
   focus: 'The public demo scenario (design §15): designed strong/moderate/weak/missing spread',
@@ -195,4 +243,5 @@ export const EVAL_CASES: readonly EvalCase[] = [
   CAREER_CHANGER,
   FRONTEND_MID,
   NEW_GRAD_MESSY,
+  SYSTEMS_PERF,
 ];
