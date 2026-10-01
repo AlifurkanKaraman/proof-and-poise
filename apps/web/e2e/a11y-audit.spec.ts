@@ -81,6 +81,10 @@ async function findSmallTargets(page: Page) {
 
 for (const width of WIDTHS) {
   test.describe(`audit @${width}px`, () => {
+    // The audit sets its own widths, so it runs in the desktop projects only. Mobile
+    // projects cover the real journey in demo-journey.spec.ts; overriding a mobile
+    // preset's viewport here made Linux WebKit report the submit button off-screen.
+    test.skip(({ isMobile }) => isMobile, 'width audit runs in desktop projects');
     test.use({ viewport: { width, height: 800 } });
     for (const screen of SCREENS) {
       test(`${screen.name}`, async ({ page }) => {
