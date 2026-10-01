@@ -1,23 +1,65 @@
-import { Award, Lightbulb, Target } from 'lucide-react';
-import type { EvidenceMap, Strength } from '@proof-and-poise/shared';
+import { Award, Check, Lightbulb, MessageSquare, Target, Undo2, X } from 'lucide-react';
+import { createContext, useContext } from 'react';
+import {
+  LIMITS,
+  type Competency,
+  type ConfirmationRequest,
+  type DecisionRequest,
+  type EvidenceMap,
+  type Recommendation,
+  type Strength,
+  type TrustLabel,
+} from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
 import { ScoreRing } from '../../components/ui/ScoreRing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
+import { ConfirmExperienceDialog } from './ConfirmExperienceDialog';
+
+/** Decision and confirmation wiring (Req 7.4–7.5, 8.1). Without it the workspace is read-only. */
+export interface WorkspaceActions {
+  onDecide: (recId: string, decision: DecisionRequest['decision']) => void;
+  /** Recommendation whose decision request is in flight. */
+  pendingRecId: string | null;
+  /** Resolves on success; rejects with an ApiError the dialog shows. */
+  onConfirm: (body: ConfirmationRequest) => Promise<void>;
+}
+
+interface WorkspaceContextValue {
+  actions: WorkspaceActions | undefined;
+  competencies: Map<string, Competency>;
+  confirmationsLeft: number;
+}
+
+const WorkspaceContext = createContext<WorkspaceContextValue>({
+  actions: undefined,
+  competencies: new Map(),
+  confirmationsLeft: 0,
+});
 
 interface AnalysisWorkspaceProps {
   evidenceMap: EvidenceMap;
   onStartInterview: () => void;
   isStartingInterview?: boolean;
+  actions?: WorkspaceActions;
 }
 
 export function AnalysisWorkspace({
   evidenceMap,
   onStartInterview,
   isStartingInterview,
+  actions,
 }: AnalysisWorkspaceProps) {
   const { competencies, keywords, recommendations, scores } = evidenceMap;
+  const context: WorkspaceContextValue = {
+    actions,
+    competencies: new Map(competencies.map((c) => [c.id, c])),
+    // Req 8.4: at most 3 confirmations per session.
+    confirmationsLeft:
+      LIMITS.confirmation.maxPerSession -
+      competencies.filter((c) => c.confirmationState === 'confirmed').length,
+  };
 
   // Group competencies by importance
   const required = competencies.filter((c) => c.importance === 'required');
@@ -26,7 +68,8 @@ export function AnalysisWorkspace({
 
   // Group recommendations by trust label
   const missingEvidence = recommendations.filter((r) => r.trustLabel === 'missing_evidence');
-  const rewordingOnly = recommendations.filter((r) => r.trustLabel === 'rewording_only');
+  // Every label other than missing_evidence carries proposed text the candidate can accept.
+  const changes = recommendations.filter((r) => r.trustLabel !== 'missing_evidence');
 
   // Count matched vs required keywords
   const matchedKeywords = keywords.filter((k) => k.matched);
@@ -34,161 +77,168 @@ export function AnalysisWorkspace({
   const matchedRequired = requiredKeywords.filter((k) => k.matched);
 
   return (
-    <div className="flex flex-col gap-6">
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
-          <TabsTrigger value="recommendations">
-            Recommendations ({recommendations.length})
-          </TabsTrigger>
-          <TabsTrigger value="keywords">
-            Keywords ({matchedKeywords.length}/{keywords.length})
-          </TabsTrigger>
-        </TabsList>
+    <WorkspaceContext.Provider value={context}>
+      <div className="flex flex-col gap-6">
+        <Tabs defaultValue="overview">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
+            <TabsTrigger value="recommendations">
+              Recommendations ({recommendations.length})
+            </TabsTrigger>
+            <TabsTrigger value="keywords">
+              Keywords ({matchedKeywords.length}/{keywords.length})
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview">
-          <div className="flex flex-col gap-6">
-            {/* Scores */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <ScoreCard
-                label="Job Match"
-                value={scores.jobMatch}
-                icon={Target}
-                description="Overall alignment with the job requirements"
-              />
-              <ScoreCard
-                label="Evidence Coverage"
-                value={scores.evidenceCoverage}
-                icon={Award}
-                description="How well your resume backs up your competencies"
-              />
-              <ScoreCard
-                label="Keyword Match"
-                value={scores.keywordCoverage}
-                icon={Lightbulb}
-                description="Required keywords found in your resume"
-              />
-              <ScoreCard
-                label="Parseability"
-                value={scores.parseability}
-                icon={Award}
-                description="How well structured your resume is"
-              />
-            </div>
-
-            {/* Summary */}
-            <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
-              <h2 className="mb-4 text-h3 font-semibold text-ink-950">Summary</h2>
-              <div className="flex flex-col gap-3 text-small text-ink-700">
-                <p>
-                  <strong className="font-semibold text-ink-950">
-                    {required.length} required competencies
-                  </strong>
-                  {', '}
-                  {preferred.length} preferred, and {contextual.length} contextual
-                </p>
-                <p>
-                  <strong className="font-semibold text-ink-950">
-                    {matchedRequired.length} of {requiredKeywords.length} required keywords matched
-                  </strong>
-                </p>
-                <p>
-                  <strong className="font-semibold text-ink-950">
-                    {recommendations.length} recommendations
-                  </strong>
-                  {' to strengthen your resume'}
-                </p>
+          <TabsContent value="overview">
+            <div className="flex flex-col gap-6">
+              {/* Scores */}
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <ScoreCard
+                  label="Job Match"
+                  value={scores.jobMatch}
+                  icon={Target}
+                  description="Overall alignment with the job requirements"
+                />
+                <ScoreCard
+                  label="Evidence Coverage"
+                  value={scores.evidenceCoverage}
+                  icon={Award}
+                  description="How well your resume backs up your competencies"
+                />
+                <ScoreCard
+                  label="Keyword Match"
+                  value={scores.keywordCoverage}
+                  icon={Lightbulb}
+                  description="Required keywords found in your resume"
+                />
+                <ScoreCard
+                  label="Parseability"
+                  value={scores.parseability}
+                  icon={Award}
+                  description="How well structured your resume is"
+                />
               </div>
-            </div>
 
-            {/* Start Interview CTA */}
-            <div className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-6">
-              <h2 className="mb-2 text-h3 font-semibold text-ink-950">Ready for the interview?</h2>
-              <p className="mb-4 text-small text-ink-700">
-                Practice answering competency-based questions to improve your readiness score.
-              </p>
-              <Button onClick={onStartInterview} disabled={isStartingInterview}>
-                {isStartingInterview ? 'Starting interview...' : 'Start Interview'}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="competencies">
-          <div className="flex flex-col gap-8">
-            {required.length > 0 && <CompetencySection title="Required" competencies={required} />}
-            {preferred.length > 0 && (
-              <CompetencySection title="Preferred" competencies={preferred} />
-            )}
-            {contextual.length > 0 && (
-              <CompetencySection title="Contextual" competencies={contextual} />
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="recommendations">
-          <div className="flex flex-col gap-8">
-            {missingEvidence.length > 0 && (
-              <RecommendationSection
-                title="Missing Evidence"
-                description="Add these experiences to strengthen your resume."
-                recommendations={missingEvidence}
-              />
-            )}
-            {rewordingOnly.length > 0 && (
-              <RecommendationSection
-                title="Rewording Suggestions"
-                description="Minor improvements to better highlight your experience."
-                recommendations={rewordingOnly}
-              />
-            )}
-            {recommendations.length === 0 && (
-              <div className="rounded-lg border border-line-200 bg-paper-0 p-6 text-center">
-                <p className="text-small text-ink-700">
-                  No recommendations at this time. Your resume looks good!
-                </p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="keywords">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {keywords.map((keyword) => (
-              <div
-                key={keyword.term}
-                className={cn(
-                  'rounded-lg border p-4',
-                  keyword.matched
-                    ? 'border-emerald-700/20 bg-emerald-50'
-                    : 'border-line-200 bg-paper-0',
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p
-                    className={cn(
-                      'font-mono text-small font-semibold',
-                      keyword.matched ? 'text-emerald-700' : 'text-ink-950',
-                    )}
-                  >
-                    {keyword.term}
+              {/* Summary */}
+              <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
+                <h2 className="mb-4 text-h3 font-semibold text-ink-950">Summary</h2>
+                <div className="flex flex-col gap-3 text-small text-ink-700">
+                  <p>
+                    <strong className="font-semibold text-ink-950">
+                      {required.length} required competencies
+                    </strong>
+                    {', '}
+                    {preferred.length} preferred, and {contextual.length} contextual
                   </p>
-                  {keyword.required && (
-                    <span className="rounded border border-amber-700/20 bg-amber-50 px-1.5 py-0.5 text-caption font-medium text-amber-700">
-                      Required
-                    </span>
-                  )}
+                  <p>
+                    <strong className="font-semibold text-ink-950">
+                      {matchedRequired.length} of {requiredKeywords.length} required keywords
+                      matched
+                    </strong>
+                  </p>
+                  <p>
+                    <strong className="font-semibold text-ink-950">
+                      {recommendations.length} recommendations
+                    </strong>
+                    {' to strengthen your resume'}
+                  </p>
                 </div>
-                <p className="mt-1 text-caption text-ink-700">
-                  {keyword.matched ? 'Found in resume' : 'Not found'}
-                </p>
               </div>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+
+              {/* Start Interview CTA */}
+              <div className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-6">
+                <h2 className="mb-2 text-h3 font-semibold text-ink-950">
+                  Ready for the interview?
+                </h2>
+                <p className="mb-4 text-small text-ink-700">
+                  Practice answering competency-based questions to improve your readiness score.
+                </p>
+                <Button onClick={onStartInterview} disabled={isStartingInterview}>
+                  {isStartingInterview ? 'Starting interview...' : 'Start Interview'}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="competencies">
+            <div className="flex flex-col gap-8">
+              {required.length > 0 && (
+                <CompetencySection title="Required" competencies={required} />
+              )}
+              {preferred.length > 0 && (
+                <CompetencySection title="Preferred" competencies={preferred} />
+              )}
+              {contextual.length > 0 && (
+                <CompetencySection title="Contextual" competencies={contextual} />
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="recommendations">
+            <div className="flex flex-col gap-8">
+              {missingEvidence.length > 0 && (
+                <RecommendationSection
+                  title="Missing Evidence"
+                  description="Add these experiences to strengthen your resume."
+                  recommendations={missingEvidence}
+                />
+              )}
+              {changes.length > 0 && (
+                <RecommendationSection
+                  title="Suggested Changes"
+                  description="Nothing changes in your resume until you accept it. You can undo until the interview starts."
+                  recommendations={changes}
+                />
+              )}
+              {recommendations.length === 0 && (
+                <div className="rounded-lg border border-line-200 bg-paper-0 p-6 text-center">
+                  <p className="text-small text-ink-700">
+                    No recommendations at this time. Your resume looks good!
+                  </p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="keywords">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {keywords.map((keyword) => (
+                <div
+                  key={keyword.term}
+                  className={cn(
+                    'rounded-lg border p-4',
+                    keyword.matched
+                      ? 'border-emerald-700/20 bg-emerald-50'
+                      : 'border-line-200 bg-paper-0',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p
+                      className={cn(
+                        'font-mono text-small font-semibold',
+                        keyword.matched ? 'text-emerald-700' : 'text-ink-950',
+                      )}
+                    >
+                      {keyword.term}
+                    </p>
+                    {keyword.required && (
+                      <span className="rounded border border-amber-700/20 bg-amber-50 px-1.5 py-0.5 text-caption font-medium text-amber-700">
+                        Required
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-caption text-ink-700">
+                    {keyword.matched ? 'Found in resume' : 'Not found'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </WorkspaceContext.Provider>
   );
 }
 
@@ -288,9 +338,41 @@ function CompetencyCard({ competency }: CompetencyCardProps) {
           <p className="mt-1 text-small text-ink-950">{competency.suggestedInterviewTopic}</p>
         </div>
       )}
+
+      {(competency.strength === 'weak' || competency.strength === 'none') && (
+        <div className="mt-4">
+          <ConfirmAction competency={competency} />
+        </div>
+      )}
     </div>
   );
 }
+
+/** "I have this experience" for weak/none competencies (Req 8.1), or its outcome. */
+function ConfirmAction({ competency }: { competency: Competency }) {
+  const { actions, confirmationsLeft } = useContext(WorkspaceContext);
+  if (competency.confirmationState === 'confirmed') {
+    return <StatusBadge status="confirmed" />;
+  }
+  if (!actions) return null;
+  if (confirmationsLeft <= 0) {
+    return (
+      <p className="text-small text-ink-700">
+        You have used all {LIMITS.confirmation.maxPerSession} confirmations for this session.
+      </p>
+    );
+  }
+  return <ConfirmExperienceDialog competency={competency} onSubmit={actions.onConfirm} />;
+}
+
+const TRUST_BADGES: Record<TrustLabel, EvidenceStatus> = {
+  verified_from_resume: 'verified',
+  confirmed_by_candidate: 'confirmed',
+  missing_evidence: 'missing',
+  rewording_only: 'rewording',
+};
+
+const DECISION_TEXT = { accepted: 'Accepted', rejected: 'Rejected' } as const;
 
 interface RecommendationSectionProps {
   title: string;
@@ -319,22 +401,36 @@ function RecommendationSection({
 }
 
 interface RecommendationCardProps {
-  recommendation: EvidenceMap['recommendations'][number];
+  recommendation: Recommendation;
 }
 
 function RecommendationCard({ recommendation }: RecommendationCardProps) {
+  const { actions, competencies } = useContext(WorkspaceContext);
   const isMissing = recommendation.trustLabel === 'missing_evidence';
+  const competency = competencies.get(recommendation.competencyId);
+  const pending = actions?.pendingRecId === recommendation.id;
+  const decided = recommendation.decision !== 'pending';
 
   return (
-    <div
+    <article
+      aria-busy={pending || undefined}
+      aria-label={competency ? `Recommendation for ${competency.name}` : 'Recommendation'}
       className={cn(
         'rounded-lg border p-6',
         isMissing ? 'border-amber-700/20 bg-amber-50' : 'border-line-200 bg-paper-0',
+        recommendation.decision === 'accepted' && 'border-emerald-700/40',
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-4">
-        <p className="text-small font-semibold text-ink-950">{recommendation.reason}</p>
-        <StatusBadge status={isMissing ? 'missing' : 'rewording'} className="shrink-0" />
+        <div>
+          {competency && (
+            <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">
+              {competency.name}
+            </p>
+          )}
+          <p className="text-small font-semibold text-ink-950">{recommendation.reason}</p>
+        </div>
+        <StatusBadge status={TRUST_BADGES[recommendation.trustLabel]} className="shrink-0" />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -354,6 +450,64 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
           </div>
         )}
       </div>
-    </div>
+
+      {isMissing ? (
+        // Req 7.4: no Accept for missing evidence; confirm it or practice it instead.
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {competency && <ConfirmAction competency={competency} />}
+          {/* No contract route marks a topic as an interview priority yet (frontend.md). */}
+          <Button variant="ghost" size="sm" disabled>
+            <MessageSquare aria-hidden="true" className="size-4" />
+            Practice this in the interview (Coming soon)
+          </Button>
+        </div>
+      ) : (
+        actions && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {decided ? (
+              <>
+                <p className="inline-flex items-center gap-1.5 text-small font-semibold text-ink-950">
+                  {recommendation.decision === 'accepted' ? (
+                    <Check aria-hidden="true" className="size-4 text-emerald-700" />
+                  ) : (
+                    <X aria-hidden="true" className="size-4 text-ink-700" />
+                  )}
+                  {DECISION_TEXT[recommendation.decision as keyof typeof DECISION_TEXT]}
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={pending}
+                  onClick={() => actions.onDecide(recommendation.id, 'reset')}
+                >
+                  <Undo2 aria-hidden="true" className="size-4" />
+                  Undo
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  loading={pending}
+                  onClick={() => actions.onDecide(recommendation.id, 'accept')}
+                >
+                  <Check aria-hidden="true" className="size-4" />
+                  Accept
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => actions.onDecide(recommendation.id, 'reject')}
+                >
+                  <X aria-hidden="true" className="size-4" />
+                  Reject
+                </Button>
+              </>
+            )}
+          </div>
+        )
+      )}
+    </article>
   );
 }

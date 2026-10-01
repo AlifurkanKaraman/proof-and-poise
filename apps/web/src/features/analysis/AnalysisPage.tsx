@@ -7,9 +7,23 @@ import { ErrorState } from '../../components/states/ErrorState';
 import { LoadingStage } from '../../components/states/LoadingStage';
 import { Button } from '../../components/ui/Button';
 import { codeMessage, isApiError, userMessage } from '../../lib/api/errors';
-import { useAnalysis, useStartInterview, useSubmitSetup } from '../../lib/api/queries';
+import { useToast } from '../../components/ui/Toast';
+import {
+  useAnalysis,
+  useConfirmation,
+  useDecision,
+  useStartInterview,
+  useSubmitSetup,
+} from '../../lib/api/queries';
 import { draftSubmission, loadSetupDraft } from '../setup/setupForm';
-import { AnalysisWorkspace } from './AnalysisWorkspace';
+import { AnalysisWorkspace, type WorkspaceActions } from './AnalysisWorkspace';
+import { scoreToast } from './scoreToast';
+
+const DECISION_DONE = {
+  accept: 'Change accepted',
+  reject: 'Change rejected',
+  reset: 'Decision undone',
+} as const;
 
 /** Staged progress labels, in contract order (Req 5.1). */
 const STAGE_LABELS: Record<AnalysisStage, string> = {
@@ -43,6 +57,27 @@ export default function AnalysisPage() {
   const startInterview = useStartInterview(sessionId);
   const retry = useSubmitSetup();
   const [interviewError, setInterviewError] = useState<unknown>(null);
+  const decision = useDecision(sessionId);
+  const confirmation = useConfirmation(sessionId);
+  const toast = useToast();
+
+  // Optimistic decision with rollback in the hook (Req 7.5, design §10); the toast shows the
+  // server's score change and its reason.
+  const decide: WorkspaceActions['onDecide'] = (recId, choice) => {
+    decision.mutate(
+      { recId, decision: choice },
+      { onSuccess: (res) => toast.show(scoreToast(res.scoreEvent, DECISION_DONE[choice])) },
+    );
+  };
+
+  const actions: WorkspaceActions = {
+    onDecide: decide,
+    pendingRecId: decision.isPending ? decision.variables.recId : null,
+    onConfirm: async (body) => {
+      const res = await confirmation.mutateAsync(body);
+      toast.show(scoreToast(res.scoreEvent, 'Experience confirmed'));
+    },
+  };
 
   // Back to setup with the entered values kept (Req 3.1, 4.4).
   const backToSetup = (state: { resumeMode?: 'paste'; step?: number }) =>
@@ -156,8 +191,25 @@ export default function AnalysisPage() {
           }
         />
       )}
+      {decision.isError && (
+        <ErrorState
+          title="We couldn't save your decision"
+          message={`${userMessage(decision.error)} Your previous choice was restored.`}
+          action={
+            <Button onClick={() => decide(decision.variables.recId, decision.variables.decision)}>
+              Retry
+            </Button>
+          }
+          secondaryAction={
+            <Button variant="secondary" onClick={() => decision.reset()}>
+              Dismiss
+            </Button>
+          }
+        />
+      )}
       <AnalysisWorkspace
         evidenceMap={data.evidenceMap}
+        actions={actions}
         onStartInterview={() => void handleStartInterview()}
         isStartingInterview={startInterview.isPending}
       />
