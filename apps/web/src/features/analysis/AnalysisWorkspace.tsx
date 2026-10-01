@@ -10,12 +10,14 @@ import {
   type Strength,
   type TrustLabel,
 } from '@proof-and-poise/shared';
+import { EmptyState } from '../../components/states/EmptyState';
 import { Button } from '../../components/ui/Button';
 import { ScoreRing } from '../../components/ui/ScoreRing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
 import { ConfirmExperienceDialog } from './ConfirmExperienceDialog';
+import { WorkingResume } from './WorkingResume';
 
 /** Decision and confirmation wiring (Req 7.4–7.5, 8.1). Without it the workspace is read-only. */
 export interface WorkspaceActions {
@@ -43,6 +45,8 @@ interface AnalysisWorkspaceProps {
   onStartInterview: () => void;
   isStartingInterview?: boolean;
   actions?: WorkspaceActions;
+  /** Original resume text from GET analysis; enables the working-resume tab (Req 7.7). */
+  resumeText?: string;
 }
 
 export function AnalysisWorkspace({
@@ -50,6 +54,7 @@ export function AnalysisWorkspace({
   onStartInterview,
   isStartingInterview,
   actions,
+  resumeText,
 }: AnalysisWorkspaceProps) {
   const { competencies, keywords, recommendations, scores } = evidenceMap;
   const context: WorkspaceContextValue = {
@@ -89,6 +94,7 @@ export function AnalysisWorkspace({
             <TabsTrigger value="keywords">
               Keywords ({matchedKeywords.length}/{keywords.length})
             </TabsTrigger>
+            {resumeText !== undefined && <TabsTrigger value="resume">Resume</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="overview">
@@ -173,6 +179,12 @@ export function AnalysisWorkspace({
               {contextual.length > 0 && (
                 <CompetencySection title="Contextual" competencies={contextual} />
               )}
+              {competencies.length === 0 && (
+                <EmptyState
+                  title="No competencies found"
+                  description="We couldn't pull requirements from this job description. Go back to setup and paste a fuller description."
+                />
+              )}
             </div>
           </TabsContent>
 
@@ -203,6 +215,12 @@ export function AnalysisWorkspace({
           </TabsContent>
 
           <TabsContent value="keywords">
+            {keywords.length === 0 && (
+              <EmptyState
+                title="No keywords found"
+                description="This job description didn't list specific skills or tools to match."
+              />
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {keywords.map((keyword) => (
                 <div
@@ -236,6 +254,12 @@ export function AnalysisWorkspace({
               ))}
             </div>
           </TabsContent>
+
+          {resumeText !== undefined && (
+            <TabsContent value="resume">
+              <WorkingResume resumeText={resumeText} recommendations={recommendations} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </WorkspaceContext.Provider>

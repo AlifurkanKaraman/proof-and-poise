@@ -209,6 +209,7 @@ export default function AnalysisPage() {
       )}
       <AnalysisWorkspace
         evidenceMap={data.evidenceMap}
+        resumeText={data.resumeText}
         actions={actions}
         onStartInterview={() => void handleStartInterview()}
         isStartingInterview={startInterview.isPending}
