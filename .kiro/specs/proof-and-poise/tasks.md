@@ -92,7 +92,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - `POST …/decision` (accept, reject, or reset; locked once the interview starts; working-resume recompute; keyword coverage; score event). `POST /confirmations` (attestation required, 30–500 chars, max 3, strength cap, `confirmRewrite` model call with grounding against the resume plus the statement, interview priority).
   - deps: 9. _Requirements: 6.4, 7.5–7.6, 8.1–8.5_
 
-- [ ] 14. [B] Confirmation dialog wiring support and API integration fixes
+- [x] 14. [B] Confirmation dialog wiring support and API integration fixes
   - Pair with A to integrate tasks 12 and 13 on `develop`, fix contract mismatches, and add the MSW handler for any changes.
   - deps: 12, 13. _Requirements: 8.1_
 
