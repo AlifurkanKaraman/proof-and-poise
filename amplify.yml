@@ -1,0 +1,29 @@
+# AWS Amplify Hosting build spec (task 10, Req 17.5). Monorepo app: Amplify runs each phase
+# from `appRoot`, so install from the workspace root and build only the web package.
+# VITE_API_BASE_URL and VITE_APP_ENV are set per branch in the Amplify console, and the SPA
+# rewrite rule lives in the console too (Rewrites and redirects). See docs/amplify-hosting.md.
+version: 1
+applications:
+  - appRoot: apps/web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - nvm install 22
+            - nvm use 22
+            - corepack enable
+            # Version comes from the root `packageManager` field (pnpm@10.34.5).
+            - corepack prepare pnpm@10.34.5 --activate
+            # CODEBUILD_SRC_DIR is the repo (workspace) root; `-C` avoids relying on cwd.
+            - pnpm -C "$CODEBUILD_SRC_DIR" install --frozen-lockfile --store-dir "$CODEBUILD_SRC_DIR/apps/web/.pnpm-store"
+        build:
+          commands:
+            - pnpm -C "$CODEBUILD_SRC_DIR" --filter @proof-and-poise/web build
+      artifacts:
+        # Vite's default outDir, relative to appRoot.
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - .pnpm-store/**/*
