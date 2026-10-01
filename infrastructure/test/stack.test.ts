@@ -383,4 +383,67 @@ describe('resolveConfig', () => {
       ),
     ).toThrow(/Invalid CORS origin/);
   });
+
+  it.each(['*', 'http://main.example.amplifyapp.com', 'https://example.com/path', 'example.com'])(
+    'rejects non-exact or non-https origin %s',
+    (origin) => {
+      expect(() =>
+        resolveConfig(new App({ context: { stage: 'dev', allowedOrigins: origin } })),
+      ).toThrow(/Invalid CORS origin/);
+    },
+  );
+
+  it('accepts an https override list and keeps the local origin', () => {
+    const config = resolveConfig(
+      new App({
+        context: {
+          stage: 'dev',
+          allowedOrigins:
+            'https://main.example.amplifyapp.com, https://develop.example.amplifyapp.com,',
+        },
+      }),
+    );
+    expect(config.allowedOrigins).toEqual([
+      'https://main.example.amplifyapp.com',
+      'https://develop.example.amplifyapp.com',
+      'http://localhost:5173',
+    ]);
+  });
+});
+
+// Task 10: Amplify branch domains reach every CORS surface (Req 15.6, 17.5).
+describe('allowedOrigins override', () => {
+  const amplify = ['https://main.example.amplifyapp.com', 'https://develop.example.amplifyapp.com'];
+  const expected = [...amplify, 'http://localhost:5173'];
+  let t: Template;
+
+  beforeAll(() => {
+    const app = new App({
+      context: {
+        stage: 'dev',
+        allowedOrigins: amplify.join(','),
+        'aws:cdk:bundling-stacks': [],
+      },
+    });
+    t = Template.fromStack(
+      new ProofAndPoiseStack(app, 'TestOrigins', {
+        config: resolveConfig(app),
+        env: { region: 'us-east-1' },
+      }),
+    );
+  });
+
+  it('applies to the HTTP API, upload bucket, and Lambda env', () => {
+    t.hasResourceProperties('AWS::ApiGatewayV2::Api', {
+      CorsConfiguration: Match.objectLike({ AllowOrigins: expected }),
+    });
+    t.hasResourceProperties('AWS::S3::Bucket', {
+      CorsConfiguration: {
+        CorsRules: [Match.objectLike({ AllowedMethods: ['POST'], AllowedOrigins: expected })],
+      },
+    });
+    t.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: { Variables: Match.objectLike({ ALLOWED_ORIGINS: expected.join(',') }) },
+    });
+  });
 });
