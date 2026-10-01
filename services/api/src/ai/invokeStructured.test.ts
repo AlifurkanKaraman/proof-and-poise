@@ -150,6 +150,29 @@ describe('invokeStructured (design §7.1)', () => {
     expect(calls()).toHaveLength(2);
   });
 
+  it('uses an advisory issue to ask for a repair, and keeps the better answer', async () => {
+    const first = demoModelOutput();
+    const second = { ...demoModelOutput(), seniority: 'mid' as const };
+    bedrockMock.on(ConverseCommand).resolvesOnce(toolReply(first)).resolvesOnce(toolReply(second));
+    const softCheck = vi.fn((o: typeof first) => (o.seniority === 'mid' ? [] : ['advice']));
+    await expect(invokeStructured(deps(), { ...request(), softCheck })).resolves.toEqual(second);
+    expect(calls()[1]?.messages?.[0]?.content?.[0]?.text).toContain('- advice');
+  });
+  it('falls back to the first answer when the repair after advice fails hard', async () => {
+    const first = demoModelOutput();
+    bedrockMock
+      .on(ConverseCommand)
+      .resolvesOnce(toolReply(first))
+      .resolvesOnce(toolReply({ ...first, competencies: [] }));
+    const softCheck = () => ['advice'];
+    await expect(invokeStructured(deps(), { ...request(), softCheck })).resolves.toEqual(first);
+  });
+  it('never rejects output for advisory issues on the last attempt', async () => {
+    bedrockMock.on(ConverseCommand).resolves(toolReply(demoModelOutput()));
+    const softCheck = () => ['advice'];
+    await expect(invokeStructured(deps(), { ...request(), softCheck })).resolves.toBeDefined();
+    expect(calls()).toHaveLength(2);
+  });
   it('returns CAPACITY_REACHED without calling Bedrock when the budget is used up (Req 16.4)', async () => {
     consumeGlobal.mockRejectedValue(new ApiError('CAPACITY_REACHED'));
     await expect(invokeStructured(deps(), request())).rejects.toMatchObject({

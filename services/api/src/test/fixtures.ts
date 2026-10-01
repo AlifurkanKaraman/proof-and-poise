@@ -8,6 +8,18 @@ import {
   type AnalysisModelOutput,
 } from '@proof-and-poise/shared';
 
+/** Verbatim phrases from DEMO_JOB each demo competency comes from (design §7.4). */
+export const DEMO_JOB_QUOTES: Record<string, string> = {
+  c1: 'Experience writing production-quality code in Python or TypeScript',
+  c2: 'Experience building REST APIs',
+  c3: 'serverless functions on AWS (AWS Lambda, API Gateway, DynamoDB)',
+  c4: 'CI/CD pipelines (GitHub Actions or similar)',
+  c5: 'A habit of writing automated tests',
+  c6: 'Infrastructure as code (AWS CDK, Terraform, or CloudFormation)',
+  c7: 'Monitoring and on-call experience with CloudWatch or similar tools',
+  c8: 'Working knowledge of containers (Docker) and Kubernetes',
+};
+
 export function demoModelOutput(): AnalysisModelOutput {
   const map = DEMO_EVIDENCE_MAP;
   const quoteById = new Map(
@@ -19,6 +31,7 @@ export function demoModelOutput(): AnalysisModelOutput {
       id: c.id,
       name: c.name,
       description: c.description,
+      jobQuote: DEMO_JOB_QUOTES[c.id] ?? '',
       importance: c.importance,
       category: c.category,
       evidence: c.evidence.map((e) => ({ quote: e.quote, section: e.section ?? 'other' })),

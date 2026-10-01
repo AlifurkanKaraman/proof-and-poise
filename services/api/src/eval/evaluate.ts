@@ -40,7 +40,12 @@ export function evaluateAnalysis(c: EvalCase, output: AnalysisModelOutput): Eval
   let discardedQuotes = quotes;
   let discardedRecommendations = recs;
   try {
-    const built = buildEvidenceMap({ output, resumeText: c.resumeText, inputKind: 'text' });
+    const built = buildEvidenceMap({
+      output,
+      resumeText: c.resumeText,
+      job: c.job,
+      inputKind: 'text',
+    });
     map = built.evidenceMap;
     ({ discardedQuotes, discardedRecommendations } = built.stats);
   } catch (err) {

@@ -83,11 +83,29 @@ describe('capStrength', () => {
       cap: null,
     });
   });
-  it('leaves experience-backed strength alone', () => {
+  it('caps a single experience quote at moderate; strong needs two (design §6.1)', () => {
     expect(capStrength('strong', [{ source: 'resume', section: 'experience' }])).toEqual({
+      strength: 'moderate',
+      cap: 'single_quote',
+    });
+    expect(capStrength('moderate', [{ source: 'resume', section: 'experience' }])).toEqual({
+      strength: 'moderate',
+      cap: null,
+    });
+  });
+  it('lets a single Education line prove a credential', () => {
+    expect(capStrength('strong', [{ source: 'resume', section: 'education' }])).toEqual({
       strength: 'strong',
       cap: null,
     });
+  });
+  it('leaves strength backed by two resume quotes alone', () => {
+    expect(
+      capStrength('strong', [
+        { source: 'resume', section: 'experience' },
+        { source: 'resume', section: 'projects' },
+      ]),
+    ).toEqual({ strength: 'strong', cap: null });
   });
 });
 

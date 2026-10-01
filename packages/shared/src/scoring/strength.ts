@@ -1,7 +1,8 @@
 import type { ResumeSection, Strength } from '../schemas/common';
 import { STRENGTH_ORDER } from './weights';
 
-export type StrengthCapReason = 'no_evidence' | 'confirmation_only' | 'skills_only';
+export type StrengthCapReason =
+  'no_evidence' | 'confirmation_only' | 'skills_only' | 'single_quote';
 
 export interface StrengthEvidence {
   source: 'resume' | 'candidate_confirmation';
@@ -19,6 +20,9 @@ const minStrength = (a: Strength, b: Strength): Strength =>
  * - Only confirmations → at most `moderate` (Req 8.2).
  * - Only a single resume quote from the Skills section (plus no confirmation) → at most `weak`.
  *   With a confirmation as well, the confirmation cap (`moderate`) applies instead.
+ * - Only a single resume quote from experience, projects, or other sections (no
+ *   confirmation) → at most `moderate`. `strong` needs two independent pieces of evidence.
+ *   An Education line is exempt: one line fully proves a degree or certification.
  */
 export function capStrength(
   proposed: Strength,
@@ -40,6 +44,10 @@ export function capStrength(
     const strength = minStrength(proposed, 'weak');
     return { strength, cap: strength !== proposed ? 'skills_only' : null };
   }
+  if (resume.length === 1 && confirmations.length === 0 && resume[0]?.section !== 'education') {
+    const strength = minStrength(proposed, 'moderate');
+    return { strength, cap: strength !== proposed ? 'single_quote' : null };
+  }
   return { strength: proposed, cap: null };
 }
 
@@ -48,4 +56,5 @@ export const STRENGTH_CAP_EXPLANATION: Record<StrengthCapReason, string> = {
   no_evidence: 'None: no verified evidence in your resume yet.',
   confirmation_only: 'Moderate at most: confirmed by you, not yet shown in your resume.',
   skills_only: 'Weak: listed in Skills only, not shown in experience or projects.',
+  single_quote: 'Moderate at most: shown in one resume line. Strong needs two.',
 };

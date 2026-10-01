@@ -7,8 +7,8 @@ import { DEMO_CASE, EVAL_CASES } from './samples';
 
 describe('prompt evaluation samples', () => {
   it('has the demo fixture plus 3 varied cases that pass the production input schema', () => {
-    expect(EVAL_CASES).toHaveLength(4);
-    expect(new Set(EVAL_CASES.map((c) => c.id)).size).toBe(4);
+    expect(EVAL_CASES).toHaveLength(5);
+    expect(new Set(EVAL_CASES.map((c) => c.id)).size).toBe(5);
     for (const c of EVAL_CASES) {
       const req = { resume: { kind: 'text', text: c.resumeText }, job: c.job };
       expect(AnalysisRequestSchema.safeParse(req).success, c.id).toBe(true);

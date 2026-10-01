@@ -49,6 +49,8 @@ describe('logger redaction (Req 15.3)', () => {
         attempt: 2,
         discardedQuotes: 3,
         discardedRecommendations: 1,
+        discardedCompetencies: 2,
+        discardedKeywords: 4,
         stopReason: 'max_tokens',
         toolInput: { quote: SECRET_RESUME },
         validationIssues: ['competencies.0.name: too_big'],
@@ -58,6 +60,8 @@ describe('logger redaction (Req 15.3)', () => {
       attempt: 2,
       discardedQuotes: 3,
       discardedRecommendations: 1,
+      discardedCompetencies: 2,
+      discardedKeywords: 4,
       stopReason: 'max_tokens',
     });
   });
