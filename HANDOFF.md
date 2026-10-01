@@ -1,20 +1,22 @@
 # Handoff
 
-Last updated: 2026-09-29, after tasks 9, 11, and 12 were merged into `develop`. Update this file whenever a branch is merged into `develop` or you stop working, using the `handoff-update` skill (`.kiro/skills/handoff-update/SKILL.md`), so the next person can pick up.
+Last updated: 2026-09-30, after PR #13 (integration of UI and backend tasks 13, 15, 17, 18, 19, 21 and the e2e job) and PR #15 (task 22 accessibility audit) were merged into `develop`. Update this file whenever a branch is merged into `develop` or you stop working, using the `handoff-update` skill (`.kiro/skills/handoff-update/SKILL.md`), so the next person can pick up.
 
 ## Done
 
-Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), except task 10 (Amplify - blocked on manual setup).
+Tasks 1–9, 11–13, 15, 17–19 and 21 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`). Task 22 is partial. Task 10 (Amplify) is blocked on manual setup. Open: 14, 16, 20, 23–25.
 
-| Task          | Branch                                  | In `develop`? |
-| ------------- | --------------------------------------- | ------------- |
-| 1–7           | merged                                  | Yes           |
-| 8             | `feature/sessions-auth-quotas` (PR #10) | Yes           |
-| 9             | `feature/analysis-worker` (PR #12)      | Yes           |
-| 11, 12        | `feature/integrate-setup-analysis`      | Yes           |
-| Scroll-to-top | `feature/scroll-to-top` (PR #9)         | Yes           |
-| —             | `feature/claude-handoff` (PR #8)        | Yes           |
-| —             | `feature/handoff-task-8`                | Yes           |
+| Task                                 | Branch                                                                                                                                                                                                | In `develop`? |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1–7                                  | merged                                                                                                                                                                                                | Yes           |
+| 8                                    | `feature/sessions-auth-quotas` (PR #10)                                                                                                                                                               | Yes           |
+| 9                                    | `feature/analysis-worker` (PR #12)                                                                                                                                                                    | Yes           |
+| 11, 12                               | `feature/integrate-setup-analysis`                                                                                                                                                                    | Yes           |
+| 13, 15, 17, 18, 19, 21, 22 (partial) | `feature/integration-all` (PR #13; includes `setup-stepper-fixes`, `interview-room-ui`, `readiness-report-ui`, `decisions-api`, `interview-api`, `audio-transcription`, `report-api`, `quality-pass`) | Yes           |
+| 22 (partial)                         | `feature/a11y-audit` (PR #15)                                                                                                                                                                         | Yes           |
+| Scroll-to-top                        | `feature/scroll-to-top` (PR #9)                                                                                                                                                                       | Yes           |
+| —                                    | `feature/claude-handoff` (PR #8)                                                                                                                                                                      | Yes           |
+| —                                    | `feature/handoff-task-8`                                                                                                                                                                              | Yes           |
 
 ## Starting work
 
@@ -46,26 +48,19 @@ Tasks 1–12 are done (`- [x]` in `.kiro/specs/proof-and-poise/tasks.md`), excep
 
 ## Deployed
 
-`ProofAndPoise-dev` (us-east-1) was redeployed with task 8 and checked on real AWS on 2026-09-27: health, create/get/delete, the 401 cases, demo seeding, presigned upload (including the 5 MB rejection), the rate-limit 429, and logs containing no tokens, IPs, or bodies. CORS still allows only `http://localhost:5173`.
-
-Get the API URL:
-
-```bash
-aws cloudformation describe-stacks --stack-name ProofAndPoise-dev \
-  --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text
-```
-
-## In flight (2026-09-29)
-
-- `feature/integrate-ui`: `develop` + setup-stepper-fixes + interview UI (15) + report UI (19) + e2e (22, partial). Typecheck, lint, tests, build and Playwright (full demo journey on 3 browsers) pass locally. Open a PR into `develop`.
-- `feature/decisions-api` (task 13), `feature/audio-transcription` (18), `feature/interview-api` (17, based on 13): backend, unit-tested with mocked AWS, **not deployed**.
+`ProofAndPoise-dev` (us-east-1) was last deployed and checked on real AWS with task 8 (2026-09-27): health, sessions, auth, and resume upload. CORS allows only `http://localhost:5173`. Get the API URL with `aws cloudformation describe-stacks --stack-name ProofAndPoise-dev --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text`. **Tasks 9, 13, 17, 18 and 21 are unit-tested with mocked AWS clients and have not been deployed or run against real Bedrock or Transcribe.** The Transcribe-to-S3 check with a real recording (task 18) is still open.
 
 ## Next up
 
-- Merge the branches above; then task 14 (integrate 12+13), 16 (interview integration), 21 (report + practice API), 20.
-- Task 22 left: manual audit with `apps/web/ACCESSIBILITY.md`, iOS Safari/mic-denied checks.
-- Task 10 (Amplify) needs manual Console setup. Tasks 23-25 (prod deploy, verification, docs) after that.
-- `main` has 2 commits not in `develop` (30a3fd1, 2385d84); reconcile before the release PR.
+- **Task 14/16/20 (integration):** point the web app at the real API (`VITE_API_BASE_URL`) instead of MSW, and wire the Record tab to the transcription routes (today it shows an editable placeholder).
+- **Task 22 left:** manual audit with `apps/web/ACCESSIBILITY.md`, iOS Safari and microphone-denied checks. PR #15 added the automated part: `apps/web/e2e/a11y-audit.spec.ts` (axe, overflow, 44 px targets at 375/768/1280, keyboard, reduced motion).
+- **Live Bedrock prompt evaluation** (task 9) not run yet; see `docs/analysis-prompt-evaluation.md` for the command. Needs approval for billable calls.
+- **Task 10 (Amplify)** needs manual Console setup; tasks 23–25 (prod deploy, verification, docs) after it.
+- `main` has 2 commits not in `develop` (`30a3fd1`, `2385d84`); reconcile before the release PR.
+
+## Known issues
+
+- `pnpm lint` on Windows with `core.autocrlf=true` reports prettier warnings on many untouched files (CRLF). CI on Linux is unaffected.
 
 ## Running it
 
@@ -77,6 +72,8 @@ pnpm --filter @proof-and-poise/web dev:mock   # http://localhost:5173, API mocke
 - Try `/demo` for the fictional demo journey.
 - Add `?mockError=UPSTREAM_UNAVAILABLE`, `?mockError=getAnalysis:network`, or `?mockError=off` to simulate errors.
 - Checks, in CI order: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`.
+- E2E (MSW): `pnpm --filter @proof-and-poise/web exec playwright install chromium webkit` once, then `pnpm --filter @proof-and-poise/web e2e`. Projects: `chromium-desktop`, `webkit-desktop`, `chromium-mobile` (Pixel 7), `webkit-mobile` (iPhone 12). Device presets choose the browser, so check `defaultBrowserType` before adding one. The width audit runs in the desktop projects only.
+- `dev:mock` ignores what you submit: every analysis returns the fictional demo map (`apps/web/src/mocks/db.ts`). To see a real analysis, use the deployed API.
 
 To run the web app against the real dev API, create `apps/web/.env.local` (template: root `.env.example`) with `VITE_API_BASE_URL` set to the ApiUrl above, then run `pnpm --filter @proof-and-poise/web dev` (not `dev:mock`, which always uses MSW). `apps/web/src/lib/env.ts` reads it. Only health and the session/upload routes are real so far; everything else still needs MSW.
 
@@ -91,6 +88,5 @@ To run the web app against the real dev API, create `apps/web/.env.local` (templ
 - **Lambda concurrency**: the quota may still be 10, so don't set reserved concurrency.
 - **Known issues**:
   - The shared package pulls the demo fixtures into the main web chunk, which is about 418 kB.
-  - `dev:mock` hasn't been tried in a real browser, and layouts haven't been checked at 375, 768 and 1280 px.
-  - Upload and transcription hooks are left for tasks 11 and 15; `api.request(...)` covers them.
+  - Resume upload goes through `useSubmitSetup` (`lib/api/queries.ts`). Transcription has no hook yet (task 16); `api.request(...)` covers it.
   - Some web tests print a harmless jsdom "Not implemented: Window's scrollTo() method" message. Fix: stub `window.scrollTo` in `apps/web/src/test/setup.ts`.
