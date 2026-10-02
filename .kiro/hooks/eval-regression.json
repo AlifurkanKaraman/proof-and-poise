@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Offline evaluator regression (only when evaluator files changed)",
+      "trigger": "PostTaskExec",
+      "description": "After a spec task completes, run only the offline scoring/grounding/keywords/tailoring and evaluator tests if evaluation files changed on this branch; otherwise skip. Never calls Bedrock.",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/scripts/eval-regression.mjs",
+        "timeout": 600
+      }
+    }
+  ]
+}

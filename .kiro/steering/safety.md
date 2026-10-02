@@ -6,6 +6,7 @@ inclusion: always
 
 These rules apply to every task. They're written guidance, not a technical boundary; enforced permissions live in Kiro's permissions settings.
 They don't require asking before small, reversible code edits inside the requested scope.
+The risk-report format to use when asking for approval is in `safe-changes.md`.
 
 1. Before editing, inspect the target files and run `git status --short`. Keep changes within the requested scope and preserve unrelated modifications, including staged, unstaged, and untracked work. This repo often has large uncommitted changes (for example spec task work in progress); treat them as the user's.
 2. Never use `git reset --hard`, `git clean`, `git checkout -- <path>` / `git restore` over uncommitted work, `git checkout -f`, destructive rebases, broad search-and-replace, workspace-wide reformatting (including root `pnpm format`), or `rm -rf` as routine troubleshooting.
