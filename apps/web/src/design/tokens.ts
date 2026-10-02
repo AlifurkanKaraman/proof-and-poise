@@ -7,31 +7,38 @@ export const colors = {
   ink: {
     950: '#0B1220', // app frame, hero, footer
     900: '#131C2E', // dark surfaces
+    800: '#1C2740', // raised dark surfaces, dividers on dark
+    100: '#EDF0F6', // quiet fills on light
     700: '#334155', // secondary text on light
     500: '#64748B', // muted text on dark only
   },
   paper: {
     0: '#FFFFFF', // raised surfaces
-    50: '#FAF8F4', // page background
+    50: '#F5F7FB', // page background (cool porcelain)
   },
   line: {
-    200: '#E6E1D8', // borders, dividers
+    200: '#DCE2EE', // borders, dividers
+    300: '#BFC9DB', // stronger borders, inactive connectors
   },
   indigo: {
-    50: '#EEF0FF',
-    600: '#4F46E5', // primary actions, focus, selection
-    700: '#4338CA',
+    50: '#EEF1FD',
+    100: '#DEE4FB', // evidence highlight, selected fills
+    600: '#3A4BC8', // primary actions, focus, selection
+    700: '#2F3DA8',
   },
   emerald: {
     50: '#ECFDF5',
+    100: '#D1FAE5',
     700: '#047857', // verified evidence, progress
   },
   amber: {
     50: '#FFFBEB',
+    100: '#FEF3C7',
     700: '#B45309', // weak or missing evidence
   },
   red: {
     50: '#FEF2F2',
+    100: '#FEE2E2',
     700: '#B91C1C', // real errors only
   },
 } as const;
@@ -83,8 +90,9 @@ export const radius = {
 export const shadow = {
   none: 'none',
   xs: '0 1px 2px rgb(11 18 32 / .06)',
-  sm: '0 2px 8px rgb(11 18 32 / .06)',
-  md: '0 8px 24px rgb(11 18 32 / .08)',
+  sm: '0 1px 3px rgb(11 18 32 / .07), 0 1px 2px rgb(11 18 32 / .04)',
+  md: '0 10px 30px -12px rgb(11 18 32 / .20)',
+  lift: '0 24px 48px -20px rgb(11 18 32 / .35)',
 } as const;
 
 export const motion = {

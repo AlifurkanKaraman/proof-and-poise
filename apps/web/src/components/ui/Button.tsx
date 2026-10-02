@@ -6,7 +6,7 @@ import { Spinner } from './Spinner';
 
 export const buttonVariants = cva(
   [
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium select-none',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold select-none',
     'transition-colors duration-micro ease-standard',
     'disabled:cursor-not-allowed disabled:opacity-60',
     focusRing,
@@ -14,11 +14,11 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'rounded-md bg-indigo-600 text-paper-0 shadow-xs hover:bg-indigo-700',
+        primary: 'rounded-lg bg-indigo-600 text-paper-0 shadow-sm hover:bg-indigo-700',
         secondary:
-          'rounded-md border border-line-200 bg-paper-0 text-ink-950 shadow-xs hover:bg-paper-50',
-        ghost: 'rounded-md text-ink-950 hover:bg-indigo-50',
-        destructive: 'rounded-md bg-red-700 text-paper-0 shadow-xs hover:bg-red-700/90',
+          'rounded-lg border border-line-300 bg-paper-0 text-ink-950 shadow-xs hover:bg-ink-100',
+        ghost: 'rounded-lg text-ink-950 hover:bg-ink-100',
+        destructive: 'rounded-lg bg-red-700 text-paper-0 shadow-xs hover:bg-red-700/90',
         link: 'rounded-sm text-indigo-700 underline underline-offset-4 hover:text-indigo-600',
       },
       size: {

@@ -42,6 +42,6 @@ describe('Button', () => {
     );
     const link = screen.getByRole('link', { name: 'Prepare' });
     expect(link).toHaveAttribute('href', '/prepare');
-    expect(link.className).toContain('border-line-200');
+    expect(link.className).toContain('border-line-300');
   });
 });
