@@ -1,6 +1,7 @@
 import { Award, Check, Lightbulb, MessageSquare, Target, Undo2, X } from 'lucide-react';
 import { createContext, useContext, useState } from 'react';
 import {
+  canConfirm,
   LIMITS,
   type Competency,
   type ConfirmationRequest,
@@ -296,7 +297,10 @@ export function AnalysisWorkspace({
                 }
                 renderConfirm={(id) => {
                   const competency = context.competencies.get(id);
-                  return competency ? <ConfirmAction competency={competency} /> : null;
+                  // Keyed by competency so a dialog is never reused for another one.
+                  return competency ? (
+                    <ConfirmAction key={competency.id} competency={competency} />
+                  ) : null;
                 }}
                 onOpenResume={() => setTab('resume')}
               />
@@ -429,7 +433,8 @@ function ConfirmAction({ competency }: { competency: Competency }) {
   if (competency.confirmationState === 'confirmed') {
     return <StatusBadge status="confirmed" />;
   }
-  if (!actions) return null;
+  // Req 8.1: never offer a confirmation the API would reject as not eligible.
+  if (!actions || !canConfirm(competency)) return null;
   if (confirmationsLeft <= 0) {
     return (
       <p className="text-small text-ink-700">
