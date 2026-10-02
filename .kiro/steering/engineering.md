@@ -4,7 +4,7 @@ inclusion: always
 
 # Engineering conventions
 
-Detailed area guidance loads automatically: `frontend.md` (apps/web), `backend.md` (services/api), `cdk.md` (infrastructure).
+Detailed area guidance loads automatically: `frontend.md` (apps/web), `backend.md` (services/api), `cdk.md` (infrastructure), `evaluation.md` (scoring, grounding, keywords, tailoring, evaluator files). `testing.md` (choosing checks) and `safe-changes.md` (before consequential actions) load when relevant.
 
 ## Code
 

@@ -15,13 +15,19 @@ Source of truth: `.kiro/specs/proof-and-poise/` (`requirements.md`, `design.md`,
 
 ## Current scope (from tasks.md and the working tree)
 
-- Done: tasks 1–21, 23, and 24 (bootstrap through report/practice, Amplify hosting, prod stage with alarms and budgets), the code part of 22, and drafted docs for 25. Production runs at https://main.d1tn5k7jq2sjsu.amplifyapp.com (prod API) and https://develop.d1tn5k7jq2sjsu.amplifyapp.com (dev API). Answers are typed; recorded answers are built but switched off because the account isn't subscribed to Amazon Transcribe. See `HANDOFF.md`.
+- Done: tasks 1–21, 23, and 24 (bootstrap through report/practice, Amplify hosting, prod stage with alarms and budgets), the code part of 22, drafted docs for 25, and resume tailoring as the main flow (design §7.6, Req 7.9; PR #34 into `develop`). Production runs at https://main.d1tn5k7jq2sjsu.amplifyapp.com (prod API) and https://develop.d1tn5k7jq2sjsu.amplifyapp.com (dev API). Answers are typed; recorded answers are built but switched off because the account isn't subscribed to Amazon Transcribe. See `HANDOFF.md`.
 - Left: manual accessibility checks (22) and the `TODO(user)` doc items (25).
 - Out of MVP scope: the "Post-hackathon" list in requirements.md (Cognito, Polly, mobile app, etc.). `apps/mobile/` is a README only.
 
+- Planned, not started: `.kiro/specs/evaluator-upgrade/` (structured requirements, source offsets, versioned scoring). Not current behavior.
+- CORS (`infrastructure/lib/config.ts` + `cdk.json` `proof-and-poise:allowedOrigins`): `http://localhost:5173` is always allowed; dev adds `https://develop.d1tn5k7jq2sjsu.amplifyapp.com`, prod adds `https://main.d1tn5k7jq2sjsu.amplifyapp.com`. `*`, paths, and non-https origins are rejected.
+
 ## Unknown
 
-- Production and branch Amplify domains (CORS currently allows `http://localhost:5173` only).
+- Whether the deployed stacks match the current `cdk.json` origins (not checked against the live account).
+- Whether the Lambda concurrency quota increase was granted.
+- The Kiro IDE version the team uses (kiro-cli `2.27.0` is installed locally).
+
 ## Known account facts (dev)
 
 - CDK bootstrapped in us-east-1; Nova Lite (`us.amazon.nova-lite-v1:0`) callable via Converse.

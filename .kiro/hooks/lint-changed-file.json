@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint changed source file (read-only)",
+      "trigger": "PostFileSave",
+      "description": "After the agent saves a TS/TSX source file, run eslint and prettier --check on that one file. Never fixes or writes, so it cannot retrigger itself.",
+      "matcher": "(apps/web/src|packages/shared/src|services/api/src|infrastructure/(bin|lib|test))/.*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/scripts/lint-changed-file.mjs",
+        "timeout": 120
+      }
+    }
+  ]
+}
