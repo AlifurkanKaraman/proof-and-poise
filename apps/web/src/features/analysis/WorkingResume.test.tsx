@@ -21,7 +21,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('WorkingResume (Req 7.7)', () => {
   it('applies an accepted change and labels the changed line with text, not color alone', () => {
     render(<WorkingResume resumeText={RESUME} recommendations={[rec({})]} />);
-    const list = screen.getByRole('list', { name: 'Working resume lines' });
+    const list = screen.getByRole('list', { name: 'Tailored resume lines' });
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(3);
     expect(items[1]).toHaveTextContent('Changed line:');
@@ -40,7 +40,7 @@ describe('WorkingResume (Req 7.7)', () => {
     );
     expect(screen.getByText('Built a dashboard for the team')).toBeInTheDocument();
     expect(screen.queryByText('Changed')).not.toBeInTheDocument();
-    expect(screen.getByText(/Accepted changes will appear here/)).toBeInTheDocument();
+    expect(screen.getByText(/Accepted changes and added skills appear here/)).toBeInTheDocument();
   });
 
   it('copies the working text to the clipboard and announces it', async () => {
@@ -53,7 +53,7 @@ describe('WorkingResume (Req 7.7)', () => {
     expect(writeText).toHaveBeenCalledWith(
       ['Jordan Doe', 'Built a React dashboard used daily by 12 analysts', 'Wrote tests'].join('\n'),
     );
-    expect(screen.getByRole('status')).toHaveTextContent('Working resume copied');
+    expect(screen.getByRole('status')).toHaveTextContent('Tailored resume copied');
   });
 
   it('offers a manual fallback when the clipboard is blocked', async () => {
@@ -74,7 +74,7 @@ describe('WorkingResume (Req 7.7)', () => {
       />,
     );
     await userEvent.click(screen.getByRole('tab', { name: 'Resume' }));
-    expect(screen.getByRole('heading', { name: 'Working resume' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tailored resume' })).toBeInTheDocument();
     expect(screen.getByText('Changed line:')).toBeInTheDocument();
   });
 

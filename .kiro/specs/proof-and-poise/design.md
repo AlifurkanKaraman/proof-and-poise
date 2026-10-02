@@ -243,6 +243,13 @@ Every change to an input creates `ScoreEvent { metric, before, after, reason, so
 - Competencies about working conditions (hours, overtime, age, travel, relocation, work authorization, shifts) are dropped: they aren't skills, can't be evidenced, and scoring them raises fairness concerns.
 - Trust label assignment is validated. A label of `rewording_only` requires `novelTerms` to be empty *and* no new keyword matches. A label of `verified_from_resume` requires every added term to appear elsewhere in the resume, and `sourceEvidenceIds` must point to that quote.
 
+### 7.6 Resume tailoring (packages/shared/tailoring, web Tailor tab)
+Tailoring the resume to the job is the primary flow; the interview is step 2. It adds no model call:
+- `tailoringPlan(map, resumeText)` splits the job keywords into those the working resume (or a candidate confirmation) shows but its Skills section doesn't list (`addToSkills`), and those it doesn't show (`notShown`), required first. A `notShown` keyword maps to a competency the candidate can confirm (Req 8) when one mentions it.
+- `applySkillAdditions` adds the chosen terms as one `Additional skills:` line in the Skills section, or a new Skills section at the end. Existing lines are never changed. Nothing is applied without a click (Req 7.6).
+- Listing proven keywords in Skills doesn't change Keyword Coverage, which already matches the whole resume; scores rise only from accepted changes and confirmations. The tab shows each score at analysis time next to its current value, and says the scores are this product's estimate, not an employer's ATS score.
+- The tailored resume (accepted changes plus added skills) can be copied or downloaded as `.txt`. Added skills are kept in memory only.
+
 ## 8. API contract (packages/shared/contracts, base `/v1`)
 
 All session routes require `Authorization: Bearer <sessionToken>`. Errors use the form `{ error: { code, message, fields? } }`. Error codes: `VALIDATION`, `UNAUTHORIZED`, `NOT_FOUND`, `QUOTA_EXCEEDED`, `CAPACITY_REACHED`, `MODEL_OUTPUT_INVALID`, `UPSTREAM_UNAVAILABLE`, `EXTRACTION_FAILED`, `CONFLICT`, `INTERNAL`.

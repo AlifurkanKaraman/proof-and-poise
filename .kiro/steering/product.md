@@ -6,7 +6,7 @@ inclusion: always
 
 Source of truth: `.kiro/specs/proof-and-poise/` (`requirements.md`, `design.md`, `tasks.md`). Read the relevant requirement or design section before changing behavior.
 
-- Purpose: evidence-grounded job-readiness web app. A candidate gives a resume and a job description. The app builds a competency map with verbatim resume evidence, suggests truthful resume changes the candidate approves one at a time, runs a five-question adaptive mock interview aimed at the weakest evidence, and produces an explainable readiness report.
+- Purpose: evidence-grounded resume tailoring and interview prep. A candidate gives a resume and a job description. The app builds a competency map with verbatim resume evidence, then helps them tailor the resume to the job truthfully (supported changes they approve one at a time, proven job keywords listed in Skills, confirmations for real experience) and download it. Step 2 is a five-question adaptive mock interview aimed at the weakest evidence, with an explainable readiness report.
 - Users: international students, early-career candidates, and other job seekers. MVP is anonymous (server-issued session bearer token, no accounts).
 - Core invariant: the model writes language only. Scores, grounding checks, follow-up decisions, and quotas are deterministic code in `packages/shared`. Model output is schema-validated and grounding-checked before it becomes state.
 - Key flows: landing → prepare (job setup + resume) → analysis workspace (evidence map, recommendations, confirmations) → interview (typed or recorded answers) → report → practice again. A public demo scenario runs the same journey from a fictional fixture.
