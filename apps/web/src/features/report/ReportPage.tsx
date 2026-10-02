@@ -1,11 +1,13 @@
 import { LIMITS, type Report } from '@proof-and-poise/shared';
-import { Printer } from 'lucide-react';
+import { BadgeCheck, FileText, MessagesSquare, Plus, Printer, Repeat, Target } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Page } from '../../app/Page';
 import { ErrorState } from '../../components/states/ErrorState';
 import { LoadingStage } from '../../components/states/LoadingStage';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { IconTile } from '../../components/ui/IconTile';
 import { ApiError, isApiError, userMessage } from '../../lib/api/errors';
 import { useCreateReport, useDeleteSession, useReport } from '../../lib/api/queries';
 import { CompetencyStatusList } from './CompetencyStatusList';
@@ -213,71 +215,96 @@ export function ReportView({
   return (
     <Page
       title="Your Readiness Report"
-      lead="Review your interview readiness and next steps"
+      lead="Here is what your resume and your answers show, and what to do next."
       className="print-page"
     >
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto w-full max-w-5xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 print:hidden">
           <div className="flex items-center gap-3">
             <Button onClick={onPrint} variant="secondary" size="sm">
-              <Printer className="mr-2 size-4" aria-hidden />
+              <Printer className="size-4" aria-hidden="true" />
               Print
             </Button>
             <DeleteDataDialog onConfirm={onDelete} isDeleting={isDeleting} error={deleteError} />
           </div>
-          <Button onClick={onStartOver}>Start new session</Button>
+          <Button onClick={onStartOver}>
+            <Plus className="size-5" aria-hidden="true" />
+            Start new session
+          </Button>
         </div>
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           <ReadinessRing readiness={data.readiness} />
 
-          <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
-            <h2 className="mb-4 text-h3 font-semibold text-ink-950">Summary</h2>
-            <p className="text-body leading-relaxed text-ink-700">{data.summary}</p>
-          </div>
-
-          <CompetencyStatusList competencies={data.competencies} />
+          <Card padding="lg">
+            <div className="mb-3 flex items-center gap-3">
+              <IconTile icon={FileText} tone="indigo" />
+              <h2 className="font-heading text-h3 font-semibold text-ink-950">Summary</h2>
+            </div>
+            <p className="max-w-reading text-body leading-relaxed text-ink-700">{data.summary}</p>
+          </Card>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="rounded-lg border border-emerald-700/20 bg-emerald-50 p-6">
-              <h2 className="mb-3 text-small font-semibold text-emerald-900">Strongest evidence</h2>
+            <Card tone="success" padding="lg">
+              <div className="mb-4 flex items-center gap-3">
+                <IconTile icon={BadgeCheck} tone="emerald" />
+                <h2 className="font-heading text-h4 font-semibold text-ink-950">
+                  Strongest evidence
+                </h2>
+              </div>
               {data.strongestEvidence.length === 0 && (
-                <p className="text-small text-emerald-950">
+                <p className="text-small text-ink-700">
                   No resume line is strong enough to highlight yet.
                 </p>
               )}
-              <ul className="space-y-2">
+              <ul className="flex flex-col gap-4">
                 {data.strongestEvidence.map((item) => (
-                  <li key={item.evidenceId} className="text-small text-emerald-950">
-                    <span className="font-semibold">{nameOf(item.competencyId)}:</span> “
-                    {item.quote}”
+                  <li key={item.evidenceId}>
+                    <p className="mb-1 text-caption font-semibold text-emerald-700">
+                      {nameOf(item.competencyId)}
+                    </p>
+                    <blockquote className="border-l-2 border-emerald-700 pl-3 text-small leading-relaxed text-ink-950">
+                      <mark className="rounded-sm bg-indigo-100 px-1 text-ink-950 box-decoration-clone">
+                        “{item.quote}”
+                      </mark>
+                    </blockquote>
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
 
-            <div className="rounded-lg border border-amber-700/20 bg-amber-50 p-6">
-              <h2 className="mb-3 text-small font-semibold text-amber-900">Weakest areas</h2>
-              <ul className="space-y-2">
+            <Card tone="attention" padding="lg">
+              <div className="mb-4 flex items-center gap-3">
+                <IconTile icon={Target} tone="amber" />
+                <h2 className="font-heading text-h4 font-semibold text-ink-950">Weakest areas</h2>
+              </div>
+              <ul className="flex flex-col gap-4">
                 {data.weakestAreas.map((item) => (
-                  <li key={item.competencyId} className="text-small text-amber-950">
-                    <span className="font-semibold">{nameOf(item.competencyId)}:</span>{' '}
-                    {item.reason}
+                  <li key={item.competencyId}>
+                    <p className="mb-1 text-caption font-semibold text-amber-700">
+                      {nameOf(item.competencyId)}
+                    </p>
+                    <p className="text-small leading-relaxed text-ink-950">{item.reason}</p>
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
           </div>
 
-          <STAROutlines outlines={data.starOutlines} />
           <PrioritizedActions actions={data.actions} competencyNames={names} />
+          <STAROutlines outlines={data.starOutlines} />
+          <CompetencyStatusList competencies={data.competencies} />
 
-          <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
-            <h2 className="mb-2 text-h3 font-semibold text-ink-950">
-              Question-by-question feedback
-            </h2>
+          <Card padding="lg">
+            <div className="mb-2 flex items-center gap-3">
+              <IconTile icon={MessagesSquare} tone="indigo" />
+              <h2 className="font-heading text-h3 font-semibold text-ink-950">
+                Question-by-question feedback
+              </h2>
+            </div>
             {/* Practice quota (Req 12.3, LIMITS.quotas.practiceEvaluations). */}
-            <p className="mb-4 text-small text-ink-700">
+            <p className="mb-5 flex items-center gap-2 text-small text-ink-700">
+              <Repeat className="size-4 shrink-0" aria-hidden="true" />
               {remaining > 0
                 ? `${remaining} of ${LIMITS.quotas.practiceEvaluations} practice attempts left in this session.`
                 : 'You have used every practice attempt in this session.'}
@@ -287,7 +314,7 @@ export function ReportView({
               onPracticeAgain={onPracticeAgain}
               practiceRemaining={remaining}
             />
-          </div>
+          </Card>
         </div>
       </div>
     </Page>

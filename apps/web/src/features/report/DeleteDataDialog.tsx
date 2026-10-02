@@ -1,6 +1,7 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Dialog, DialogContent, DialogTrigger, DialogClose } from '../../components/ui/Dialog';
+import { IconTile } from '../../components/ui/IconTile';
 
 interface DeleteDataDialogProps {
   onConfirm: () => void;
@@ -18,6 +19,7 @@ export function DeleteDataDialog({ onConfirm, isDeleting, error = null }: Delete
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="secondary" size="sm">
+          <Trash2 className="size-4" aria-hidden="true" />
           Delete my data
         </Button>
       </DialogTrigger>
@@ -25,9 +27,7 @@ export function DeleteDataDialog({ onConfirm, isDeleting, error = null }: Delete
       <DialogContent title="Delete all your data?" className="max-w-md">
         <div className="flex flex-col gap-6">
           <div className="flex items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error-100">
-              <AlertTriangle className="size-6 text-error-700" aria-hidden />
-            </div>
+            <IconTile icon={AlertTriangle} tone="red" size="lg" />
             <div className="flex-1">
               <p className="text-small text-ink-700">This will permanently delete:</p>
               <ul className="mt-2 list-inside list-disc text-small text-ink-700">
@@ -37,15 +37,15 @@ export function DeleteDataDialog({ onConfirm, isDeleting, error = null }: Delete
                 <li>Audio recordings</li>
                 <li>Readiness report</li>
               </ul>
-              <p className="mt-4 text-small font-semibold text-error-700">
+              <p className="mt-4 text-small font-semibold text-red-700">
                 This action cannot be undone.
               </p>
             </div>
           </div>
 
           {error && (
-            <p role="alert" className="flex items-start gap-2 text-small text-error-700">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <p role="alert" className="flex items-start gap-2 text-small text-red-700">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span>Your data was not deleted. {error}</span>
             </p>
           )}
@@ -57,9 +57,10 @@ export function DeleteDataDialog({ onConfirm, isDeleting, error = null }: Delete
               </Button>
             </DialogClose>
             <Button
+              variant="destructive"
               onClick={onConfirm}
               disabled={isDeleting}
-              className="flex-1 bg-error-700 hover:bg-error-800"
+              className="flex-1"
             >
               {isDeleting ? 'Deleting...' : 'Delete everything'}
             </Button>

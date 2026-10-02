@@ -61,7 +61,10 @@ export function ScoreRing({
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center font-heading text-h2 font-bold text-ink-950">
+        <span
+          className="absolute inset-0 flex items-center justify-center font-heading font-bold tracking-tight text-ink-950"
+          style={{ fontSize: Math.round(size * 0.3) }}
+        >
           {clamped}
           <span className="sr-only"> out of 100</span>
         </span>

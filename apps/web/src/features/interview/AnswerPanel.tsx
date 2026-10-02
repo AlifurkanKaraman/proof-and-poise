@@ -1,4 +1,4 @@
-import { Keyboard, Mic, Pause, Play, RotateCcw, Send } from 'lucide-react';
+import { CheckCircle2, Keyboard, Lightbulb, Mic, Pause, Play, RotateCcw, Send } from 'lucide-react';
 import { useState } from 'react';
 import {
   LIMITS,
@@ -7,10 +7,10 @@ import {
   UNREADABLE_ANSWER_MESSAGE,
 } from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { Textarea } from '../../components/ui/Textarea';
 import { Spinner } from '../../components/ui/Spinner';
-import { cn } from '../../lib/cn';
 import { FEATURES } from '../../lib/features';
 import { useRecorder } from './useRecorder';
 
@@ -133,7 +133,7 @@ export function AnswerPanel({
   const canSubmitText = isTypeValid && !isSubmitting;
 
   return (
-    <div className={cn('rounded-lg border border-line-200 bg-paper-0 p-6', className)}>
+    <Card tone="raised" padding="lg" className={className}>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'record' | 'type')}>
         <TabsList>
           <TabsTrigger value="record" disabled={!allowRecording}>
@@ -219,8 +219,8 @@ export function AnswerPanel({
             {recorder.state.phase === 'recording' && (
               <div className="flex flex-col items-center gap-4 py-8">
                 <div className="flex items-center gap-3">
-                  <div className="size-3 animate-pulse rounded-full bg-error-700" aria-hidden />
-                  <p className="font-mono text-h2 font-bold tabular-nums text-error-700">
+                  <div className="size-3 animate-pulse rounded-full bg-red-700" aria-hidden />
+                  <p className="font-mono text-h2 font-bold tabular-nums text-red-700">
                     {Math.floor(recorder.elapsedSeconds / 60)}:
                     {(recorder.elapsedSeconds % 60).toString().padStart(2, '0')}
                   </p>
@@ -289,8 +289,8 @@ export function AnswerPanel({
 
             {/* Transcription failure: retry, re-record, or type instead (Req 10.2, 10.4) */}
             {transcriptionError && !isTranscribing && !hasTranscript && (
-              <div role="alert" className="rounded border border-error-700/20 bg-paper-50 p-4">
-                <p className="text-small font-semibold text-error-700">
+              <div role="alert" className="rounded border border-red-700/20 bg-paper-50 p-4">
+                <p className="text-small font-semibold text-red-700">
                   We could not transcribe your recording
                 </p>
                 <p className="mt-2 text-small text-ink-700">{transcriptionError.message}</p>
@@ -376,7 +376,7 @@ export function AnswerPanel({
               rows={8}
               placeholder="Type your answer here..."
               label="Your answer"
-              hint="Provide specific examples from your experience. Include context, actions, and results."
+              hint="Pick one real example: what the situation was, what you did, and what changed."
               error={
                 typedAnswer.length > 0 && typedAnswer.length < LIMITS.answer.min
                   ? `Answer must be at least ${LIMITS.answer.min} characters.`
@@ -385,6 +385,26 @@ export function AnswerPanel({
                     : undefined
               }
             />
+
+            <p className="flex items-start gap-2 text-small text-ink-700">
+              {typedAnswer.trim().length >= LIMITS.answer.min ? (
+                <>
+                  <CheckCircle2
+                    className="mt-0.5 size-4 shrink-0 text-emerald-700"
+                    aria-hidden="true"
+                  />
+                  Good length. Naming a result or a number makes it even stronger.
+                </>
+              ) : (
+                <>
+                  <Lightbulb
+                    className="mt-0.5 size-4 shrink-0 text-indigo-700"
+                    aria-hidden="true"
+                  />
+                  A few full sentences work best. There is no timer on your answer.
+                </>
+              )}
+            </p>
 
             <Button
               onClick={handleTypeSubmit}
@@ -398,6 +418,6 @@ export function AnswerPanel({
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+    </Card>
   );
 }

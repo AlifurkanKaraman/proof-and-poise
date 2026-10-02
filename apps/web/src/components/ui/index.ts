@@ -1,6 +1,8 @@
 export { Button, buttonVariants, type ButtonProps } from './Button';
+export { Card, cardVariants, type CardProps } from './Card';
 export { Dialog, DialogClose, DialogContent, DialogTrigger } from './Dialog';
 export { Disclosure } from './Disclosure';
+export { IconTile, type IconTileProps } from './IconTile';
 export { Input } from './Input';
 export { ScoreRing } from './ScoreRing';
 export { SegmentedProgress, type Segment } from './SegmentedProgress';

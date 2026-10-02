@@ -1,8 +1,9 @@
-import { CircleAlert, FileText, Upload } from 'lucide-react';
+import { CircleAlert, FileCheck2, FileUp, Upload } from 'lucide-react';
 import { useId, useState, type DragEvent, type Ref } from 'react';
 import { LIMITS } from '@proof-and-poise/shared';
 import { Button, buttonVariants } from '../../components/ui/Button';
 import { describedBy } from '../../components/ui/Field';
+import { IconTile } from '../../components/ui/IconTile';
 import { cn } from '../../lib/cn';
 import { formatBytes } from './setupForm';
 
@@ -43,20 +44,20 @@ export function ResumeDropzone({ file, error, onFile, onRemove, inputRef }: Resu
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={cn(
-          'flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 text-center',
+          'flex flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors duration-micro',
           dragging
             ? 'border-indigo-600 bg-indigo-50'
             : error
-              ? 'border-red-700 bg-paper-0'
-              : 'border-line-200 bg-paper-50',
+              ? 'border-red-700 bg-red-50'
+              : file
+                ? 'border-emerald-700 border-solid bg-emerald-50'
+                : 'border-line-300 bg-paper-50',
         )}
       >
         {file ? (
           <div className="flex flex-col items-center gap-3">
-            <p className="flex items-center gap-2 text-body font-medium text-ink-950">
-              <FileText aria-hidden="true" className="size-5 shrink-0 text-indigo-600" />
-              <span className="break-all">{file.name}</span>
-            </p>
+            <IconTile icon={FileCheck2} tone="emerald" size="lg" />
+            <p className="text-body font-semibold break-all text-ink-950">{file.name}</p>
             <p className="text-small text-ink-700">{formatBytes(file.size)} · PDF selected</p>
             <Button variant="secondary" size="sm" onClick={onRemove}>
               Remove file
@@ -64,9 +65,12 @@ export function ResumeDropzone({ file, error, onFile, onRemove, inputRef }: Resu
           </div>
         ) : (
           <>
-            <Upload aria-hidden="true" className="size-6 text-indigo-600" />
+            <IconTile icon={dragging ? FileUp : Upload} tone={error ? 'red' : 'indigo'} size="lg" />
             <p id={hintId} className="text-small text-ink-700">
-              Drag and drop your PDF here, or choose a file.
+              <span className="block text-body font-semibold text-ink-950">
+                {dragging ? 'Drop your PDF to upload it' : 'Drag and drop your PDF here'}
+              </span>
+              or choose a file from your device.
             </p>
             <input
               ref={inputRef}

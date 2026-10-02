@@ -256,10 +256,12 @@ export default function InterviewPage() {
     <Page
       title={`Question ${questionNumber} of ${totalQuestions}`}
       lead={
-        feedback ? 'Review your feedback below' : 'Take your time to provide a thoughtful answer'
+        feedback
+          ? 'Here is what worked and what to sharpen. Then we will move on.'
+          : 'There are no trick questions. Answer with a real example from your experience.'
       }
     >
-      <div className="mx-auto max-w-4xl">
+      <div className="w-full max-w-3xl">
         <div className="flex flex-col gap-6">
           <SegmentedProgress
             segments={segments}
@@ -274,7 +276,7 @@ export default function InterviewPage() {
               {showTimer && <PrepTimer onHide={() => setShowTimer(false)} />}
 
               {submitAnswer.isError && (
-                <p role="alert" className="text-small font-medium text-error-700">
+                <p role="alert" className="text-small font-medium text-red-700">
                   {answerErrorMessage(submitAnswer.error)}
                 </p>
               )}

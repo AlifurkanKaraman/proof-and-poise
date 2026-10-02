@@ -10,7 +10,7 @@ interface PrepTimerProps {
 }
 
 /**
- * Optional 30-second preparation timer (Req 9.3, WCAG 2.2.1).
+ * Optional 30-second preparation timer (Req 9.3, WCAG 2.2.1), shown as a quiet pill.
  * - Pausable
  * - Hideable
  * - Informational only (never auto-submits)
@@ -38,58 +38,53 @@ export function PrepTimer({ onHide, className }: PrepTimerProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-4 rounded-lg border p-4',
-        isComplete ? 'border-emerald-700/20 bg-emerald-50' : 'border-line-200 bg-paper-0',
+        'inline-flex max-w-full items-center gap-3 self-start rounded-full border py-1 pr-1 pl-4',
+        isComplete ? 'border-emerald-100 bg-emerald-50' : 'border-line-200 bg-paper-0 shadow-xs',
         className,
       )}
       role="timer"
       aria-label={`Preparation timer: ${secondsLeft} seconds remaining`}
     >
-      <div className="flex items-center gap-3">
-        <Clock
-          className={cn('size-5', isComplete ? 'text-emerald-700' : 'text-indigo-600')}
-          aria-hidden
-        />
-        <div>
-          <p className="text-small font-semibold text-ink-950">
-            {isComplete ? 'Preparation complete' : 'Preparation time'}
-          </p>
-          <p
-            className={cn(
-              'font-mono text-h2 font-bold tabular-nums',
-              isComplete ? 'text-emerald-700' : 'text-ink-950',
-            )}
-            aria-live="polite"
-          >
-            {isComplete ? '0:00' : `0:${secondsLeft.toString().padStart(2, '0')}`}
-          </p>
-        </div>
-      </div>
+      <Clock
+        className={cn('size-4 shrink-0', isComplete ? 'text-emerald-700' : 'text-indigo-700')}
+        aria-hidden="true"
+      />
+      <p className="text-small font-medium text-ink-700">
+        {isComplete ? 'Preparation complete' : 'Preparation time'}
+      </p>
+      <p
+        className={cn(
+          'font-mono text-body font-bold tabular-nums',
+          isComplete ? 'text-emerald-700' : 'text-ink-950',
+        )}
+      >
+        {isComplete ? '0:00' : `0:${secondsLeft.toString().padStart(2, '0')}`}
+      </p>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex items-center">
         {!isComplete && (
           <Button
-            variant="secondary"
+            variant="ghost"
             size="sm"
-            className="min-w-11"
+            className="min-w-11 rounded-full"
             onClick={togglePause}
             aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
           >
             {isPaused ? (
-              <Play className="size-4" aria-hidden />
+              <Play className="size-4" aria-hidden="true" />
             ) : (
-              <Pause className="size-4" aria-hidden />
+              <Pause className="size-4" aria-hidden="true" />
             )}
           </Button>
         )}
         <Button
-          variant="secondary"
+          variant="ghost"
           size="sm"
-          className="min-w-11"
+          className="min-w-11 rounded-full"
           onClick={onHide}
           aria-label="Hide timer"
         >
-          <X className="size-4" aria-hidden />
+          <X className="size-4" aria-hidden="true" />
         </Button>
       </div>
     </div>

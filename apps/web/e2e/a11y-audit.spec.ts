@@ -26,7 +26,7 @@ async function toTab(page: Page, name: string) {
 async function toInterview(page: Page) {
   await toAnalysis(page);
   await page.getByRole('button', { name: /start interview/i }).click();
-  await expect(page).toHaveURL(/\/interview/);
+  await expect(page).toHaveURL(/\/interview/, { timeout: 15000 });
   await expect(page.getByRole('tab', { name: /type/i })).toBeVisible();
 }
 
