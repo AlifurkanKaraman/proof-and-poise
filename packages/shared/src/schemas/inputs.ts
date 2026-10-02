@@ -1,82 +1,106 @@
-/**
- * inputs.ts
- * Input validation schemas for API requests and user submissions.
- */
-
 import { z } from 'zod';
-import { SessionModeSchema, DecisionSchema } from './base.js';
-import { LIMITS } from '../limits.js';
+import { LIMITS } from '../limits';
+import {
+  InterviewTypeSchema,
+  SessionModeSchema,
+  ShortIdSchema,
+  CompetencyIdSchema,
+} from './common';
 
-// Session creation
-export const CreateSessionInputSchema = z.object({
-  mode: SessionModeSchema,
+/** Trim, then enforce bounds. Used for all free-text user input. */
+const boundedText = (min: number, max: number) => z.string().trim().min(min).max(max);
+
+// --- Setup (Req 3.4) --------------------------------------------------------
+
+export const ResumeTextInputSchema = z.object({
+  kind: z.literal('text'),
+  text: boundedText(LIMITS.resumeText.min, LIMITS.resumeText.max),
 });
 
-export type CreateSessionInput = z.infer<typeof CreateSessionInputSchema>;
-
-// Job setup input
-export const JobSetupInputSchema = z.object({
-  resume: z
+/** Server-issued S3 key from the presigned upload. Session ownership is checked server-side. */
+export const ResumeUploadInputSchema = z.object({
+  kind: z.literal('upload'),
+  key: z
     .string()
-    .min(LIMITS.RESUME_TEXT_MIN_CHARS)
-    .max(LIMITS.RESUME_TEXT_MAX_CHARS)
-    .describe('Resume text (extracted from PDF or pasted)'),
-  job: z
-    .string()
-    .min(LIMITS.JOB_DESCRIPTION_MIN_CHARS)
-    .max(LIMITS.JOB_DESCRIPTION_MAX_CHARS)
-    .describe('Job description text'),
-  company: z.string().max(LIMITS.COMPANY_NAME_MAX_CHARS).optional(),
-  role: z.string().max(LIMITS.ROLE_TITLE_MAX_CHARS).optional(),
-  interviewType: z.enum(['technical', 'behavioral', 'mixed']).optional(),
+    .min(1)
+    .max(256)
+    .regex(/^resumes\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/),
 });
 
-export type JobSetupInput = z.infer<typeof JobSetupInputSchema>;
+export const ResumeInputSchema = z.discriminatedUnion('kind', [
+  ResumeTextInputSchema,
+  ResumeUploadInputSchema,
+]);
+export type ResumeInput = z.infer<typeof ResumeInputSchema>;
 
-// Confirmation input
-export const ConfirmationInputSchema = z.object({
-  competencyId: z.string(),
-  statement: z.string().min(LIMITS.EVIDENCE_QUOTE_MIN_CHARS).max(LIMITS.EVIDENCE_QUOTE_MAX_CHARS),
-  attested: z.literal(true).describe('User must attest the statement is truthful'),
+export const JobInputSchema = z.object({
+  description: boundedText(LIMITS.jobText.min, LIMITS.jobText.max),
+  company: z.string().trim().max(LIMITS.company.max).optional(),
+  role: boundedText(LIMITS.role.min, LIMITS.role.max),
+  interviewType: InterviewTypeSchema.default('behavioral_mixed'),
 });
+export type JobInput = z.infer<typeof JobInputSchema>;
 
-export type ConfirmationInput = z.infer<typeof ConfirmationInputSchema>;
-
-// Recommendation decision
-export const RecommendationDecisionInputSchema = z.object({
-  decision: DecisionSchema,
+export const AnalysisRequestSchema = z.object({
+  resume: ResumeInputSchema,
+  job: JobInputSchema,
 });
+export type AnalysisRequest = z.infer<typeof AnalysisRequestSchema>;
 
-export type RecommendationDecisionInput = z.infer<typeof RecommendationDecisionInputSchema>;
+// --- Sessions ----------------------------------------------------------------
 
-// Answer submission
-export const AnswerSubmissionInputSchema = z.object({
-  text: z.string().min(LIMITS.ANSWER_TEXT_MIN_CHARS).max(LIMITS.ANSWER_TEXT_MAX_CHARS),
-  source: z.enum(['typed', 'transcribed']),
+export const CreateSessionRequestSchema = z.object({ mode: SessionModeSchema });
+export type CreateSessionRequest = z.infer<typeof CreateSessionRequestSchema>;
+
+// --- Uploads (Req 4.1, 10.4) -----------------------------------------------
+
+export const ResumeUploadRequestSchema = z.object({
+  contentType: z.literal(LIMITS.resumeUpload.contentType),
+  size: z.number().int().min(LIMITS.resumeUpload.minBytes).max(LIMITS.resumeUpload.maxBytes),
+});
+export type ResumeUploadRequest = z.infer<typeof ResumeUploadRequestSchema>;
+
+export const AudioUploadRequestSchema = z.object({
+  contentType: z.enum(LIMITS.audioUpload.contentTypes),
+  size: z.number().int().min(LIMITS.audioUpload.minBytes).max(LIMITS.audioUpload.maxBytes),
+});
+export type AudioUploadRequest = z.infer<typeof AudioUploadRequestSchema>;
+
+// --- Recommendations and confirmations (Req 7.5, 8.1) ----------------------
+
+export const DecisionRequestSchema = z.object({
+  decision: z.enum(['accept', 'reject', 'reset']),
+});
+export type DecisionRequest = z.infer<typeof DecisionRequestSchema>;
+
+export const ConfirmationRequestSchema = z.object({
+  competencyId: CompetencyIdSchema,
+  statement: boundedText(LIMITS.confirmation.min, LIMITS.confirmation.max),
+  attested: z.literal(true),
+});
+export type ConfirmationRequest = z.infer<typeof ConfirmationRequestSchema>;
+
+// --- Interview (Req 10.3–10.5) ---------------------------------------------
+
+export const AnswerSourceSchema = z.enum(['typed', 'transcribed']);
+export type AnswerSource = z.infer<typeof AnswerSourceSchema>;
+
+export const AnswerRequestSchema = z.object({
+  text: boundedText(LIMITS.answer.min, LIMITS.answer.max),
+  source: AnswerSourceSchema,
   edited: z.boolean(),
 });
+export type AnswerRequest = z.infer<typeof AnswerRequestSchema>;
 
-export type AnswerSubmissionInput = z.infer<typeof AnswerSubmissionInputSchema>;
-
-// Practice request
-export const PracticeRequestInputSchema = z.object({
-  turnId: z.string().describe('Original turn ID to practice again'),
+export const TranscriptionStartRequestSchema = z.object({
+  key: z
+    .string()
+    .min(1)
+    .max(256)
+    .regex(/^audio\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/),
+  durationSec: z.number().positive().max(LIMITS.recording.maxSeconds),
 });
+export type TranscriptionStartRequest = z.infer<typeof TranscriptionStartRequestSchema>;
 
-export type PracticeRequestInput = z.infer<typeof PracticeRequestInputSchema>;
-
-// Upload presign request
-export const UploadPresignInputSchema = z.object({
-  contentType: z.string().describe('MIME type (e.g., application/pdf, audio/webm)'),
-  size: z.number().int().min(1).describe('File size in bytes'),
-});
-
-export type UploadPresignInput = z.infer<typeof UploadPresignInputSchema>;
-
-// Transcription start
-export const TranscriptionStartInputSchema = z.object({
-  key: z.string().describe('S3 key of uploaded audio'),
-  durationSec: z.number().min(1).max(LIMITS.AUDIO_MAX_DURATION_SECONDS),
-});
-
-export type TranscriptionStartInput = z.infer<typeof TranscriptionStartInputSchema>;
+export const PracticeRequestSchema = z.object({ turnId: ShortIdSchema });
+export type PracticeRequest = z.infer<typeof PracticeRequestSchema>;

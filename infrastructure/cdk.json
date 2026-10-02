@@ -1,0 +1,19 @@
+{
+  "app": "tsx bin/app.ts",
+  "watch": {
+    "include": ["bin/**", "lib/**", "../services/api/src/**", "../packages/shared/src/**"],
+    "exclude": ["**/*.test.ts", "cdk.out/**"]
+  },
+  "context": {
+    "proof-and-poise:allowedOrigins": {
+      "dev": ["http://localhost:5173"],
+      "prod": ["http://localhost:5173"]
+    },
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:enablePartitionLiterals": true,
+    "@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
+    "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": true
+  }
+}

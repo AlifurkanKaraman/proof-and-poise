@@ -1,8 +1,4 @@
-/**
- * grounding/index.ts
- * Central export for all grounding functions.
- */
-
-export * from './normalize.js';
-export * from './quote-verification.js';
-export * from './novel-terms.js';
+export * from './normalize';
+export * from './quotes';
+export * from './novelTerms';
+export * from './labels';

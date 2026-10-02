@@ -1,64 +1,25 @@
-/**
- * normalize.ts
- * Text normalization for grounding verification.
- * Ensures consistent matching across quotes and sources.
- */
+const QUOTES_SINGLE = /[\u2018\u2019\u201A\u201B\u2032\u0060\u00B4]/g;
+const QUOTES_DOUBLE = /[\u201C\u201D\u201E\u201F\u2033\u00AB\u00BB]/g;
+const DASHES = /[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D]/g;
+/** Bullet glyphs commonly produced by PDF extraction and word processors. */
+const BULLETS =
+  /[\u2022\u2023\u2043\u2219\u25AA\u25AB\u25CF\u25E6\u25A0\u25A1\u25C6\u25C7\u2756\u27A2\u27A4\u2713\u2714\u00B7\uF0B7\uF0A7]/g;
+const ZERO_WIDTH = /[\u200B-\u200D\u2060\uFEFF\u00AD]/g;
 
 /**
- * Normalize text for grounding comparison:
- * - NFKC Unicode normalization
- * - Lowercase
- * - Collapse whitespace
- * - Unify quotes and dashes
- * - Strip common bullet glyphs
+ * Canonical text form for grounding and matching (design §7.4):
+ * NFKC, lowercase, unified quotes and dashes, bullet glyphs stripped,
+ * whitespace collapsed, trimmed.
  */
-export function normalize(text: string): string {
-  return (
-    text
-      .normalize('NFKC')
-      .toLowerCase()
-      // Collapse whitespace
-      .replace(/\s+/g, ' ')
-      // Unify quotes
-      .replace(/['']/g, "'")
-      .replace(/[""]/g, '"')
-      // Unify dashes
-      .replace(/[–—]/g, '-')
-      // Strip bullet glyphs
-      .replace(/[•\u2022\u2023\u25E6\u2043\u2219]/g, '')
-      .trim()
-  );
-}
-
-/**
- * Normalize for keyword matching (more aggressive):
- * - Apply standard normalization
- * - Remove punctuation
- * - Handle plurals (simple s/es removal)
- */
-export function normalizeKeyword(text: string): string {
-  const normalized = normalize(text);
-  return (
-    normalized
-      // Remove punctuation except hyphens in tech terms
-      .replace(/[^\w\s-]/g, '')
-      // Simplify whitespace again
-      .replace(/\s+/g, ' ')
-      .trim()
-  );
-}
-
-/**
- * Extract potential keywords from text (split on whitespace/punctuation).
- */
-export function extractTokens(text: string): string[] {
-  const normalized = normalizeKeyword(text);
-  return normalized.split(/\s+/).filter((token) => token.length > 0);
-}
-
-/**
- * Check if two normalized strings are equivalent for matching.
- */
-export function areEquivalent(a: string, b: string): boolean {
-  return normalize(a) === normalize(b);
+export function normalize(s: string): string {
+  return s
+    .normalize('NFKC')
+    .replace(ZERO_WIDTH, '')
+    .toLowerCase()
+    .replace(QUOTES_SINGLE, "'")
+    .replace(QUOTES_DOUBLE, '"')
+    .replace(DASHES, '-')
+    .replace(BULLETS, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

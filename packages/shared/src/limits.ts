@@ -1,88 +1,119 @@
 /**
- * limits.ts
- * Single source of truth for all input/output/quota limits.
- * Used by validation, UI, and backend quota enforcement.
+ * Single source of truth for every input, output, and quota limit.
+ * Client validation, server validation, prompts, and infrastructure read from here.
  */
-
 export const LIMITS = {
-  // Input limits
-  RESUME_TEXT_MAX_CHARS: 12_000,
-  RESUME_TEXT_MIN_CHARS: 200,
-  JOB_DESCRIPTION_MAX_CHARS: 8_000,
-  JOB_DESCRIPTION_MIN_CHARS: 100,
-  COMPANY_NAME_MAX_CHARS: 100,
-  ROLE_TITLE_MAX_CHARS: 100,
-
-  // Resume upload
-  RESUME_PDF_MAX_SIZE_BYTES: 5 * 1024 * 1024, // 5 MB
-
-  // Evidence and competencies
-  COMPETENCIES_MIN: 6,
-  COMPETENCIES_MAX: 12,
-  EVIDENCE_QUOTE_MIN_CHARS: 12, // For grounding verification
-  EVIDENCE_QUOTE_MAX_CHARS: 500,
-  RECOMMENDATION_MAX: 8,
-
-  // Interview
-  INTERVIEW_QUESTIONS_PRIMARY: 5,
-  INTERVIEW_FOLLOWUPS_MAX: 2,
-  ANSWER_TEXT_MIN_CHARS: 20,
-  ANSWER_TEXT_MAX_CHARS: 2_000,
-  FOLLOW_UP_QUESTION_MAX_CHARS: 300,
-
-  // Audio recording
-  AUDIO_MAX_SIZE_BYTES: 10 * 1024 * 1024, // 10 MB
-  AUDIO_MAX_DURATION_SECONDS: 120, // 2 minutes per answer
-
-  // Model output limits (stricter than stored limits)
-  MODEL_COMPETENCY_NAME_MAX_CHARS: 80,
-  MODEL_COMPETENCY_DESC_MAX_CHARS: 200,
-  MODEL_MISSING_EVIDENCE_MAX_CHARS: 150,
-  MODEL_SUGGESTION_MAX_CHARS: 180,
-  MODEL_RECOMMENDATION_REASON_MAX_CHARS: 200,
-  MODEL_EVALUATION_RATIONALE_MAX_CHARS: 300,
-  MODEL_EVALUATION_STRENGTH_MAX_CHARS: 300,
-  MODEL_EVALUATION_IMPROVEMENT_MAX_CHARS: 300,
-  MODEL_STRONGER_OUTLINE_POINTS: 3,
-  MODEL_STRONGER_OUTLINE_POINT_MAX_CHARS: 150,
-  MODEL_QUESTION_MAX_CHARS: 250,
-
-  // Report
-  REPORT_NARRATIVE_MAX_CHARS: 2_000,
-
-  // Quotas (per session)
-  QUOTA_ANALYSIS_ATTEMPTS: 3,
-  QUOTA_CONFIRMATIONS: 10,
-  QUOTA_RECOMMENDATION_DECISIONS: 30,
-  QUOTA_INTERVIEW_GENERATIONS: 3,
-  QUOTA_EVALUATIONS: 15, // 5 primary + up to 2 follow-ups each + practice
-  QUOTA_PRACTICE_ATTEMPTS: 10,
-  QUOTA_REPORT_GENERATIONS: 3,
-  QUOTA_TRANSCRIPTIONS: 10,
-
-  // Quotas (per IP, per hour)
-  QUOTA_SESSIONS_PER_IP_HOUR: 5,
-
-  // Global budgets (per day)
-  GLOBAL_BEDROCK_CALLS_PER_DAY: 500,
-  GLOBAL_TRANSCRIBE_MINUTES_PER_DAY: 60,
-
-  // Bedrock token limits
-  BEDROCK_ANALYSIS_MAX_TOKENS: 3_000,
-  BEDROCK_CONFIRM_REWRITE_MAX_TOKENS: 400,
-  BEDROCK_QUESTIONS_MAX_TOKENS: 1_000,
-  BEDROCK_EVALUATION_MAX_TOKENS: 800,
-  BEDROCK_REPORT_MAX_TOKENS: 1_200,
-
-  // TTL
-  SESSION_TTL_HOURS: 24,
-  IP_RATE_LIMIT_TTL_HOURS: 2,
-  GLOBAL_BUDGET_TTL_DAYS: 3,
-
-  // Parsing
-  PARSEABILITY_MIN_WORD_COUNT: 300,
-  PARSEABILITY_MAX_WORD_COUNT: 1_200,
-  PARSEABILITY_MAX_GARBLED_RATIO: 0.02, // 2%
+  session: {
+    ttlHours: 24,
+    /** 32 bytes = 256 bits of CSPRNG entropy (Req 2.1). */
+    tokenBytes: 32,
+  },
+  resumeText: { min: 200, max: 12_000 },
+  jobText: { min: 200, max: 8_000 },
+  company: { max: 100 },
+  role: { min: 1, max: 120 },
+  resumeUpload: {
+    contentType: 'application/pdf',
+    minBytes: 1,
+    maxBytes: 5_242_880,
+    maxPages: 4,
+    presignExpiresSec: 300,
+  },
+  audioUpload: {
+    contentTypes: ['audio/webm', 'audio/mp4', 'audio/ogg'],
+    minBytes: 1,
+    maxBytes: 10 * 1024 * 1024,
+    presignExpiresSec: 300,
+  },
+  recording: { maxSeconds: 120 },
+  /**
+   * Amazon Transcribe batch settings (Req 10.4). `IdentifyLanguage` is off: identification
+   * adds latency and can pick the wrong language for short clips. Jobs use `languageCode`;
+   * `en-GB` and `en-IN` are the supported alternatives if a demo needs them.
+   */
+  transcribe: {
+    languageCode: 'en-US',
+    alternativeLanguageCodes: ['en-GB', 'en-IN'],
+  },
+  answer: { min: 20, max: 3_000 },
+  /** `rewriteTimeoutSec` bounds the confirmRewrite model call inside the 25 s API Lambda. */
+  confirmation: { min: 30, max: 500, maxPerSession: 3, rewriteTimeoutSec: 15 },
+  analysis: {
+    competencies: { min: 6, max: 12 },
+    keywords: { min: 8, max: 30 },
+    recommendations: { max: 10 },
+    evidencePerCompetency: { max: 5 },
+    /** Each competency cites the job phrase it comes from (design §7.4). */
+    jobQuote: { maxChars: 200 },
+    /** A `rewording_only` card must change at least this many words to be worth showing. */
+    minRewordingChangedWords: 3,
+    /** ...and may grow the line by at most this many words, so it can't append new claims. */
+    maxRewordingAddedWords: 3,
+    /** Above this share of keywords that just repeat competency names, ask for a repair. */
+    maxCompetencyNameKeywordShare: 0.5,
+    /** Minimum extracted characters before extraction counts as successful (Req 4.4). */
+    minExtractedChars: 200,
+    /** Target end-to-end time budget (Req 5.5). */
+    timeoutSec: 60,
+    /**
+     * A queued or running analysis older than this is reported as failed (lost async
+     * invoke or a worker that hit its Lambda timeout), so the client can retry (Req 5.5).
+     */
+    staleAfterSec: 120,
+  },
+  grounding: {
+    /** Quotes shorter than this never count as grounded (design §7.4). */
+    minQuoteChars: 12,
+  },
+  interview: {
+    primaryQuestions: 5,
+    candidateQuestions: { behavioral: 3, roleSpecific: 3 },
+    selectedQuestions: { behavioral: 2, roleSpecific: 2 },
+    /** Position (1-based) of the forced evidence-gap question in the plan. */
+    gapPosition: 3,
+    minFollowUps: 1,
+    maxFollowUps: 2,
+    followUpMaxChars: 300,
+    questionMaxChars: 400,
+    prepTimerSec: 30,
+    /** Bonus added to a competency's plan priority when the candidate flagged or confirmed it. */
+    priorityBonus: 0.5,
+    /** Bounds each interview model call inside the 25 s API Lambda. */
+    modelTimeoutSec: 20,
+  },
+  quotas: {
+    analyses: 2,
+    confirmations: 3,
+    evaluations: 10,
+    primaryEvaluations: 5,
+    followUpEvaluations: 2,
+    practiceEvaluations: 3,
+    reports: 2,
+    transcriptions: 8,
+  },
+  /** Session creation per salted IP hash per hour; the counter item lives 2 h (design §5). */
+  rateLimit: { sessionsPerIpPerHour: 10, ttlHours: 2 },
+  /** Global daily circuit breaker (Req 16.4); the counter item lives 3 days (design §5). */
+  globalBudget: {
+    bedrockCallsPerDay: 1_500,
+    transcribeSecondsPerDay: 60 * 60,
+    ttlDays: 3,
+  },
+  model: {
+    // Nova Lite's output maximum. 3,000 truncated the tool call on long resumes, which
+    // Bedrock reports as ModelErrorException (Req 16.5).
+    analyze: { maxTokens: 5_000, temperature: 0.2 },
+    confirmRewrite: { maxTokens: 400, temperature: 0.2 },
+    generateQuestions: { maxTokens: 1_000, temperature: 0.5 },
+    evaluateAnswer: { maxTokens: 800, temperature: 0.2 },
+    reportNarrative: { maxTokens: 1_200, temperature: 0.3 },
+  },
+  report: {
+    summarySentences: { min: 2, max: 4 },
+    starOutlines: { min: 2, max: 3 },
+    actions: 3,
+  },
 } as const;
 
-export type Limits = typeof LIMITS;
+export type ModelTask = keyof typeof LIMITS.model;
+export type AudioContentType = (typeof LIMITS.audioUpload.contentTypes)[number];

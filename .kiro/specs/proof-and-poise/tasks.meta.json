@@ -6,6 +6,73 @@
         "executionId": "ccc989fa-3e88-4ab1-977f-a257c6520251",
         "chatSessionId": "sess_deecb8be-89fe-4077-800d-0ab8c52275c5",
         "timestamp": 1790522511337
+      },
+      {
+        "executionId": "ccc989fa-3e88-4ab1-977f-a257c6520251",
+        "chatSessionId": "sess_deecb8be-89fe-4077-800d-0ab8c52275c5",
+        "timestamp": 1790522938739
+      }
+    ],
+    "2. [A] Web app shell and design system": [
+      {
+        "executionId": "2d421e72-2465-4959-9f7a-64050741686f",
+        "chatSessionId": "sess_6b39e813-6e64-41f6-8945-e753c3c940eb",
+        "timestamp": 1790523571938
+      },
+      {
+        "executionId": "2d421e72-2465-4959-9f7a-64050741686f",
+        "chatSessionId": "sess_6b39e813-6e64-41f6-8945-e753c3c940eb",
+        "timestamp": 1790524362668
+      }
+    ],
+    "3. ⛓ [AB] Shared contracts and domain (contract-first, pair-reviewed)": [
+      {
+        "executionId": "2783e2a4-c0c8-46cc-aeae-351dfc2a5b33",
+        "chatSessionId": "sess_e4a85441-0071-4e08-81d3-bf0ae9e29f43",
+        "timestamp": 1790525101011
+      },
+      {
+        "executionId": "2783e2a4-c0c8-46cc-aeae-351dfc2a5b33",
+        "chatSessionId": "sess_e4a85441-0071-4e08-81d3-bf0ae9e29f43",
+        "timestamp": 1790526041963
+      }
+    ],
+    "4. ⛓ [B] CDK walking skeleton deployed": [
+      {
+        "executionId": "4ededc09-b12c-42e4-ae5f-89bd883936b3",
+        "chatSessionId": "sess_0dbafdc3-d665-4018-a2b9-16ee1134362f",
+        "timestamp": 1790526490313
+      },
+      {
+        "executionId": "8298605a-1767-467b-bf55-02d5f66e1b3d",
+        "chatSessionId": "sess_0dbafdc3-d665-4018-a2b9-16ee1134362f",
+        "timestamp": 1790530408503
+      }
+    ],
+    "7. [AB] Demo fixture content": [
+      {
+        "executionId": "407d2ddc-79e3-4f37-876f-5118f99abae7",
+        "chatSessionId": "sess_693308bb-3092-46c3-9c16-840cde8b4b2c",
+        "timestamp": 1790534494888
+      }
+    ],
+    "6. [A] MSW mock layer and API client": [
+      {
+        "executionId": "c9e62b60-406e-4e7c-86c9-1a1c89dc5339",
+        "chatSessionId": "sess_2afd1fdf-4d59-4d78-b828-50331255d0b6",
+        "timestamp": 1790535445161
+      }
+    ],
+    "8. ⛓ [B] Sessions, auth, quotas, uploads": [
+      {
+        "executionId": "85ef17b9-f5b9-4093-bb8d-68b2f584f905",
+        "chatSessionId": "sess_0880d11d-5b8f-4053-bdc5-d71e94575c51",
+        "timestamp": 1790539580233
+      },
+      {
+        "executionId": "85ef17b9-f5b9-4093-bb8d-68b2f584f905",
+        "chatSessionId": "sess_0880d11d-5b8f-4053-bdc5-d71e94575c51",
+        "timestamp": 1790540432428
       }
     ]
   }
