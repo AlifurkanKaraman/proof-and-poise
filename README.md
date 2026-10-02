@@ -1,6 +1,6 @@
 # Proof & Poise
 
-Evidence-grounded job readiness. A candidate gives a resume and a job description. Proof & Poise maps the job's competencies to verbatim resume evidence, suggests truthful resume changes the candidate approves one at a time, runs a five-question adaptive mock interview aimed at the weakest evidence, and produces an explainable readiness report.
+Evidence-grounded job readiness. A candidate gives a resume and a job description. Proof & Poise maps the job's competencies to verbatim resume evidence and helps the candidate tailor the resume to the job truthfully: supported changes approved one at a time, proven job keywords listed in Skills, confirmations for real experience, and a downloadable tailored resume. Step 2 is a five-question adaptive mock interview aimed at the weakest evidence, with an explainable readiness report.
 
 The model writes language only. Scores, grounding checks, strength caps, follow-up decisions, and quotas are deterministic TypeScript in `packages/shared`.
 
