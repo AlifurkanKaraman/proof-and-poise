@@ -6,8 +6,8 @@
   },
   "context": {
     "proof-and-poise:allowedOrigins": {
-      "dev": ["http://localhost:5173"],
-      "prod": ["http://localhost:5173"]
+      "dev": ["http://localhost:5173", "https://develop.d1tn5k7jq2sjsu.amplifyapp.com"],
+      "prod": ["http://localhost:5173", "https://main.d1tn5k7jq2sjsu.amplifyapp.com"]
     },
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,

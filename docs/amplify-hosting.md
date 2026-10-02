@@ -27,18 +27,19 @@ Use the `ProofAndPoise-prod` stack for `main` once prod exists. Until then, both
 
 ## 3. SPA rewrite (console only)
 
-`amplify.yml` supports custom headers but not rewrites, so add this in **Hosting → Rewrites and redirects → Manage redirects → Add rewrite**:
+`amplify.yml` supports custom headers but not rewrites. In **Hosting → Rewrites and redirects → Manage redirects**, the editor takes JSON, so the backslash is escaped (`\\.`). Replace its contents with:
 
-- Source address:
+```json
+[
+  {
+    "source": "</^[^.]+$|\\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>",
+    "status": "200",
+    "target": "/index.html"
+  }
+]
+```
 
-  ```text
-  </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>
-  ```
-
-- Target address: `/index.html`
-- Type: `200 (Rewrite)`
-
-Without it, deep links such as `/demo` or `/sessions/<id>/report` return 404 on reload.
+Status `200` is a rewrite: deep links such as `/demo` or `/s/<id>/analysis` serve the app and keep the URL.
 
 ## 4. Allow the Amplify domains in CORS
 
