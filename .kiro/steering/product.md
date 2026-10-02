@@ -15,8 +15,8 @@ Source of truth: `.kiro/specs/proof-and-poise/` (`requirements.md`, `design.md`,
 
 ## Current scope (from tasks.md and the working tree)
 
-- Done: tasks 1–9, 11–13, 15, 17–19, 21 (bootstrap, web shell, contracts, CDK skeleton, landing, MSW client, fixtures, sessions/auth/quotas/uploads, analysis worker, setup and analysis UI, decisions/confirmations, interview UI and API, audio transcription API, report UI and API) and part of 22 (Playwright + axe e2e). `ProofAndPoise-dev` was last deployed and verified through task 8; later API routes are unit-tested with mocked AWS only. See `HANDOFF.md`.
-- Everything else (real-API integration 14/16/20, Amplify, prod deploy, `docs/`) is planned, not built.
+- Done: tasks 1–21, 23, and 24 (bootstrap through report/practice, Amplify hosting, prod stage with alarms and budgets), the code part of 22, and drafted docs for 25. Production runs at https://main.d1tn5k7jq2sjsu.amplifyapp.com (prod API) and https://develop.d1tn5k7jq2sjsu.amplifyapp.com (dev API). Answers are typed; recorded answers are built but switched off because the account isn't subscribed to Amazon Transcribe. See `HANDOFF.md`.
+- Left: manual accessibility checks (22) and the `TODO(user)` doc items (25).
 - Out of MVP scope: the "Post-hackathon" list in requirements.md (Cognito, Polly, mobile app, etc.). `apps/mobile/` is a README only.
 
 ## Unknown

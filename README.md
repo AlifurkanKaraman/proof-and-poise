@@ -6,7 +6,7 @@ The model writes language only. Scores, grounding checks, strength caps, follow-
 
 Built for the AWS "Zero to Shipped" Shipathon.
 
-- Hosted app: `TODO(user): Amplify production URL.`
+- Hosted app: https://main.d1tn5k7jq2sjsu.amplifyapp.com (try `/demo` for the fictional journey).
 - Try it locally without AWS: `pnpm install --frozen-lockfile && pnpm --filter @proof-and-poise/web dev:mock`, then open `http://localhost:5173/demo`.
 
 ## Stack
