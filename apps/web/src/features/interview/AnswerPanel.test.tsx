@@ -10,6 +10,13 @@ async function openTypeTab() {
 }
 
 describe('AnswerPanel', () => {
+  it('opens on Type and marks Record as coming soon while recording is off (MVP)', () => {
+    render(<AnswerPanel onSubmit={() => {}} isSubmitting={false} />);
+    expect(screen.getByRole('tab', { name: /type/i })).toHaveAttribute('aria-selected', 'true');
+    const record = screen.getByRole('tab', { name: /record \(coming soon\)/i });
+    expect(record).toBeDisabled();
+    expect(screen.getByLabelText(/your answer/i)).toBeInTheDocument();
+  });
   it('keeps submit disabled until the typed answer reaches the minimum length', async () => {
     render(<AnswerPanel onSubmit={() => {}} isSubmitting={false} />);
     await openTypeTab();
