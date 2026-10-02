@@ -44,10 +44,10 @@ export default function PrivacyPage() {
             Everything is stored in Amazon Web Services in the US East (N. Virginia) region
             (us-east-1). Session data lives in an encrypted Amazon DynamoDB table. Uploaded files
             live in a private, encrypted Amazon S3 bucket that blocks all public access and accepts
-            only encrypted (TLS) connections. Text is analyzed by Amazon Bedrock and recordings are
-            transcribed by Amazon Transcribe, both called only from our server, never from your
-            browser. Bedrock uses a US cross-region inference profile, so a request may be processed
-            in another AWS region in the United States.
+            only encrypted (TLS) connections. Text is analyzed by Amazon Bedrock, called only from
+            our server, never from your browser. This version takes typed answers only; it doesn't
+            record or transcribe audio. Bedrock uses a US cross-region inference profile, so a
+            request may be processed in another AWS region in the United States.
           </p>
         </Section>
 
@@ -59,10 +59,6 @@ export default function PrivacyPage() {
             </li>
             <li>
               Resume PDFs are deleted right after text extraction, whether it succeeds or fails.
-            </li>
-            <li>
-              Recordings, transcripts, and transcription jobs are deleted right after the transcript
-              is retrieved.
             </li>
             <li>
               As a safety net, any uploaded file or transcript left in storage expires after 1 day.

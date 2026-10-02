@@ -29,5 +29,5 @@ The public demo uses a fictional candidate, "Amara Okonkwo (fictional)", applyin
 ## Pending for the final demo
 
 - `TODO(user): once task 14 merges, add the accept/reject and "confirm this experience" steps to the walkthrough.`
-- `TODO(user): once task 16 merges, add a recorded-answer step (Record → stop → review transcript → submit) and note which browsers were tested.`
+- Answers are typed. The Record tab shows "Coming soon": recorded answers are out of scope for the MVP (see `09-limitations.md`).
 - `TODO(user): add the demo video link, if one is submitted.`

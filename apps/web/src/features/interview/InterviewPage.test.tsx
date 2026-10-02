@@ -12,6 +12,9 @@ import { setMockFault } from '../../mocks/controls';
 import { mswPath } from '../../mocks/handlers';
 import { createMockServer } from '../../mocks/node';
 
+// These tests cover the recorded-answer flow, which is switched off for the MVP.
+vi.mock('../../lib/features', () => ({ FEATURES: { recordedAnswers: true } }));
+
 const { server } = createMockServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {

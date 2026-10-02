@@ -3,6 +3,16 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 /**
+ * Activate an interview button with the keyboard. Linux WebKit's iPhone emulation can
+ * report a scrolled-into-view button as "outside of the viewport" for mouse clicks;
+ * focus + Enter is a real user path and works on every project.
+ */
+async function press(page: Page, name: RegExp) {
+  await page.getByRole('button', { name }).focus();
+  await page.keyboard.press('Enter');
+}
+
+/**
  * Demo journey e2e (Task 22, Req 14): landing → demo → analysis workspace.
  * Interview and report screens are added when tasks 15 and 19 land.
  */
@@ -77,11 +87,11 @@ test.describe('Demo journey', () => {
         .fill(
           'I led a migration of our checkout service, cutting p95 latency by 35% across two quarters, and wrote the runbook the team still uses.',
         );
-      await page.getByRole('button', { name: /submit answer/i }).click();
+      await press(page, /submit answer/i);
       const next = page.getByRole('button', { name: /continue to next|view your report/i });
       await expect(next).toBeVisible({ timeout: 15000 });
       const isLast = /view your report/i.test((await next.textContent()) ?? '');
-      await next.click();
+      await press(page, /continue to next|view your report/i);
       if (isLast) break;
     }
 
@@ -97,11 +107,11 @@ test.describe('Demo journey', () => {
     for (let i = 0; i < 10 && !/\/report/.test(page.url()); i++) {
       await page.getByRole('tab', { name: /type/i }).click();
       await page.getByPlaceholder(/type your answer/i).fill('I did some work on a project.');
-      await page.getByRole('button', { name: /submit answer/i }).click();
+      await press(page, /submit answer/i);
       const next = page.getByRole('button', { name: /continue to next|view your report/i });
       await expect(next).toBeVisible({ timeout: 15000 });
       const isLast = /view your report/i.test((await next.textContent()) ?? '');
-      await next.click();
+      await press(page, /continue to next|view your report/i);
       if (isLast) break;
     }
     await expect(page).toHaveURL(/\/report/);
@@ -123,8 +133,8 @@ test.describe('Demo journey', () => {
     await page
       .getByPlaceholder(/type your answer/i)
       .fill('At Acme I led a migration, cutting p95 latency by 35% across two quarters.');
-    await page.getByRole('button', { name: /submit answer/i }).click();
-    await page.getByRole('button', { name: /view your report/i }).click();
+    await press(page, /submit answer/i);
+    await press(page, /view your report/i);
     await expect(page).toHaveURL(/\/report/);
     await expect(page.getByRole('button', { name: /print/i })).toBeVisible({ timeout: 15000 });
   });

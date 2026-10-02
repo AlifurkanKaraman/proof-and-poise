@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Ta
 import { Textarea } from '../../components/ui/Textarea';
 import { Spinner } from '../../components/ui/Spinner';
 import { cn } from '../../lib/cn';
+import { FEATURES } from '../../lib/features';
 import { useRecorder } from './useRecorder';
 
 export type PanelAnswer =
@@ -33,6 +34,8 @@ interface AnswerPanelProps {
   /** Clears the transcript under review (Re-record). */
   onDiscardTranscript?: () => void;
   transcriptionError?: TranscriptionProblem | null | undefined;
+  /** Offer the Record tab. Off for the MVP (lib/features.ts); typed answers always work. */
+  allowRecording?: boolean;
   className?: string;
 }
 
@@ -48,9 +51,10 @@ export function AnswerPanel({
   onTranscriptEdit,
   onDiscardTranscript,
   transcriptionError,
+  allowRecording = FEATURES.recordedAnswers,
   className,
 }: AnswerPanelProps) {
-  const [activeTab, setActiveTab] = useState<'record' | 'type'>('record');
+  const [activeTab, setActiveTab] = useState<'record' | 'type'>(allowRecording ? 'record' : 'type');
   const [typedAnswer, setTypedAnswer] = useState('');
   const recorder = useRecorder();
 
@@ -132,9 +136,9 @@ export function AnswerPanel({
     <div className={cn('rounded-lg border border-line-200 bg-paper-0 p-6', className)}>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'record' | 'type')}>
         <TabsList>
-          <TabsTrigger value="record">
+          <TabsTrigger value="record" disabled={!allowRecording}>
             <Mic className="mr-2 size-4" aria-hidden />
-            Record
+            {allowRecording ? 'Record' : 'Record (Coming soon)'}
           </TabsTrigger>
           <TabsTrigger value="type">
             <Keyboard className="mr-2 size-4" aria-hidden />
