@@ -133,9 +133,10 @@ test.describe('Demo journey', () => {
     await dialog.getByRole('button', { name: 'Save confirmation' }).click();
 
     await expect(dialog).toBeHidden();
-    await expect(page.getByText('You confirmed Kubernetes and containers experience.')).toHaveCount(
-      1,
-    );
+    // Exact match: the Radix toast's aria-live announcer briefly repeats the text with a prefix.
+    await expect(
+      page.getByText('You confirmed Kubernetes and containers experience.', { exact: true }),
+    ).toHaveCount(1);
     await expect(page.getByRole('alert')).toHaveCount(0);
     await expect(row.getByText('Confirmed by you')).toBeVisible();
     await expect(row.getByText('Gap: prepare to discuss it')).toHaveCount(0);
