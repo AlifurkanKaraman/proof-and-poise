@@ -62,12 +62,16 @@ describe('input schemas', () => {
     expect(ConfirmationRequestSchema.safeParse({ ...ok, statement: text(29) }).success).toBe(false);
     expect(ConfirmationRequestSchema.safeParse({ ...ok, competencyId: 'c13' }).success).toBe(false);
   });
+  // Readable filler of an exact length (`text(n)` repeats one letter, which the readability
+  // gate rejects regardless of length).
+  const prose = (n: number) =>
+    'I led the team and shipped it. '.repeat(Math.ceil(n / 30)).slice(0, n);
   it('bounds typed answers to 20–3000 characters', () => {
     expect(
-      AnswerRequestSchema.safeParse({ text: text(19), source: 'typed', edited: false }).success,
+      AnswerRequestSchema.safeParse({ text: prose(19), source: 'typed', edited: false }).success,
     ).toBe(false);
     expect(
-      AnswerRequestSchema.safeParse({ text: text(3_000), source: 'typed', edited: false }).success,
+      AnswerRequestSchema.safeParse({ text: prose(3_000), source: 'typed', edited: false }).success,
     ).toBe(true);
   });
 });

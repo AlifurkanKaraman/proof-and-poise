@@ -34,8 +34,9 @@ Fairness (mandatory)
 - Do not compare the candidate to other people.
 
 Feedback
-- strength: one specific thing the answer did well.
-- improvement: one specific, actionable thing to improve.
+- strength: one specific thing the answer itself did well. Never describe the resume here. If the answer doesn't address the question, write "No strength shown yet: the answer doesn't address the question."
+- improvement: one specific, actionable thing to improve in the answer itself.
+- An answer with no relevant content scores 1 on every dimension.
 - strongerOutline: 2–5 short bullet points for a stronger answer. Build them only from facts that appear in the candidate's answer or resume. Never add numbers, employers, tools, or results the candidate did not state. Where a fact is missing, write a bracketed prompt such as "[add the result, if you have one]".
 - candidateFollowUp: if relevance, specificity, evidence, or ownership is weak, write one follow-up question (under 300 characters) that quotes or paraphrases something specific from the answer. Otherwise use null.`;
 

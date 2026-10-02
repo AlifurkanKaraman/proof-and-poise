@@ -1,4 +1,10 @@
-import { LIMITS, type AnswerRequest, type Evaluation, type Turn } from '@proof-and-poise/shared';
+import {
+  LIMITS,
+  type AnswerRequest,
+  type Evaluation,
+  type Turn,
+  UNREADABLE_ANSWER_MESSAGE,
+} from '@proof-and-poise/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Page } from '../../app/Page';
@@ -42,6 +48,19 @@ export function transcriptionProblem(error: unknown): TranscriptionProblem {
 }
 
 /** `POST /practice` errors in candidate terms (Req 12.3, design §8). */
+/** A server-side VALIDATION on the answer text means the shared readability rule failed. */
+function answerErrorMessage(error: unknown): string {
+  if (
+    isApiError(error) &&
+    error.kind === 'http' &&
+    error.code === 'VALIDATION' &&
+    error.fields?.['text']
+  ) {
+    return UNREADABLE_ANSWER_MESSAGE;
+  }
+  return userMessage(error);
+}
+
 function practiceMessage(error: unknown): string {
   if (isApiError(error) && error.kind === 'http') {
     if (error.code === 'QUOTA_EXCEEDED') {
@@ -256,7 +275,7 @@ export default function InterviewPage() {
 
               {submitAnswer.isError && (
                 <p role="alert" className="text-small font-medium text-error-700">
-                  {userMessage(submitAnswer.error)}
+                  {answerErrorMessage(submitAnswer.error)}
                 </p>
               )}
 

@@ -242,6 +242,17 @@ describe('POST …/turns/{turnId}/answer (Req 9.3–9.4, 11)', () => {
     expect(state.turns).toHaveLength(2);
   });
 
+  it('rejects keyboard mashing with 400 before any model call or quota use', async () => {
+    const res = await answer('t1', {
+      text: 'asdgsdagsadgasdgasgasdgs',
+      source: 'typed',
+      edited: false,
+    });
+    expect(res.status).toBe(400);
+    expect(errorCode(res.body)).toBe('VALIDATION');
+    expect(converseCalls()).toHaveLength(0);
+    expect(meta()['quota_evaluations']).toBeUndefined();
+  });
   it('updates competency readiness, Interview Readiness, and the score events', async () => {
     await answer('t1');
     const map = EvidenceMapSchema.parse(
