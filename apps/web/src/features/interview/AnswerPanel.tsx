@@ -1,6 +1,11 @@
 import { Keyboard, Mic, Pause, Play, RotateCcw, Send } from 'lucide-react';
 import { useState } from 'react';
-import { LIMITS, type AudioContentType } from '@proof-and-poise/shared';
+import {
+  LIMITS,
+  type AudioContentType,
+  isReadableAnswer,
+  UNREADABLE_ANSWER_MESSAGE,
+} from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { Textarea } from '../../components/ui/Textarea';
@@ -82,11 +87,28 @@ export function AnswerPanel({
     </Button>
   );
 
+  // Unreadable text (keyboard mashing) is stopped here, with the same shared rule the
+  // server applies, so it never reaches evaluation (interview/readability.ts).
+  const [typedUnreadable, setTypedUnreadable] = useState(false);
+  const [transcriptUnreadable, setTranscriptUnreadable] = useState(false);
+
   const handleTypeSubmit = () => {
     const trimmed = typedAnswer.trim();
-    if (trimmed.length >= LIMITS.answer.min && trimmed.length <= LIMITS.answer.max) {
-      onSubmit({ type: 'text', text: trimmed });
+    if (trimmed.length < LIMITS.answer.min || trimmed.length > LIMITS.answer.max) return;
+    if (!isReadableAnswer(trimmed)) {
+      setTypedUnreadable(true);
+      return;
     }
+    onSubmit({ type: 'text', text: trimmed });
+  };
+
+  const handleTranscriptSubmit = () => {
+    const trimmed = (transcript ?? '').trim();
+    if (!isReadableAnswer(trimmed)) {
+      setTranscriptUnreadable(true);
+      return;
+    }
+    onSubmit({ type: 'transcript', text: trimmed });
   };
 
   const isTypeValid =
@@ -300,7 +322,10 @@ export function AnswerPanel({
                   </p>
                   <Textarea
                     value={transcript}
-                    onChange={(e) => onTranscriptEdit(e.target.value)}
+                    onChange={(e) => {
+                      setTranscriptUnreadable(false);
+                      onTranscriptEdit(e.target.value);
+                    }}
                     minLength={LIMITS.answer.min}
                     maxLength={LIMITS.answer.max}
                     rows={6}
@@ -308,7 +333,9 @@ export function AnswerPanel({
                     error={
                       transcriptLength < LIMITS.answer.min
                         ? `Answer must be at least ${LIMITS.answer.min} characters.`
-                        : undefined
+                        : transcriptUnreadable
+                          ? UNREADABLE_ANSWER_MESSAGE
+                          : undefined
                     }
                   />
                 </div>
@@ -319,7 +346,7 @@ export function AnswerPanel({
                     Re-record
                   </Button>
                   <Button
-                    onClick={() => onSubmit({ type: 'transcript', text: transcript.trim() })}
+                    onClick={handleTranscriptSubmit}
                     disabled={!canSubmitTranscript}
                     className="flex-1"
                   >
@@ -336,7 +363,10 @@ export function AnswerPanel({
           <div className="flex flex-col gap-4">
             <Textarea
               value={typedAnswer}
-              onChange={(e) => setTypedAnswer(e.target.value)}
+              onChange={(e) => {
+                setTypedUnreadable(false);
+                setTypedAnswer(e.target.value);
+              }}
               minLength={LIMITS.answer.min}
               maxLength={LIMITS.answer.max}
               rows={8}
@@ -346,7 +376,9 @@ export function AnswerPanel({
               error={
                 typedAnswer.length > 0 && typedAnswer.length < LIMITS.answer.min
                   ? `Answer must be at least ${LIMITS.answer.min} characters.`
-                  : undefined
+                  : typedUnreadable
+                    ? UNREADABLE_ANSWER_MESSAGE
+                    : undefined
               }
             />
 

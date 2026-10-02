@@ -228,6 +228,23 @@ describe('POST …/transcription (Req 10.4, 16.4)', () => {
     expect(table.get(`S#${SESSION_ID}`, `TRANSCRIPTION#${TURN}`)).toBeUndefined();
   });
 
+  it('maps an account without a Transcribe subscription to 503, not bad audio', async () => {
+    transcribeMock
+      .on(StartTranscriptionJobCommand)
+      .rejects(
+        Object.assign(new Error('needs a subscription'), { name: 'SubscriptionRequiredException' }),
+      );
+    const res = await start();
+    expect(res.status).toBe(503);
+    expect(ErrorResponseSchema.parse(res.body).error.code).toBe('UPSTREAM_UNAVAILABLE');
+  });
+  it('treats a BadRequestException named as an account error as 503', async () => {
+    const err = new BadRequestException({ message: 'needs a subscription', $metadata: {} });
+    Object.defineProperty(err, 'name', { value: 'SubscriptionRequiredException' });
+    transcribeMock.on(StartTranscriptionJobCommand).rejects(err);
+    const res = await start();
+    expect(res.status).toBe(503);
+  });
   it('maps a Transcribe outage to 503 UPSTREAM_UNAVAILABLE', async () => {
     transcribeMock.on(StartTranscriptionJobCommand).rejects(new Error('boom'));
     const res = await start();
