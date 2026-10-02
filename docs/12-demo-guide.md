@@ -4,7 +4,7 @@ The public demo uses a fictional candidate, "Amara Okonkwo (fictional)", applyin
 
 ## Where to run it
 
-- Hosted: `TODO(user): Amplify production URL (or where judges find it).`
+- Hosted: https://main.d1tn5k7jq2sjsu.amplifyapp.com
 - Local, no AWS: `pnpm install --frozen-lockfile`, then `pnpm --filter @proof-and-poise/web dev:mock` and open `http://localhost:5173`. MSW answers every request from the fixture, and every analysis returns the demo map regardless of input.
 - Local against a deployed API: see [11-deploy-and-teardown.md](11-deploy-and-teardown.md#run-the-web-app).
 

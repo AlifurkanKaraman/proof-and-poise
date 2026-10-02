@@ -77,7 +77,7 @@ pnpm --filter @proof-and-poise/web dev:mock
 
 Amplify Hosting builds `apps/web` from GitHub: `main` for production, `develop` as a preview. Set `VITE_API_BASE_URL` (the stage's ApiUrl) and `VITE_APP_ENV` in the Amplify branch environment variables, then add the Amplify domains to the CORS allowlist and redeploy the stack. Setup details: [amplify-hosting.md](amplify-hosting.md) (added on the task 10 branch).
 
-`TODO(user): add the Amplify production and preview URLs once connected, or say where to look them up.`
+Production: https://main.d1tn5k7jq2sjsu.amplifyapp.com. Preview: https://develop.d1tn5k7jq2sjsu.amplifyapp.com. Both are listed under App overview in the Amplify console.
 
 ## Teardown
 
