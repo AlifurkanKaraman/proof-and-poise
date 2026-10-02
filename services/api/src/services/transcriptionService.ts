@@ -47,6 +47,18 @@ const isConditionFailure = (err: unknown) =>
   err !== null &&
   (err as { name?: unknown }).name === 'ConditionalCheckFailedException';
 
+const ACCOUNT_ERRORS = new Set([
+  'SubscriptionRequiredException',
+  'OptInRequired',
+  'AccessDeniedException',
+  'UnrecognizedClientException',
+]);
+/** Transcribe isn't enabled or allowed for this account (error name only, never message). */
+const isAccountError = (err: unknown) =>
+  typeof err === 'object' &&
+  err !== null &&
+  ACCOUNT_ERRORS.has(String((err as { name?: unknown }).name));
+
 /** The media format Transcribe needs comes from the extension we chose at presign time. */
 const mediaFormatOf = (key: string): MediaFormat | null => {
   const ext = key.split('.').pop();
@@ -124,10 +136,12 @@ export class TranscriptionService {
       );
     } catch (err) {
       await repo.delete(sessionId, turnId);
-      if (err instanceof BadRequestException) {
+      // Only a media problem is the candidate's to fix. Account-level errors (Transcribe not
+      // enabled for the account, access denied) are service failures, not bad audio.
+      if (err instanceof BadRequestException && !isAccountError(err)) {
         throw new ApiError('VALIDATION', undefined, { key: 'unreadable_audio' });
       }
-      this.deps.log.warn('transcription_start_failed', { task: 'transcribe' });
+      this.deps.log.error('transcription_start_failed', err, { task: 'transcribe' });
       throw new ApiError('UPSTREAM_UNAVAILABLE');
     }
     return { status: 'transcribing' };

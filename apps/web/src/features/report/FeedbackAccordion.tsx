@@ -6,7 +6,8 @@ import {
   type Turn,
 } from '@proof-and-poise/shared';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/cn';
 
@@ -47,6 +48,7 @@ export function FeedbackAccordion({
   className,
 }: FeedbackAccordionProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const printing = usePrinting();
 
   const toggle = (turnId: string) => {
     setExpanded((prev) => {
@@ -61,7 +63,8 @@ export function FeedbackAccordion({
     <div className={cn('flex flex-col gap-3', className)}>
       {questions.map((q) => {
         const { primary } = q;
-        const isExpanded = expanded.has(primary.id);
+        // Collapsed panels aren't rendered, so open every question while printing.
+        const isExpanded = printing || expanded.has(primary.id);
         const panelId = `feedback-${primary.id}`;
         const offerPractice = q.bestScore !== null && canPracticeAgain(q.bestScore);
 
@@ -204,4 +207,28 @@ function TurnFeedback({ turn }: { turn: Turn }) {
       </div>
     </div>
   );
+}
+
+/**
+ * True between `beforeprint` and `afterprint` (and while a print media query matches), so
+ * printed or saved-as-PDF reports include every question's feedback. `flushSync` renders
+ * the expanded content before the browser lays out the print copy.
+ */
+function usePrinting(): boolean {
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const on = () => flushSync(() => setPrinting(true));
+    const off = () => setPrinting(false);
+    window.addEventListener('beforeprint', on);
+    window.addEventListener('afterprint', off);
+    const mql = typeof window.matchMedia === 'function' ? window.matchMedia('print') : null;
+    const onChange = (e: MediaQueryListEvent) => (e.matches ? on() : off());
+    mql?.addEventListener?.('change', onChange);
+    return () => {
+      window.removeEventListener('beforeprint', on);
+      window.removeEventListener('afterprint', off);
+      mql?.removeEventListener?.('change', onChange);
+    };
+  }, []);
+  return printing;
 }

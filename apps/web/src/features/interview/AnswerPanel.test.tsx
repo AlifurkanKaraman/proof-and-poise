@@ -29,6 +29,19 @@ describe('AnswerPanel', () => {
     expect(onSubmit).toHaveBeenCalledWith({ type: 'text', text: LONG });
   });
 
+  it('stops keyboard mashing with an inline message instead of submitting', async () => {
+    const onSubmit = vi.fn();
+    render(<AnswerPanel onSubmit={onSubmit} isSubmitting={false} />);
+    await openTypeTab();
+    const box = screen.getByLabelText(/your answer/i);
+    await userEvent.type(box, 'asdgsdagsadgasdgasgasdgs');
+    await userEvent.click(screen.getByRole('button', { name: /submit answer/i }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/write your answer in full sentences/i)).toBeInTheDocument();
+    expect(box).toHaveAttribute('aria-invalid', 'true');
+    await userEvent.type(box, ' ');
+    expect(screen.queryByText(/write your answer in full sentences/i)).not.toBeInTheDocument();
+  });
   it('disables submit while submitting', async () => {
     render(<AnswerPanel onSubmit={() => {}} isSubmitting />);
     await openTypeTab();

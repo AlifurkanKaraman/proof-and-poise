@@ -1,5 +1,5 @@
 import type { ErrorCode, Report, Turn } from '@proof-and-poise/shared';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../lib/api/errors';
@@ -157,6 +157,24 @@ describe('ReportView', () => {
     expect(screen.getByRole('button', { name: /practice this question again/i })).toBeDisabled();
   });
 
+  it('expands every question while printing and restores afterwards', () => {
+    renderView();
+    const firstQuestion = report.questions[0]!.primary.question;
+    const answerText = `Answer for ${firstQuestion}`;
+    expect(screen.queryByText(answerText)).not.toBeInTheDocument();
+    act(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    expect(screen.getByText(answerText)).toBeInTheDocument();
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    expect(screen.queryByText(answerText)).not.toBeInTheDocument();
+  });
+  it('explains an empty strongest-evidence list instead of printing a blank card', () => {
+    renderView({ report: { ...report, strongestEvidence: [] } });
+    expect(screen.getByText(/no resume line is strong enough to highlight yet/i)).toBeVisible();
+  });
   it('wires print and delete-data confirmation (Req 2.5)', async () => {
     const props = renderView();
     await userEvent.click(screen.getByRole('button', { name: /^print$/i }));

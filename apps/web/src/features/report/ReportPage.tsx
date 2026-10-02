@@ -241,6 +241,11 @@ export function ReportView({
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="rounded-lg border border-emerald-700/20 bg-emerald-50 p-6">
               <h2 className="mb-3 text-small font-semibold text-emerald-900">Strongest evidence</h2>
+              {data.strongestEvidence.length === 0 && (
+                <p className="text-small text-emerald-950">
+                  No resume line is strong enough to highlight yet.
+                </p>
+              )}
               <ul className="space-y-2">
                 {data.strongestEvidence.map((item) => (
                   <li key={item.evidenceId} className="text-small text-emerald-950">

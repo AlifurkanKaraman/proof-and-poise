@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isReadableAnswer, UNREADABLE_ANSWER_MESSAGE } from '../interview/readability';
 import { LIMITS } from '../limits';
 import {
   InterviewTypeSchema,
@@ -86,7 +87,10 @@ export const AnswerSourceSchema = z.enum(['typed', 'transcribed']);
 export type AnswerSource = z.infer<typeof AnswerSourceSchema>;
 
 export const AnswerRequestSchema = z.object({
-  text: boundedText(LIMITS.answer.min, LIMITS.answer.max),
+  // Unreadable text never reaches the model or a score (interview/readability.ts).
+  text: boundedText(LIMITS.answer.min, LIMITS.answer.max).refine(isReadableAnswer, {
+    message: UNREADABLE_ANSWER_MESSAGE,
+  }),
   source: AnswerSourceSchema,
   edited: z.boolean(),
 });
