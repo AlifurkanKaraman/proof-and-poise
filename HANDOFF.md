@@ -4,7 +4,7 @@ Last updated: 2026-10-02, after PRs #16–#29: analysis quality, tasks 10, 14, 1
 
 ## Done
 
-Tasks 1–21 are done except 22 (manual checks left). Task 23 and 24 are verified except the prod log review (needs a fresh AWS sign-in). Task 25 docs are drafted with `TODO(user)` items. `main` and `develop` have the same content.
+Tasks 1–21 are done except 22 (manual checks left). Tasks 23 and 24 are done. Task 25 docs are drafted with `TODO(user)` items. `main` and `develop` have the same content.
 
 | Work                                                                                       | PRs                  | In `develop`/`main`? |
 | ------------------------------------------------------------------------------------------ | -------------------- | -------------------- |
@@ -36,11 +36,10 @@ Run `git switch develop && git pull`, then start each change on its own `feature
 
 - Web: production https://main.d1tn5k7jq2sjsu.amplifyapp.com (prod API), preview https://develop.d1tn5k7jq2sjsu.amplifyapp.com (dev API). The SPA rewrite rule is set in the Amplify console.
 - `ProofAndPoise-prod` and `ProofAndPoise-dev` (us-east-1) run the current `main`. Get an API URL with `aws cloudformation describe-stacks --stack-name ProofAndPoise-<stage> --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text`.
-- Verified on prod 2026-10-02: health, demo session create/read/delete and 401s, CORS from the Amplify domain, the account owner's full typed journey with a real resume, and the Playwright smoke on desktop Chrome and iPhone WebKit. gitleaks over the full history (CI on `main`): no leaks.
+- Verified on prod 2026-10-02: health, demo session create/read/delete and 401s, CORS from the Amplify domain, the account owner's full typed journey with a real resume, and the Playwright smoke on desktop Chrome and iPhone WebKit. gitleaks over the full history (CI on `main`): no leaks. Prod CloudWatch review of the owner's run (api and worker, 2026-10-02): allowlisted fields only, no resume, answer, or token content, no unhandled errors or timeouts; the only errors are the expected Transcribe `SubscriptionRequiredException`.
 
 ## Next up
 
-- **Task 24**: review the prod CloudWatch logs from the owner's full run for content leakage and unhandled errors (needs `aws login --profile <admin profile>`), then tick 23 and 24.
 - **Task 22**: manual iOS Safari and screen-reader pass (`apps/web/ACCESSIBILITY.md`).
 - **Task 25**: the `TODO(user)` items in `docs/` (Cost Explorer figure, screenshots, demo video, team names, dates).
 - After the hackathon: enable Transcribe and flip `FEATURES.recordedAnswers`; split analysis into a job-requirements call and an evidence call; resume tailoring as the main flow; DOCX/PDF export.

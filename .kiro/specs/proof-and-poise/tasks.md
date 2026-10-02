@@ -136,12 +136,12 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - The Playwright demo journey spec (MSW) at 1280 and 375, plus axe assertions, added to CI.
   - deps: 12, 15, 19. _Requirements: 14.2–14.6, 14.9, 17.2–17.3_
 
-- [ ] 23. ⛓ [B] Production deploy and observability
+- [x] 23. ⛓ [B] Production deploy and observability
   - Create the `prod` stage stack. CloudWatch alarms (Lambda errors, API 5xx) go to an SNS email topic. Set up AWS Budgets at $5 and $8 (documented, created by the user or through the CLI after confirmation). **Before deploying, state the resources and get confirmation.**
   - Release PR from `develop` into `main`, then the Amplify production build. Review the CloudWatch logs from a full run for content leakage.
   - deps: 20, 21, 22. _Requirements: 15.3, 16.7, 17.5–17.7_
 
-- [ ] 24. ⛓ [AB] Production verification
+- [x] 24. ⛓ [AB] Production verification
   - The Playwright smoke test against the prod URL (typed answers). A manual incognito run on desktop and mobile. A recorded-answer run on Safari and Chrome. A gitleaks scan across the full git history. Confirm the CloudWatch logs have no unhandled errors.
   - deps: 23. _Requirements: 17.2, 17.7, 15.7_
 
