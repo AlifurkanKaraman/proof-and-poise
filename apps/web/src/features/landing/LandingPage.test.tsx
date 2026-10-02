@@ -30,6 +30,9 @@ describe('LandingPage', () => {
       screen.getAllByRole('listitem').filter((li) => /Step \d/.test(li.textContent ?? '')),
     ).toHaveLength(3);
     expect(screen.getByRole('heading', { name: 'Grounded in your evidence' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'A readiness score you can explain' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Read the privacy details' })).toHaveAttribute(
       'href',
       '/privacy',
@@ -37,6 +40,20 @@ describe('LandingPage', () => {
     expect(screen.getByRole('link', { name: 'Read our ethical AI approach' })).toHaveAttribute(
       'href',
       '/ethics',
+    );
+  });
+
+  it('keeps a single Prepare and demo link in the page body, plus a closing call to action', () => {
+    renderLanding();
+    expect(screen.getAllByRole('link', { name: 'Prepare for a job' })).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: 'Try the demo' })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Start with your resume' })).toHaveAttribute(
+      'href',
+      '/prepare',
+    );
+    expect(screen.getByRole('link', { name: 'Explore a sample first' })).toHaveAttribute(
+      'href',
+      '/demo',
     );
   });
 

@@ -1,5 +1,22 @@
-import { Award, Check, Lightbulb, MessageSquare, Target, Undo2, X } from 'lucide-react';
-import { createContext, useContext } from 'react';
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  FileCheck2,
+  FileText,
+  Lightbulb,
+  MessageSquare,
+  Quote,
+  ShieldCheck,
+  Tags,
+  Target,
+  TriangleAlert,
+  Undo2,
+  UserCheck,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { createContext, useContext, useState } from 'react';
 import {
   LIMITS,
   type Competency,
@@ -12,10 +29,12 @@ import {
 } from '@proof-and-poise/shared';
 import { EmptyState } from '../../components/states/EmptyState';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { IconTile } from '../../components/ui/IconTile';
 import { ScoreRing } from '../../components/ui/ScoreRing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
-import { cn } from '../../lib/cn';
+import { cn, focusRing, focusRingOnDark } from '../../lib/cn';
 import { ConfirmExperienceDialog } from './ConfirmExperienceDialog';
 import { WorkingResume } from './WorkingResume';
 
@@ -49,6 +68,9 @@ interface AnalysisWorkspaceProps {
   resumeText?: string;
 }
 
+const isProven = (c: Competency) => c.strength === 'strong' || c.strength === 'moderate';
+const isGap = (c: Competency) => c.strength === 'weak' || c.strength === 'none';
+
 export function AnalysisWorkspace({
   evidenceMap,
   onStartInterview,
@@ -56,6 +78,7 @@ export function AnalysisWorkspace({
   actions,
   resumeText,
 }: AnalysisWorkspaceProps) {
+  const [tab, setTab] = useState('overview');
   const { competencies, keywords, recommendations, scores } = evidenceMap;
   const context: WorkspaceContextValue = {
     actions,
@@ -76,15 +99,28 @@ export function AnalysisWorkspace({
   // Every label other than missing_evidence carries proposed text the candidate can accept.
   const changes = recommendations.filter((r) => r.trustLabel !== 'missing_evidence');
 
-  // Count matched vs required keywords
   const matchedKeywords = keywords.filter((k) => k.matched);
-  const requiredKeywords = keywords.filter((k) => k.required);
-  const matchedRequired = requiredKeywords.filter((k) => k.matched);
+  const missingKeywords = keywords.filter((k) => !k.matched);
+
+  // Verdict inputs: the strongest proof (required first) and the most important gap.
+  const strongest =
+    required.find((c) => c.strength === 'strong' && c.evidence.length > 0) ??
+    competencies.find((c) => c.strength === 'strong' && c.evidence.length > 0) ??
+    competencies.find((c) => isProven(c) && c.evidence.length > 0);
+  const gap =
+    required.find((c) => c.strength === 'none') ??
+    required.find((c) => c.strength === 'weak') ??
+    competencies.find(isGap);
+
+  const goToGapFix = () => {
+    const hasRec = gap && recommendations.some((r) => r.competencyId === gap.id);
+    setTab(hasRec ? 'recommendations' : 'competencies');
+  };
 
   return (
     <WorkspaceContext.Provider value={context}>
       <div className="flex flex-col gap-6">
-        <Tabs defaultValue="overview">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
@@ -98,73 +134,99 @@ export function AnalysisWorkspace({
           </TabsList>
 
           <TabsContent value="overview">
-            <div className="flex flex-col gap-6">
-              {/* Scores */}
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <ScoreCard
-                  label="Job Match"
-                  value={scores.jobMatch}
-                  icon={Target}
-                  description="Overall alignment with the job requirements"
-                />
-                <ScoreCard
-                  label="Evidence Coverage"
-                  value={scores.evidenceCoverage}
-                  icon={Award}
-                  description="How well your resume backs up your competencies"
-                />
-                <ScoreCard
-                  label="Keyword Match"
-                  value={scores.keywordCoverage}
-                  icon={Lightbulb}
-                  description="Required keywords found in your resume"
-                />
-                <ScoreCard
-                  label="Parseability"
-                  value={scores.parseability}
-                  icon={Award}
-                  description="How well structured your resume is"
-                />
+            <div className="flex flex-col gap-8">
+              <Verdict
+                competencies={competencies}
+                gapName={gap?.name}
+                onStartInterview={onStartInterview}
+                isStartingInterview={isStartingInterview}
+              />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card tone="success" className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <IconTile icon={ShieldCheck} tone="emerald" />
+                    <h2 className="text-h4 font-semibold text-ink-950">Your strongest proof</h2>
+                  </div>
+                  {strongest ? (
+                    <>
+                      <p className="text-small font-semibold text-ink-950">{strongest.name}</p>
+                      <EvidenceQuote evidence={strongest.evidence[0]!} />
+                    </>
+                  ) : (
+                    <p className="text-small text-ink-700">
+                      No requirement is strongly backed yet. The recommendations show where to
+                      start.
+                    </p>
+                  )}
+                </Card>
+
+                <Card tone="attention" className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <IconTile icon={TriangleAlert} tone="amber" />
+                    <h2 className="text-h4 font-semibold text-ink-950">Your biggest gap</h2>
+                  </div>
+                  {gap ? (
+                    <>
+                      <p className="text-small font-semibold text-ink-950">{gap.name}</p>
+                      <p className="text-small text-ink-700">
+                        {gap.strength === 'none'
+                          ? 'Nothing in your resume shows this yet.'
+                          : 'Your resume mentions this, but without clear proof.'}{' '}
+                        If you have done it, say so truthfully; if not, practice it in the
+                        interview.
+                      </p>
+                      <div>
+                        <Button variant="secondary" size="sm" onClick={goToGapFix}>
+                          See how to close it
+                          <ArrowRight aria-hidden="true" className="size-4" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-small text-ink-700">
+                      No major gaps. Practicing out loud is the best next step.
+                    </p>
+                  )}
+                </Card>
               </div>
 
-              {/* Summary */}
-              <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
-                <h2 className="mb-4 text-h3 font-semibold text-ink-950">Summary</h2>
-                <div className="flex flex-col gap-3 text-small text-ink-700">
-                  <p>
-                    <strong className="font-semibold text-ink-950">
-                      {required.length} required competencies
-                    </strong>
-                    {', '}
-                    {preferred.length} preferred, and {contextual.length} contextual
-                  </p>
-                  <p>
-                    <strong className="font-semibold text-ink-950">
-                      {matchedRequired.length} of {requiredKeywords.length} required keywords
-                      matched
-                    </strong>
-                  </p>
-                  <p>
-                    <strong className="font-semibold text-ink-950">
-                      {recommendations.length} recommendations
-                    </strong>
-                    {' to strengthen your resume'}
+              <section aria-labelledby="scores-heading" className="flex flex-col gap-4">
+                <div>
+                  <h2 id="scores-heading" className="text-h3 font-semibold text-ink-950">
+                    How your resume scores
+                  </h2>
+                  <p className="text-small text-ink-700">
+                    Calculated from your resume and the job, not guessed by the AI.
                   </p>
                 </div>
-              </div>
-
-              {/* Start Interview CTA */}
-              <div className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-6">
-                <h2 className="mb-2 text-h3 font-semibold text-ink-950">
-                  Ready for the interview?
-                </h2>
-                <p className="mb-4 text-small text-ink-700">
-                  Practice answering competency-based questions to improve your readiness score.
-                </p>
-                <Button onClick={onStartInterview} disabled={isStartingInterview}>
-                  {isStartingInterview ? 'Starting interview...' : 'Start Interview'}
-                </Button>
-              </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <ScoreCard
+                    label="Job Match"
+                    value={scores.jobMatch}
+                    icon={Target}
+                    description="Alignment with the job requirements"
+                  />
+                  <ScoreCard
+                    label="Evidence Coverage"
+                    value={scores.evidenceCoverage}
+                    icon={ShieldCheck}
+                    description="Requirements your resume backs up"
+                  />
+                  <ScoreCard
+                    label="Keyword Match"
+                    value={scores.keywordCoverage}
+                    icon={Tags}
+                    description="Required keywords found"
+                  />
+                  <ScoreCard
+                    label="Parseability"
+                    value={scores.parseability}
+                    icon={FileCheck2}
+                    description="How readable your resume is to tools"
+                  />
+                </div>
+              </section>
             </div>
           </TabsContent>
 
@@ -205,11 +267,11 @@ export function AnalysisWorkspace({
                 />
               )}
               {recommendations.length === 0 && (
-                <div className="rounded-lg border border-line-200 bg-paper-0 p-6 text-center">
+                <Card className="text-center">
                   <p className="text-small text-ink-700">
                     No recommendations at this time. Your resume looks good!
                   </p>
-                </div>
+                </Card>
               )}
             </div>
           </TabsContent>
@@ -221,37 +283,21 @@ export function AnalysisWorkspace({
                 description="This job description didn't list specific skills or tools to match."
               />
             )}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {keywords.map((keyword) => (
-                <div
-                  key={keyword.term}
-                  className={cn(
-                    'rounded-lg border p-4',
-                    keyword.matched
-                      ? 'border-emerald-700/20 bg-emerald-50'
-                      : 'border-line-200 bg-paper-0',
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p
-                      className={cn(
-                        'font-mono text-small font-semibold',
-                        keyword.matched ? 'text-emerald-700' : 'text-ink-950',
-                      )}
-                    >
-                      {keyword.term}
-                    </p>
-                    {keyword.required && (
-                      <span className="rounded border border-amber-700/20 bg-amber-50 px-1.5 py-0.5 text-caption font-medium text-amber-700">
-                        Required
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-caption text-ink-700">
-                    {keyword.matched ? 'Found in resume' : 'Not found'}
-                  </p>
-                </div>
-              ))}
+            <div className="flex flex-col gap-8">
+              {matchedKeywords.length > 0 && (
+                <KeywordGroup
+                  title={`Found in your resume (${matchedKeywords.length})`}
+                  keywords={matchedKeywords}
+                  matched
+                />
+              )}
+              {missingKeywords.length > 0 && (
+                <KeywordGroup
+                  title={`Not found (${missingKeywords.length})`}
+                  keywords={missingKeywords}
+                  matched={false}
+                />
+              )}
             </div>
           </TabsContent>
 
@@ -266,26 +312,163 @@ export function AnalysisWorkspace({
   );
 }
 
+interface VerdictProps {
+  competencies: Competency[];
+  gapName: string | undefined;
+  onStartInterview: () => void;
+  isStartingInterview: boolean | undefined;
+}
+
+/**
+ * The first thing a candidate reads: a plain-words verdict, the proof meter (one segment per
+ * requirement) and the single next action. Segments are decorative; counts are in the text.
+ */
+function Verdict({ competencies, gapName, onStartInterview, isStartingInterview }: VerdictProps) {
+  const total = competencies.length;
+  const proven = competencies.filter(isProven).length;
+  const weak = competencies.filter((c) => c.strength === 'weak').length;
+  const none = competencies.filter((c) => c.strength === 'none').length;
+
+  return (
+    <Card tone="dark" padding="lg" className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <h2 className="max-w-reading font-heading text-h2 font-bold tracking-tight">
+          {total === 0
+            ? "We couldn't find requirements to check"
+            : `Your resume already proves ${proven} of ${total} requirements.`}
+        </h2>
+        <p className="max-w-reading text-body text-line-300">
+          {gapName
+            ? `The biggest gap is ${gapName}. Practicing it now is the fastest way to feel ready.`
+            : 'Nothing major is missing. Practicing out loud is the best next step.'}
+        </p>
+      </div>
+
+      {total > 0 && (
+        <div className="flex flex-col gap-2">
+          <div aria-hidden="true" className="flex gap-1.5">
+            {competencies.map((c) => (
+              <span
+                key={c.id}
+                className={cn(
+                  'h-2 flex-1 rounded-full',
+                  isProven(c) && 'bg-emerald-100',
+                  c.strength === 'weak' && 'bg-amber-100/70',
+                  c.strength === 'none' && 'bg-ink-800',
+                )}
+              />
+            ))}
+          </div>
+          <p className="text-small text-line-300">
+            {proven} proven
+            {weak > 0 && ` · ${weak} weak`}
+            {none > 0 && ` · ${none} without evidence`}
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-4">
+        <Button
+          size="lg"
+          onClick={onStartInterview}
+          disabled={isStartingInterview}
+          className={focusRingOnDark}
+        >
+          {isStartingInterview ? 'Starting interview...' : 'Start Interview'}
+          {!isStartingInterview && <ArrowRight aria-hidden="true" className="size-4" />}
+        </Button>
+        <p className="text-small text-line-300">Five questions, aimed at your weakest evidence.</p>
+      </div>
+    </Card>
+  );
+}
+
 interface ScoreCardProps {
   label: string;
   value: number;
-  icon: React.ElementType;
+  icon: LucideIcon;
   description: string;
 }
 
 function ScoreCard({ label, value, icon: Icon, description }: ScoreCardProps) {
   const tone = value >= 80 ? 'emerald' : value >= 60 ? 'indigo' : 'amber';
+  const meaning = value >= 80 ? 'Strong' : value >= 60 ? 'Solid, room to grow' : 'Needs attention';
   return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border border-line-200 bg-paper-0 p-6">
-      <div className="flex w-full items-center justify-between">
-        <Icon aria-hidden="true" className="size-5 text-indigo-600" />
-        <ScoreRing value={value} label="" size={64} tone={tone} />
-      </div>
-      <div className="w-full">
-        <p className="text-small font-semibold text-ink-950">{label}</p>
+    <Card className="flex items-center gap-4" padding="md">
+      <ScoreRing value={value} label="" size={64} tone={tone} />
+      <div className="min-w-0">
+        <p className="flex items-center gap-1.5 text-small font-semibold text-ink-950">
+          <Icon aria-hidden="true" className="size-4 shrink-0 text-ink-700" strokeWidth={1.75} />
+          {label}
+        </p>
+        <p className="text-small font-medium text-ink-950">{meaning}</p>
         <p className="text-caption text-ink-700">{description}</p>
       </div>
-    </div>
+    </Card>
+  );
+}
+
+/** A verbatim resume line, marked like a highlighter pass over the document. */
+function EvidenceQuote({ evidence }: { evidence: Competency['evidence'][number] }) {
+  const mine = evidence.source !== 'resume';
+  const SourceIcon = mine ? UserCheck : FileText;
+  return (
+    <figure className="rounded-r-lg border-l-4 border-indigo-600 bg-indigo-50 py-2 pr-3 pl-3">
+      <blockquote className="flex gap-2 text-small text-ink-950">
+        <Quote aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-indigo-700" />
+        <p>
+          <mark className="box-decoration-clone rounded-sm bg-indigo-100 px-0.5 text-ink-950">
+            {evidence.quote}
+          </mark>
+        </p>
+      </blockquote>
+      <figcaption className="mt-1.5 flex items-center gap-1.5 pl-6 text-caption text-ink-700">
+        <SourceIcon aria-hidden="true" className="size-3.5" />
+        {mine ? 'Confirmed by you' : 'From your resume'}
+      </figcaption>
+    </figure>
+  );
+}
+
+interface KeywordGroupProps {
+  title: string;
+  keywords: EvidenceMap['keywords'];
+  matched: boolean;
+}
+
+function KeywordGroup({ title, keywords, matched }: KeywordGroupProps) {
+  return (
+    <section>
+      <h2 className="mb-3 text-h4 font-semibold text-ink-950">{title}</h2>
+      <ul className="flex flex-wrap gap-2">
+        {keywords.map((keyword) => (
+          <li
+            key={keyword.term}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-small',
+              matched
+                ? 'border-emerald-700/20 bg-emerald-50 text-emerald-700'
+                : keyword.required
+                  ? 'border-amber-700 bg-paper-0 text-amber-700'
+                  : 'border-line-300 bg-paper-0 text-ink-700',
+            )}
+          >
+            {matched ? (
+              <Check aria-hidden="true" className="size-4" strokeWidth={2.25} />
+            ) : (
+              <X aria-hidden="true" className="size-4" strokeWidth={2.25} />
+            )}
+            <span className="font-mono font-medium">{keyword.term}</span>
+            {keyword.required && (
+              <span className="rounded-sm bg-paper-0 px-1 text-caption font-semibold">
+                Required
+              </span>
+            )}
+            <span className="sr-only">{matched ? ' (found in resume)' : ' (not found)'}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -295,9 +478,15 @@ interface CompetencySectionProps {
 }
 
 function CompetencySection({ title, competencies }: CompetencySectionProps) {
+  const proven = competencies.filter(isProven).length;
   return (
     <section>
-      <h2 className="mb-4 text-h3 font-semibold text-ink-950">{title}</h2>
+      <div className="mb-4 flex flex-wrap items-baseline gap-x-3">
+        <h2 className="text-h3 font-semibold text-ink-950">{title}</h2>
+        <p className="text-small text-ink-700">
+          {proven} of {competencies.length} proven
+        </p>
+      </div>
       <div className="grid grid-cols-1 gap-4">
         {competencies.map((competency) => (
           <CompetencyCard key={competency.id} competency={competency} />
@@ -321,54 +510,63 @@ export const STRENGTH_BADGES: Record<Strength, { status: EvidenceStatus; label: 
 
 function CompetencyCard({ competency }: CompetencyCardProps) {
   const { status, label } = STRENGTH_BADGES[competency.strength];
+  const [expanded, setExpanded] = useState(false);
+  const extra = competency.evidence.length - 1;
+  const shown = expanded ? competency.evidence : competency.evidence.slice(0, 1);
 
   return (
-    <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <div>
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h3 className="text-body font-semibold text-ink-950">{competency.name}</h3>
           <p className="mt-1 text-small text-ink-700">{competency.description}</p>
         </div>
         <StatusBadge status={status} label={label} className="shrink-0" />
       </div>
 
-      {competency.evidence.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2">
-          <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">
-            Evidence ({competency.evidence.length})
-          </p>
-          {competency.evidence.slice(0, 2).map((evidence) => (
-            <blockquote
-              key={evidence.id}
-              className="border-l-2 border-indigo-600 bg-paper-50 pl-3 pr-2 py-2 text-small italic text-ink-700"
-            >
-              "{evidence.quote}"
-              <footer className="mt-1 text-caption not-italic text-ink-700">
-                — {evidence.source === 'resume' ? 'From your resume' : 'Confirmed by you'}
-              </footer>
-            </blockquote>
+      {shown.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {shown.map((evidence) => (
+            <EvidenceQuote key={evidence.id} evidence={evidence} />
           ))}
-          {competency.evidence.length > 2 && (
-            <p className="text-caption text-ink-700">+{competency.evidence.length - 2} more</p>
+          {extra > 0 && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((v) => !v)}
+              className={cn(
+                'inline-flex min-h-11 w-fit items-center gap-1.5 rounded-md px-2 text-small font-medium text-indigo-700 hover:bg-indigo-50',
+                focusRing,
+              )}
+            >
+              <ChevronDown
+                aria-hidden="true"
+                className={cn('size-4 transition-transform', expanded && 'rotate-180')}
+              />
+              {expanded
+                ? 'Show less'
+                : `Show ${extra} more proof ${extra === 1 ? 'line' : 'lines'}`}
+            </button>
           )}
         </div>
       )}
 
       {competency.missingEvidence && (
-        <div className="mt-4 rounded bg-amber-50 p-3">
-          <p className="text-caption font-semibold uppercase tracking-wide text-amber-700">
-            Suggested for interview
-          </p>
-          <p className="mt-1 text-small text-ink-950">{competency.suggestedInterviewTopic}</p>
+        <div className="flex gap-3 rounded-lg bg-amber-50 p-3">
+          <Lightbulb aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-700" />
+          <div>
+            <p className="text-small font-semibold text-ink-950">Worth practicing</p>
+            <p className="mt-0.5 text-small text-ink-700">{competency.suggestedInterviewTopic}</p>
+          </div>
         </div>
       )}
 
-      {(competency.strength === 'weak' || competency.strength === 'none') && (
-        <div className="mt-4">
+      {isGap(competency) && (
+        <div>
           <ConfirmAction competency={competency} />
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -440,36 +638,28 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
       aria-busy={pending || undefined}
       aria-label={competency ? `Recommendation for ${competency.name}` : 'Recommendation'}
       className={cn(
-        'rounded-lg border p-6',
-        isMissing ? 'border-amber-700/20 bg-amber-50' : 'border-line-200 bg-paper-0',
-        recommendation.decision === 'accepted' && 'border-emerald-700/40',
+        'flex flex-col gap-4 rounded-xl border p-5 shadow-sm sm:p-6',
+        isMissing ? 'border-amber-100 bg-amber-50' : 'border-line-200 bg-paper-0',
+        recommendation.decision === 'accepted' && 'border-emerald-700/40 bg-emerald-50',
       )}
     >
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <div>
-          {competency && (
-            <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">
-              {competency.name}
-            </p>
-          )}
-          <p className="text-small font-semibold text-ink-950">{recommendation.reason}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          {competency && <p className="text-small font-medium text-ink-700">{competency.name}</p>}
+          <p className="text-body font-semibold text-ink-950">{recommendation.reason}</p>
         </div>
         <StatusBadge status={TRUST_BADGES[recommendation.trustLabel]} className="shrink-0" />
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div>
-          <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">
-            Original
-          </p>
+      <div className={cn('grid gap-3', recommendation.proposedText && 'md:grid-cols-2')}>
+        <div className="rounded-lg bg-ink-100 p-3">
+          <p className="text-caption font-semibold text-ink-700">Original</p>
           <p className="mt-1 text-small text-ink-700">{recommendation.originalText}</p>
         </div>
 
         {recommendation.proposedText && (
-          <div>
-            <p className="text-caption font-semibold uppercase tracking-wide text-emerald-700">
-              Suggested
-            </p>
+          <div className="rounded-lg border-l-4 border-emerald-700 bg-emerald-50 p-3">
+            <p className="text-caption font-semibold text-emerald-700">Suggested</p>
             <p className="mt-1 text-small text-ink-950">{recommendation.proposedText}</p>
           </div>
         )}
@@ -477,7 +667,7 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
 
       {isMissing ? (
         // Req 7.4: no Accept for missing evidence; confirm it or practice it instead.
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {competency && <ConfirmAction competency={competency} />}
           {/* No contract route marks a topic as an interview priority yet (frontend.md). */}
           <Button variant="ghost" size="sm" disabled>
@@ -487,7 +677,7 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
         </div>
       ) : (
         actions && (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {decided ? (
               <>
                 <p className="inline-flex items-center gap-1.5 text-small font-semibold text-ink-950">

@@ -1,15 +1,11 @@
-import {
-  DIMENSIONS,
-  canPracticeAgain,
-  type Dimension,
-  type ReportQuestion,
-  type Turn,
-} from '@proof-and-poise/shared';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { canPracticeAgain, type ReportQuestion, type Turn } from '@proof-and-poise/shared';
+import { ChevronDown, Lightbulb, Repeat, ThumbsUp, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/cn';
+import { Card } from '../../components/ui/Card';
+import { cn, focusRing } from '../../lib/cn';
+import { DimensionBars } from '../interview/DimensionBars';
 
 interface FeedbackAccordionProps {
   questions: ReportQuestion[];
@@ -18,16 +14,6 @@ interface FeedbackAccordionProps {
   practiceRemaining?: number;
   className?: string;
 }
-
-const DIMENSION_LABELS: Record<Dimension, string> = {
-  relevance: 'Relevance',
-  specificity: 'Specificity',
-  evidence: 'Evidence',
-  star: 'STAR structure',
-  clarity: 'Clarity',
-  ownership: 'Ownership',
-  roleConnection: 'Role connection',
-};
 
 const KIND_LABELS: Record<Turn['kind'], string> = {
   behavioral: 'Behavioral',
@@ -69,39 +55,44 @@ export function FeedbackAccordion({
         const offerPractice = q.bestScore !== null && canPracticeAgain(q.bestScore);
 
         return (
-          <div key={primary.id} className="rounded-lg border border-line-200 bg-paper-0">
+          <Card key={primary.id} padding="none" className="overflow-hidden">
             <h3>
               <button
                 type="button"
                 onClick={() => toggle(primary.id)}
-                className="flex min-h-11 w-full items-center justify-between p-4 text-left hover:bg-paper-50"
+                className={cn(
+                  'flex min-h-11 w-full items-start justify-between gap-4 p-4 text-left hover:bg-ink-100 sm:p-5',
+                  focusRing,
+                )}
                 aria-expanded={isExpanded}
                 aria-controls={panelId}
               >
-                <span className="flex-1">
+                <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="rounded bg-indigo-100 px-2 py-1 text-caption font-semibold text-indigo-700">
+                    <span className="rounded-full bg-indigo-100 px-3 py-1 text-caption font-semibold text-indigo-700">
                       Question {primary.label}
                     </span>
                     <span className="text-caption text-ink-700">{KIND_LABELS[primary.kind]}</span>
                     {q.bestScore !== null && (
-                      <span className="text-caption font-medium text-ink-700">
+                      <span className="text-caption font-medium text-ink-950">
                         Best score {q.bestScore.toFixed(1)} / 4
                       </span>
                     )}
                   </span>
                   <span className="mt-2 block text-small text-ink-950">{primary.question}</span>
                 </span>
-                {isExpanded ? (
-                  <ChevronUp className="ml-4 size-5 shrink-0 text-ink-700" aria-hidden />
-                ) : (
-                  <ChevronDown className="ml-4 size-5 shrink-0 text-ink-700" aria-hidden />
-                )}
+                <ChevronDown
+                  className={cn(
+                    'mt-1 size-5 shrink-0 text-ink-700 transition-transform duration-micro ease-standard',
+                    isExpanded && 'rotate-180',
+                  )}
+                  aria-hidden="true"
+                />
               </button>
             </h3>
 
             {isExpanded && (
-              <div id={panelId} className="border-t border-line-200 p-4">
+              <div id={panelId} className="border-t border-line-200 p-4 sm:p-5">
                 <TurnFeedback turn={primary} />
 
                 {q.followUps.length > 0 && (
@@ -112,7 +103,7 @@ export function FeedbackAccordion({
                 )}
 
                 {offerPractice && onPracticeAgain && (
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
                     <Button
                       onClick={() => onPracticeAgain(primary.id)}
                       variant="secondary"
@@ -120,6 +111,7 @@ export function FeedbackAccordion({
                       disabled={practiceRemaining <= 0}
                       aria-describedby={practiceRemaining <= 0 ? `${panelId}-quota` : undefined}
                     >
+                      <Repeat className="size-4" aria-hidden="true" />
                       Practice this question again
                     </Button>
                     {practiceRemaining <= 0 && (
@@ -131,7 +123,7 @@ export function FeedbackAccordion({
                 )}
               </div>
             )}
-          </div>
+          </Card>
         );
       })}
     </div>
@@ -140,10 +132,10 @@ export function FeedbackAccordion({
 
 function NestedTurns({ title, turns }: { title: string; turns: Turn[] }) {
   return (
-    <div className="mt-6 space-y-4 border-t border-line-200 pt-6">
-      <p className="text-caption font-semibold uppercase tracking-wide text-ink-700">{title}</p>
+    <div className="mt-6 space-y-5 border-t border-line-200 pt-6">
+      <p className="text-small font-semibold text-ink-950">{title}</p>
       {turns.map((turn) => (
-        <div key={turn.id} className="ml-4 border-l-2 border-indigo-600 pl-4">
+        <div key={turn.id} className="border-l-2 border-indigo-600 pl-4">
           <p className="mb-3 text-small font-semibold text-ink-950">{turn.question}</p>
           <TurnFeedback turn={turn} />
         </div>
@@ -157,54 +149,47 @@ function TurnFeedback({ turn }: { turn: Turn }) {
   if (!evaluation) return null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {answer && (
         <div>
-          <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-700">
-            Your answer
-          </p>
-          <p className="text-small text-ink-700">{answer.text}</p>
+          <p className="mb-1.5 text-caption font-semibold text-ink-700">Your answer</p>
+          <p className="rounded-lg bg-ink-100 p-3 text-small text-ink-950">{answer.text}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded border border-emerald-700/20 bg-emerald-50 p-3">
-          <p className="mb-1 text-caption font-semibold text-emerald-900">Strength</p>
-          <p className="text-small text-emerald-950">{evaluation.strength}</p>
-        </div>
-        <div className="rounded border border-amber-700/20 bg-amber-50 p-3">
-          <p className="mb-1 text-caption font-semibold text-amber-900">Improvement</p>
-          <p className="text-small text-amber-950">{evaluation.improvement}</p>
-        </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Card tone="success" padding="none" className="flex gap-3 p-4">
+          <ThumbsUp className="mt-0.5 size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+          <div>
+            <p className="text-caption font-semibold text-ink-950">Strength</p>
+            <p className="mt-1 text-small text-ink-700">{evaluation.strength}</p>
+          </div>
+        </Card>
+        <Card tone="attention" padding="none" className="flex gap-3 p-4">
+          <TrendingUp className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden="true" />
+          <div>
+            <p className="text-caption font-semibold text-ink-950">Improvement</p>
+            <p className="mt-1 text-small text-ink-700">{evaluation.improvement}</p>
+          </div>
+        </Card>
       </div>
 
       <div>
-        <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-700">
-          Dimension scores
-        </p>
-        <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
-          {DIMENSIONS.map((key) => {
-            const dim = evaluation.dimensions[key];
-            return (
-              <li key={key} className="flex items-center justify-between text-caption">
-                <span className="text-ink-700">{DIMENSION_LABELS[key]}</span>
-                <span className="font-mono font-semibold text-ink-950">
-                  {dim ? `${dim.score}/4` : 'Not applicable'}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <p className="mb-3 text-caption font-semibold text-ink-700">Dimension scores</p>
+        <DimensionBars dimensions={evaluation.dimensions} naLabel="Not applicable" />
       </div>
 
-      <div className="rounded border border-indigo-600/20 bg-indigo-50 p-3">
-        <p className="mb-2 text-caption font-semibold text-indigo-900">Stronger answer outline</p>
-        <ul className="list-inside list-disc space-y-1 text-small text-indigo-950">
+      <Card tone="tinted" padding="none" className="p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Lightbulb className="size-4 text-indigo-700" aria-hidden="true" />
+          <p className="text-caption font-semibold text-ink-950">Stronger answer outline</p>
+        </div>
+        <ul className="list-inside list-disc space-y-1 text-small text-ink-950">
           {evaluation.strongerOutline.map((step, i) => (
             <li key={i}>{step}</li>
           ))}
         </ul>
-      </div>
+      </Card>
     </div>
   );
 }
