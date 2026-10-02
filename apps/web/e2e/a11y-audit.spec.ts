@@ -16,6 +16,13 @@ async function toAnalysis(page: Page) {
   });
 }
 
+async function toTab(page: Page, name: string) {
+  await toAnalysis(page);
+  const tab = page.getByRole('tab', { name, exact: true });
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+}
+
 async function toInterview(page: Page) {
   await toAnalysis(page);
   await page.getByRole('button', { name: /start interview/i }).click();
@@ -60,6 +67,8 @@ const SCREENS: { name: string; go: (page: Page) => Promise<void> }[] = [
   { name: 'prepare', go: goto('/prepare') },
   { name: 'not-found', go: goto('/no-such-page') },
   { name: 'analysis', go: toAnalysis },
+  { name: 'tailor', go: (page) => toTab(page, 'Tailor resume') },
+  { name: 'resume', go: (page) => toTab(page, 'Resume') },
   { name: 'interview', go: toInterview },
   { name: 'report', go: toReport },
 ];
@@ -152,6 +161,29 @@ test.describe('keyboard', () => {
     expect(seen.size).toBeGreaterThan(4);
   });
 
+  test('tailor: add a skill and confirm experience with the keyboard only', async ({ page }) => {
+    await toAnalysis(page);
+    await page.getByRole('button', { name: 'Tailor my resume' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('tab', { name: 'Tailor resume' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    const add = page.getByRole('button', { name: 'Add REST APIs to Skills' });
+    await add.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page.getByRole('button', { name: 'Remove REST APIs from Skills' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    const trigger = page.getByRole('button', { name: /i have this experience/i }).first();
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
   test('interview: Type tab, textarea and submit are keyboard operable', async ({ page }) => {
     await toInterview(page);
     await page.getByRole('tab', { name: /type/i }).focus();
