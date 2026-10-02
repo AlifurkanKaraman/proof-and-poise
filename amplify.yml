@@ -14,11 +14,12 @@ applications:
             - corepack enable
             # Version comes from the root `packageManager` field (pnpm@10.34.5).
             - corepack prepare pnpm@10.34.5 --activate
-            # CODEBUILD_SRC_DIR is the repo (workspace) root; `-C` avoids relying on cwd.
-            - pnpm -C "$CODEBUILD_SRC_DIR" install --frozen-lockfile --store-dir "$CODEBUILD_SRC_DIR/apps/web/.pnpm-store"
+            # Phases run from appRoot (apps/web); the workspace root is two levels up.
+            # (CODEBUILD_SRC_DIR is the parent of the cloned repo folder, so don't use it.)
+            - pnpm -C ../.. install --frozen-lockfile --store-dir "$PWD/.pnpm-store"
         build:
           commands:
-            - pnpm -C "$CODEBUILD_SRC_DIR" --filter @proof-and-poise/web build
+            - pnpm -C ../.. --filter @proof-and-poise/web build
       artifacts:
         # Vite's default outDir, relative to appRoot.
         baseDirectory: dist
