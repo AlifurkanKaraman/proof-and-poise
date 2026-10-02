@@ -16,6 +16,13 @@ import {
 } from 'aws-cdk-lib';
 import { CorsHttpMethod, HttpApi, HttpMethod, HttpStage } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import {
+  Alarm,
+  ComparisonOperator,
+  TreatMissingData,
+  type IMetric,
+} from 'aws-cdk-lib/aws-cloudwatch';
+import { SnsAction } from 'aws-cdk-lib/aws-cloudwatch-actions';
 import { AttributeType, Billing, TableEncryptionV2, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Architecture, Code, Function as LambdaFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -28,6 +35,8 @@ import {
   HttpMethods,
   ObjectOwnership,
 } from 'aws-cdk-lib/aws-s3';
+import { Topic } from 'aws-cdk-lib/aws-sns';
+import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { Provider } from 'aws-cdk-lib/custom-resources';
 import type { Construct } from 'constructs';
 import type { StageConfig } from './config';
@@ -40,6 +49,8 @@ const repoPath = (rel: string) => fileURLToPath(new URL(`../../${rel}`, import.m
 
 export const API_THROTTLE = { rateLimit: 10, burstLimit: 20 } as const;
 export const EPHEMERAL_PREFIXES = ['resumes/', 'audio/', 'transcripts/'] as const;
+/** Alarm thresholds per 5-minute period (task 23, Req 17.6). */
+export const ALARM_THRESHOLDS = { lambdaErrors: 1, api5xx: 5 } as const;
 
 /** Regions each cross-Region inference profile prefix can route to (us-east-1 stacks). */
 const PROFILE_REGIONS: Record<string, readonly string[]> = {
@@ -393,8 +404,53 @@ export class ProofAndPoiseStack extends Stack {
     ];
     for (const [path, methods] of apiRoutes) httpApi.addRoutes({ path, methods, integration });
 
+    // --- Alarms → SNS email (task 23). Standard-resolution alarms and an email topic stay
+    // inside the free tier; no dashboards or custom metrics (Req 16.6). The address comes
+    // only from `--context alarmEmail=...` and must be confirmed from the inbox.
+    const alarmTopic = new Topic(this, 'AlarmTopic', {
+      topicName: `${prefix}-alarms`,
+      displayName: `Proof & Poise ${stage} alarms`,
+    });
+    if (props.config.alarmEmail) {
+      alarmTopic.addSubscription(new EmailSubscription(props.config.alarmEmail));
+    }
+    const alarmAction = new SnsAction(alarmTopic);
+    const fiveMinutes = Duration.minutes(5);
+    const alarms: [string, string, IMetric, number][] = [
+      [
+        'ApiErrorsAlarm',
+        `${prefix}-api-errors`,
+        apiFn.metricErrors({ period: fiveMinutes, statistic: 'Sum' }),
+        ALARM_THRESHOLDS.lambdaErrors,
+      ],
+      [
+        'WorkerErrorsAlarm',
+        `${prefix}-analysis-worker-errors`,
+        workerFn.metricErrors({ period: fiveMinutes, statistic: 'Sum' }),
+        ALARM_THRESHOLDS.lambdaErrors,
+      ],
+      [
+        // HTTP APIs publish `5xx` in AWS/ApiGateway with ApiId and Stage dimensions.
+        'Api5xxAlarm',
+        `${prefix}-api-5xx`,
+        stageResource.metricServerError({ period: fiveMinutes, statistic: 'Sum' }),
+        ALARM_THRESHOLDS.api5xx,
+      ],
+    ];
+    for (const [id, alarmName, metric, threshold] of alarms) {
+      new Alarm(this, id, {
+        alarmName,
+        metric,
+        threshold,
+        evaluationPeriods: 1,
+        comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: TreatMissingData.NOT_BREACHING,
+      }).addAlarmAction(alarmAction);
+    }
+
     new CfnOutput(this, 'ApiUrl', { value: stageResource.url });
     new CfnOutput(this, 'TableName', { value: table.tableName });
     new CfnOutput(this, 'BucketName', { value: bucket.bucketName });
+    new CfnOutput(this, 'AlarmTopicName', { value: alarmTopic.topicName });
   }
 }

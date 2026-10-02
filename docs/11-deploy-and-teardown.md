@@ -41,7 +41,14 @@ pnpm --filter @proof-and-poise/infrastructure run cdk deploy --context stage=dev
 
 This creates the `ProofAndPoise-<stage>` stack: the DynamoDB table, the upload bucket, the `api` and `analysis-worker` Lambdas, the salt generator and its custom resource, the HTTP API, log groups, and the SSM salt parameter.
 
-CORS origins come from `proof-and-poise:allowedOrigins` in `infrastructure/cdk.json`, per stage. Override for one deploy with `--context allowedOrigins=https://<origin-a>,https://<origin-b>`. `http://localhost:5173` is always included; `*` is rejected.
+CORS origins come from `proof-and-poise:allowedOrigins` in `infrastructure/cdk.json`, per stage. Override for one deploy with `--context allowedOrigins=https://<origin-a>,https://<origin-b>`. `http://localhost:5173` is always included; `*` is rejected. Prod currently allows only `http://localhost:5173`: once Amplify is connected, redeploy prod with `--context allowedOrigins=https://<amplify-main-domain>` (and every later prod deploy must pass the same value, or add it to `cdk.json`).
+
+Alarms (Req 17.6): each stage has an SNS topic `proof-and-poise-<stage>-alarms` and three alarms on it: api Lambda errors ≥ 1, analysis-worker errors ≥ 1, and HTTP API `5xx` ≥ 5, each per 5 minutes, missing data not breaching. Pass the notification address on every deploy with `--context alarmEmail=<address>` (it's personal data, so it isn't in `cdk.json`); a deploy without it removes the subscription. Confirm the subscription from the email AWS sends.
+
+```sh
+pnpm --filter @proof-and-poise/infrastructure run cdk deploy ProofAndPoise-prod \
+  --context stage=prod --context alarmEmail=<address>
+```
 
 Get the API URL (don't commit it):
 

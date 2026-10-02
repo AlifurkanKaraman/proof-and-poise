@@ -13,7 +13,14 @@ export interface StageConfig {
   /** CORS allowlist for the HTTP API and the upload bucket (Req 15.6). */
   allowedOrigins: string[];
   modelId: string;
+  /**
+   * Alarm notification address (task 23). Only from `--context alarmEmail=...`, never
+   * committed (personal data). Without it the topic exists but has no subscription.
+   */
+  alarmEmail?: string;
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isStage(v: unknown): v is Stage {
   return typeof v === 'string' && (STAGES as readonly string[]).includes(v);
@@ -50,9 +57,13 @@ export function resolveConfig(app: App): StageConfig {
   }
 
   const modelId: unknown = app.node.tryGetContext('modelId');
+  const alarmEmail: unknown = app.node.tryGetContext('alarmEmail');
+  const email = typeof alarmEmail === 'string' ? alarmEmail.trim() : '';
+  if (email && !EMAIL_RE.test(email)) throw new Error('Invalid alarmEmail context');
   return {
     stage,
     allowedOrigins: [...new Set(origins)],
     modelId: typeof modelId === 'string' && modelId ? modelId : DEFAULT_MODEL_ID,
+    ...(email ? { alarmEmail: email } : {}),
   };
 }
