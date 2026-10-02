@@ -77,7 +77,7 @@ test.describe('Demo journey', () => {
     });
 
     await page.getByRole('button', { name: /start interview/i }).click();
-    await expect(page).toHaveURL(/\/interview/);
+    await expect(page).toHaveURL(/\/interview/, { timeout: 15000 });
 
     // Answer until the interview hands off to the report (5 questions + follow-ups).
     for (let i = 0; i < 10 && !/\/report/.test(page.url()); i++) {

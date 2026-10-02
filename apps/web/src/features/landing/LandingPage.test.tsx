@@ -14,7 +14,7 @@ describe('LandingPage', () => {
   it('renders the hero and both CTAs with their destinations (Req 1.1, 1.4)', () => {
     renderLanding();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Turn your real experience into interview-ready evidence.',
+      'Tailor your resume to the job, using only what you can prove.',
     );
     expect(screen.getByRole('link', { name: 'Prepare for a job' })).toHaveAttribute(
       'href',

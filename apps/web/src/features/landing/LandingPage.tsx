@@ -22,18 +22,18 @@ import { EvidenceThreadPreview } from './EvidenceThreadPreview';
 
 const steps: { title: string; body: string; Icon: LucideIcon }[] = [
   {
-    title: 'Map your evidence',
-    body: 'Paste a job description and your resume. Each requirement is linked to the exact resume line that proves it, or marked weak or missing.',
+    title: 'See how your resume matches the job',
+    body: 'Add a job description and your resume. Each requirement is linked to the exact resume line that proves it, or marked weak or missing, with job match and keyword match scores.',
     Icon: FileSearch,
   },
   {
-    title: 'Strengthen it truthfully',
-    body: 'Review suggested changes one at a time. Nothing is added that your resume or your own confirmation does not support.',
+    title: 'Tailor your resume, truthfully',
+    body: 'Accept supported changes one at a time, list the job keywords you already prove, and confirm real experience for gaps. Nothing is added that your resume or your own words do not support. Copy or download the tailored resume.',
     Icon: ClipboardCheck,
   },
   {
-    title: 'Practice and get your report',
-    body: 'Answer a five-question mock interview aimed at your weakest evidence, then see a readiness report that shows how it was calculated.',
+    title: 'Then practice the interview',
+    body: 'Answer a five-question mock interview aimed at your weakest evidence, then see an explainable readiness report.',
     Icon: MessageSquareText,
   },
 ];
@@ -55,12 +55,12 @@ export default function LandingPage() {
               id="hero-title"
               className="font-heading text-display font-extrabold tracking-tight text-balance"
             >
-              Turn your real experience into interview-ready evidence.
+              Tailor your resume to the job, using only what you can prove.
             </h1>
             <p className="max-w-[60ch] text-body text-line-200">
-              Job descriptions ask for proof, and good experience often gets lost in a resume. Proof
-              &amp; Poise shows which requirements your resume already proves, helps you fix the
-              gaps honestly, and lets you practice defending them in a mock interview.
+              Proof &amp; Poise shows which job requirements and keywords your resume already
+              proves, helps you tailor it for this job without inventing anything, and then lets you
+              practice defending it in a mock interview.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className={focusRingOnDark}>

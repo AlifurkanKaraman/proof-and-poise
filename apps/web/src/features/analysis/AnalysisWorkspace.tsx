@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   FileCheck2,
+  FilePenLine,
   FileText,
   Lightbulb,
   MessageSquare,
@@ -36,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Ta
 import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
 import { cn, focusRing, focusRingOnDark } from '../../lib/cn';
 import { ConfirmExperienceDialog } from './ConfirmExperienceDialog';
+import { TailorPanel } from './TailorPanel';
 import { WorkingResume } from './WorkingResume';
 
 /** Decision and confirmation wiring (Req 7.4–7.5, 8.1). Without it the workspace is read-only. */
@@ -80,6 +82,14 @@ export function AnalysisWorkspace({
 }: AnalysisWorkspaceProps) {
   const [tab, setTab] = useState('overview');
   const { competencies, keywords, recommendations, scores } = evidenceMap;
+  // Job keywords the candidate chose to list in Skills (design §7.6). Kept in memory only,
+  // like the setup draft; a reload starts again from the saved analysis.
+  const [skillAdditions, setSkillAdditions] = useState<string[]>([]);
+  const toggleSkill = (term: string) =>
+    setSkillAdditions((prev) =>
+      prev.includes(term) ? prev.filter((t) => t !== term) : [...prev, term],
+    );
+  const canTailor = resumeText !== undefined;
   const context: WorkspaceContextValue = {
     actions,
     competencies: new Map(competencies.map((c) => [c.id, c])),
@@ -123,6 +133,7 @@ export function AnalysisWorkspace({
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            {canTailor && <TabsTrigger value="tailor">Tailor resume</TabsTrigger>}
             <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
             <TabsTrigger value="recommendations">
               Recommendations ({recommendations.length})
@@ -140,6 +151,7 @@ export function AnalysisWorkspace({
                 gapName={gap?.name}
                 onStartInterview={onStartInterview}
                 isStartingInterview={isStartingInterview}
+                onTailor={canTailor ? () => setTab('tailor') : undefined}
               />
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -302,8 +314,30 @@ export function AnalysisWorkspace({
           </TabsContent>
 
           {resumeText !== undefined && (
+            <TabsContent value="tailor">
+              <TailorPanel
+                evidenceMap={evidenceMap}
+                resumeText={resumeText}
+                added={skillAdditions}
+                onToggle={toggleSkill}
+                onAddAll={(terms) =>
+                  setSkillAdditions((prev) => [...prev, ...terms.filter((t) => !prev.includes(t))])
+                }
+                renderConfirm={(id) => {
+                  const competency = context.competencies.get(id);
+                  return competency ? <ConfirmAction competency={competency} /> : null;
+                }}
+                onOpenResume={() => setTab('resume')}
+              />
+            </TabsContent>
+          )}
+          {resumeText !== undefined && (
             <TabsContent value="resume">
-              <WorkingResume resumeText={resumeText} recommendations={recommendations} />
+              <WorkingResume
+                resumeText={resumeText}
+                recommendations={recommendations}
+                skillAdditions={skillAdditions}
+              />
             </TabsContent>
           )}
         </Tabs>
@@ -317,13 +351,21 @@ interface VerdictProps {
   gapName: string | undefined;
   onStartInterview: () => void;
   isStartingInterview: boolean | undefined;
+  /** Present when the resume text is available: Step 1 of the main flow. */
+  onTailor: (() => void) | undefined;
 }
 
 /**
  * The first thing a candidate reads: a plain-words verdict, the proof meter (one segment per
  * requirement) and the single next action. Segments are decorative; counts are in the text.
  */
-function Verdict({ competencies, gapName, onStartInterview, isStartingInterview }: VerdictProps) {
+function Verdict({
+  competencies,
+  gapName,
+  onStartInterview,
+  isStartingInterview,
+  onTailor,
+}: VerdictProps) {
   const total = competencies.length;
   const proven = competencies.filter(isProven).length;
   const weak = competencies.filter((c) => c.strength === 'weak').length;
@@ -368,8 +410,16 @@ function Verdict({ competencies, gapName, onStartInterview, isStartingInterview 
       )}
 
       <div className="flex flex-wrap items-center gap-4">
+        {onTailor && (
+          // Step 1 of the main flow: tailor the resume, then practice (design §7.6).
+          <Button size="lg" onClick={onTailor} className={focusRingOnDark}>
+            <FilePenLine aria-hidden="true" className="size-4" />
+            Tailor my resume
+          </Button>
+        )}
         <Button
           size="lg"
+          variant={onTailor ? 'secondary' : 'primary'}
           onClick={onStartInterview}
           disabled={isStartingInterview}
           className={focusRingOnDark}
@@ -377,7 +427,11 @@ function Verdict({ competencies, gapName, onStartInterview, isStartingInterview 
           {isStartingInterview ? 'Starting interview...' : 'Start Interview'}
           {!isStartingInterview && <ArrowRight aria-hidden="true" className="size-4" />}
         </Button>
-        <p className="text-small text-line-300">Five questions, aimed at your weakest evidence.</p>
+        <p className="text-small text-line-300">
+          {onTailor
+            ? 'Step 1: tailor your resume with only what you can prove. Step 2: practice the interview.'
+            : 'Five questions, aimed at your weakest evidence.'}
+        </p>
       </div>
     </Card>
   );

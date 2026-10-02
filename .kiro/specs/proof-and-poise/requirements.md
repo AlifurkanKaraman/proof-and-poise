@@ -125,6 +125,7 @@ Target: AWS "Zero to Shipped" Shipathon. Submission deadline October 2, 2026. Tw
 6. THE system SHALL NOT rewrite the whole resume and SHALL NOT apply any change without an explicit accept action.
 7. THE workspace SHALL let the user view the working resume with accepted changes highlighted, and SHALL let them copy it as plain text.
 8. The analysis SHALL produce at most 10 recommendations.
+9. THE workspace SHALL offer a Tailor step that lets the user list, with one click each, job keywords their resume or confirmations already show but their Skills section doesn't, SHALL never add a keyword the resume doesn't show, SHALL show scores at analysis time next to current scores, and SHALL let the user download the tailored resume as plain text (design §7.6).
 
 ### Requirement 8: Candidate confirmation of missing or weak evidence
 

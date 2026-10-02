@@ -20,7 +20,7 @@ describe('router', () => {
   it('lazy-loads the landing page with both CTAs', async () => {
     renderAt('/');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'Turn your real experience into interview-ready evidence.',
+      'Tailor your resume to the job, using only what you can prove.',
     );
     // The header nav repeats both links, so scope to the page content.
     const main = within(screen.getByRole('main'));
@@ -47,7 +47,7 @@ describe('router', () => {
   it('redirects session screens to / with a message when the token is missing (design §10)', async () => {
     renderAt('/s/0b6f1f7e-2d3c-4a5b-8c9d-0e1f2a3b4c5d/report');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'Turn your real experience into interview-ready evidence.',
+      'Tailor your resume to the job, using only what you can prove.',
     );
     expect(screen.getByText(SESSION_MISSING_MESSAGE).closest('[role="status"]')).not.toBeNull();
   });

@@ -164,3 +164,11 @@ Found and fixed:
 - "Practice this question again" on the report opened the interview without starting a practice attempt; `InterviewPage` now starts it from `?practice=` (covered by an e2e test).
 
 Not verified (needs a person or real devices): screen reader announcements (NVDA/VoiceOver), iOS Safari and Firefox runs, microphone-denied flow, a full keyboard-only pass on the real recording tab, and per-screen error and empty states in the browser.
+
+## Audit results (2026-10-02)
+
+Automated: the audit above now also covers the Tailor resume and Resume tabs, plus a keyboard-only test that adds a skill and opens and closes the "I have this experience" dialog (Escape returns focus to its trigger). 78 passed across the four Playwright projects.
+
+Manual (account owner, 2026-10-02): iOS Safari and VoiceOver pass on the deployed site, including the new Tailor resume flow. Reported result: everything works, no issues found.
+
+Still not covered: NVDA and Firefox, and the recording tab and microphone-denied flow (recording is switched off for the MVP, `FEATURES.recordedAnswers`).

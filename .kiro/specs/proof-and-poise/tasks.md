@@ -75,7 +75,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Evaluate the prompt against the demo fixture plus 3 varied sample resumes. Record the pass rate in `docs/`.
   - deps: 8. _Requirements: 4.3–4.5, 5.1–5.5, 6.1, 7.2–7.3, 7.8, 15.5, 16.5_
 
-- [ ] 10. [B] Amplify Hosting connection (**user action required**)
+- [x] 10. [B] Amplify Hosting connection (**user action required**)
   - Add `amplify.yml` (monorepo, `appRoot: apps/web`, pnpm). The user connects the GitHub repo in the Amplify console for the `main` and `develop` branches and sets `VITE_API_BASE_URL`. Add the Amplify domains to the CORS allowlist. Verify the landing page loads on the preview URL.
   - deps: 1, 4, 5. _Requirements: 17.5, 17.7_
 
@@ -104,7 +104,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - Show feedback after each answer (strength, improvement, dimension chips), then continue. Demo mode adds "Insert sample answer (fictional)". Resume after reload.
   - deps: 6. _Requirements: 9.2, 9.4–9.7, 10.1–10.3, 10.5, 10.7, 13.3_
 
-- [ ] 16. [A] Interview integration
+- [x] 16. [A] Interview integration
   - Integrate task 15 against the real endpoints from 17 and 18. Test on Chrome, Firefox, desktop Safari, and iOS Safari. Test the microphone-denied path.
   - deps: 15, 17, 18. _Requirements: 10.2, 10.4_
 
@@ -131,17 +131,17 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - `POST/GET /report` (deterministic scores plus the narrative model call, validated, idempotent) and `POST /practice` (creates a practice turn, reuses the answer evaluation, best-attempt readiness, score event).
   - deps: 17. _Requirements: 6.2, 12.1–12.3, 12.5_
 
-- [ ] 22. [A] Quality pass: accessibility, responsive, states
+- [x] 22. [A] Quality pass: accessibility, responsive, states
   - axe on every screen, a keyboard-only run, a focus-order review, contrast checks, and the reduced-motion check. Verify 375, 768, and 1280 widths and 44 px touch targets. Audit every screen for its loading, empty, and error states. Audit for any button that does nothing.
   - The Playwright demo journey spec (MSW) at 1280 and 375, plus axe assertions, added to CI.
   - deps: 12, 15, 19. _Requirements: 14.2–14.6, 14.9, 17.2–17.3_
 
-- [ ] 23. ⛓ [B] Production deploy and observability
+- [x] 23. ⛓ [B] Production deploy and observability
   - Create the `prod` stage stack. CloudWatch alarms (Lambda errors, API 5xx) go to an SNS email topic. Set up AWS Budgets at $5 and $8 (documented, created by the user or through the CLI after confirmation). **Before deploying, state the resources and get confirmation.**
   - Release PR from `develop` into `main`, then the Amplify production build. Review the CloudWatch logs from a full run for content leakage.
   - deps: 20, 21, 22. _Requirements: 15.3, 16.7, 17.5–17.7_
 
-- [ ] 24. ⛓ [AB] Production verification
+- [x] 24. ⛓ [AB] Production verification
   - The Playwright smoke test against the prod URL (typed answers). A manual incognito run on desktop and mobile. A recorded-answer run on Safari and Chrome. A gitleaks scan across the full git history. Confirm the CloudWatch logs have no unhandled errors.
   - deps: 23. _Requirements: 17.2, 17.7, 15.7_
 
