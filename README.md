@@ -11,7 +11,7 @@ Built for the AWS "Zero to Shipped" Shipathon.
 
 ## Stack
 
-React 19, Vite, Tailwind CSS 4, and Radix UI on the web. An API Lambda and an analysis-worker Lambda (Node.js 22, arm64) behind an API Gateway HTTP API. DynamoDB (on-demand, TTL), S3 (private, 1-day lifecycle), Amazon Bedrock (Nova Lite), Amazon Transcribe, SSM Parameter Store, and CloudWatch Logs, all defined with AWS CDK in `us-east-1`. Hosting on AWS Amplify is planned.
+React 19, Vite, Tailwind CSS 4, and Radix UI on the web. An API Lambda and an analysis-worker Lambda (Node.js 22, arm64) behind an API Gateway HTTP API. DynamoDB (on-demand, TTL), S3 (private, 1-day lifecycle), Amazon Bedrock (Nova Lite), Amazon Transcribe (deployed, off in the MVP: answers are typed), SSM Parameter Store, and CloudWatch Logs, all defined with AWS CDK in `us-east-1`. Hosting on AWS Amplify is planned.
 
 ## Repository
 

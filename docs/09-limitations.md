@@ -5,7 +5,7 @@ Written against `develop` at the merge of PR #16 (2026-10-01). Integration branc
 ## Not finished on `develop`
 
 - **Recommendation decisions and confirmations in the UI.** The API routes exist and are unit-tested (task 13), and the web client has the hooks, but the Recommendations tab doesn't call them yet (task 14).
-- **Recorded answers.** The Record tab captures audio and shows an editable placeholder transcript. It isn't wired to the upload and Transcribe routes yet (task 16). Typed answers work.
+- **Recorded answers are out of scope for the MVP.** The full flow is built and tested (audio upload, Amazon Transcribe, editable transcript; task 16), but the hackathon AWS account isn't subscribed to Amazon Transcribe (`SubscriptionRequiredException`). The Record tab is shown as "Coming soon" and answers are typed. To enable it after the hackathon: enable Transcribe for the account, then set `FEATURES.recordedAnswers` to `true` in `apps/web/src/lib/features.ts`. The API routes and IAM permissions are already deployed.
 - **Report and practice integration.** The report screen creates and reads the report, and "Practice again" starts a practice turn, through the API client. End-to-end verification against the deployed API is task 20.
 - **Hosting.** Amplify Hosting isn't connected yet (task 10), so CORS allows only `http://localhost:5173`.
 - **Production.** The `prod` stack, CloudWatch alarms, SNS email, and AWS Budgets aren't created yet (task 23). Production verification (task 24) is pending.

@@ -23,16 +23,27 @@ async function toInterview(page: Page) {
   await expect(page.getByRole('tab', { name: /type/i })).toBeVisible();
 }
 
+/**
+ * Activate a button with the keyboard. Linux WebKit's iPhone emulation can report a
+ * scrolled-into-view button as "outside of the viewport" for mouse clicks; focus + Enter
+ * is a real user path and works on every project.
+ */
+async function press(page: Page, name: RegExp) {
+  const button = page.getByRole('button', { name });
+  await button.focus();
+  await page.keyboard.press('Enter');
+}
+
 async function toReport(page: Page) {
   await toInterview(page);
   for (let i = 0; i < 10 && !/\/report/.test(page.url()); i++) {
-    await page.getByRole('tab', { name: /type/i }).click();
+    await page.getByRole('tab', { name: /^type$/i }).click();
     await page.getByPlaceholder(/type your answer/i).fill('I led a migration and cut latency 35%.');
-    await page.getByRole('button', { name: /submit answer/i }).click();
+    await press(page, /submit answer/i);
     const next = page.getByRole('button', { name: /continue to next|view your report/i });
     await expect(next).toBeVisible({ timeout: 15000 });
     const last = /view your report/i.test((await next.textContent()) ?? '');
-    await next.click();
+    await press(page, /continue to next|view your report/i);
     if (last) break;
   }
   await expect(page.getByRole('button', { name: /print/i })).toBeVisible({ timeout: 15000 });
