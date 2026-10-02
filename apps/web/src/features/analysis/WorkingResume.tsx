@@ -1,6 +1,10 @@
-import { Copy, FilePen } from 'lucide-react';
+import { Copy, Download, FilePen } from 'lucide-react';
 import { useState } from 'react';
-import { buildWorkingResume, type Recommendation } from '@proof-and-poise/shared';
+import {
+  applySkillAdditions,
+  buildWorkingResume,
+  type Recommendation,
+} from '@proof-and-poise/shared';
 import { EmptyState } from '../../components/states/EmptyState';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/cn';
@@ -8,6 +12,8 @@ import { cn } from '../../lib/cn';
 interface WorkingResumeProps {
   resumeText: string;
   recommendations: readonly Recommendation[];
+  /** Job keywords the candidate chose to list in Skills (Tailor tab, design §7.6). */
+  skillAdditions?: readonly string[];
 }
 
 /** Lines of `next` that don't appear in `prev` (multiset, so repeated lines count once each). */
@@ -31,46 +37,77 @@ type CopyStatus = 'idle' | 'copied' | 'failed';
  * Changed lines carry a visible "Changed" label and a screen-reader prefix, not color alone
  * (Req 14.3).
  */
-export function WorkingResume({ resumeText, recommendations }: WorkingResumeProps) {
+export function WorkingResume({
+  resumeText,
+  recommendations,
+  skillAdditions = [],
+}: WorkingResumeProps) {
   const working = buildWorkingResume(resumeText, recommendations);
-  const lines = working.text.split('\n');
-  const changed = changedLines(resumeText, working.text);
+  const text = applySkillAdditions(working.text, skillAdditions);
+  const lines = text.split('\n');
+  const changed = changedLines(resumeText, text);
   const changedCount = changed.filter(Boolean).length;
   const [copy, setCopy] = useState<CopyStatus>('idle');
 
   const copyText = async () => {
     try {
-      await navigator.clipboard.writeText(working.text);
+      await navigator.clipboard.writeText(text);
       setCopy('copied');
     } catch {
       setCopy('failed');
     }
   };
 
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tailored-resume.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const summary =
+    working.applied.length === 0 && skillAdditions.length === 0
+      ? 'Your original resume. Accepted changes and added skills appear here.'
+      : [
+          working.applied.length > 0 &&
+            `${working.applied.length} accepted ${working.applied.length === 1 ? 'change' : 'changes'}`,
+          skillAdditions.length > 0 &&
+            `${skillAdditions.length} ${skillAdditions.length === 1 ? 'skill' : 'skills'} added`,
+        ]
+          .filter(Boolean)
+          .join(', ') +
+        `; ${changedCount} ${changedCount === 1 ? 'line' : 'lines'} marked "Changed".`;
+
   return (
     <section aria-labelledby="working-resume-heading" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="working-resume-heading" className="text-h3 font-semibold text-ink-950">
-            Working resume
+            Tailored resume
           </h2>
-          <p className="text-small text-ink-700">
-            {working.applied.length === 0
-              ? 'Your original resume. Accepted changes will appear here.'
-              : `${working.applied.length} accepted ${working.applied.length === 1 ? 'change' : 'changes'} applied, ${changedCount} ${changedCount === 1 ? 'line' : 'lines'} marked "Changed".`}
-          </p>
+          <p className="text-small text-ink-700">{summary}</p>
         </div>
-        <Button variant="secondary" onClick={() => void copyText()}>
-          <Copy aria-hidden="true" className="size-4" />
-          Copy as text
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => void copyText()}>
+            <Copy aria-hidden="true" className="size-4" />
+            Copy as text
+          </Button>
+          <Button variant="secondary" onClick={download}>
+            <Download aria-hidden="true" className="size-4" />
+            Download .txt
+          </Button>
+        </div>
       </div>
 
       <p
         role="status"
         className={cn('text-small', copy === 'failed' ? 'text-red-700' : 'text-ink-700')}
       >
-        {copy === 'copied' && 'Working resume copied to the clipboard.'}
+        {copy === 'copied' && 'Tailored resume copied to the clipboard.'}
         {copy === 'failed' &&
           'Your browser blocked clipboard access. Select the text below and copy it manually.'}
       </p>
@@ -92,7 +129,7 @@ export function WorkingResume({ resumeText, recommendations }: WorkingResumeProp
         />
       ) : (
         <ol
-          aria-label="Working resume lines"
+          aria-label="Tailored resume lines"
           className="rounded-lg border border-line-200 bg-paper-0 p-4 font-mono text-small"
         >
           {lines.map((line, i) =>

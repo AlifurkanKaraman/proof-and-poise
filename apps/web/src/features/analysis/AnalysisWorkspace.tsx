@@ -1,5 +1,5 @@
 import { Award, Check, Lightbulb, MessageSquare, Target, Undo2, X } from 'lucide-react';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import {
   LIMITS,
   type Competency,
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Ta
 import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
 import { ConfirmExperienceDialog } from './ConfirmExperienceDialog';
+import { TailorPanel } from './TailorPanel';
 import { WorkingResume } from './WorkingResume';
 
 /** Decision and confirmation wiring (Req 7.4–7.5, 8.1). Without it the workspace is read-only. */
@@ -57,6 +58,15 @@ export function AnalysisWorkspace({
   resumeText,
 }: AnalysisWorkspaceProps) {
   const { competencies, keywords, recommendations, scores } = evidenceMap;
+  const [tab, setTab] = useState('overview');
+  // Job keywords the candidate chose to list in Skills (design §7.6). Kept in memory only,
+  // like the setup draft; a reload starts again from the saved analysis.
+  const [skillAdditions, setSkillAdditions] = useState<string[]>([]);
+  const toggleSkill = (term: string) =>
+    setSkillAdditions((prev) =>
+      prev.includes(term) ? prev.filter((t) => t !== term) : [...prev, term],
+    );
+  const canTailor = resumeText !== undefined;
   const context: WorkspaceContextValue = {
     actions,
     competencies: new Map(competencies.map((c) => [c.id, c])),
@@ -84,9 +94,10 @@ export function AnalysisWorkspace({
   return (
     <WorkspaceContext.Provider value={context}>
       <div className="flex flex-col gap-6">
-        <Tabs defaultValue="overview">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            {canTailor && <TabsTrigger value="tailor">Tailor resume</TabsTrigger>}
             <TabsTrigger value="competencies">Competencies ({competencies.length})</TabsTrigger>
             <TabsTrigger value="recommendations">
               Recommendations ({recommendations.length})
@@ -153,15 +164,33 @@ export function AnalysisWorkspace({
                 </div>
               </div>
 
-              {/* Start Interview CTA */}
-              <div className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-6">
+              {/* Step 1: tailor the resume (main flow), step 2: practice (design §7.6) */}
+              {canTailor && (
+                <div className="rounded-lg border border-indigo-600/20 bg-indigo-50 p-6">
+                  <p className="text-caption font-semibold text-indigo-700">Step 1</p>
+                  <h2 className="mb-2 text-h3 font-semibold text-ink-950">
+                    Tailor your resume for this job
+                  </h2>
+                  <p className="mb-4 text-small text-ink-700">
+                    List the job keywords your resume already proves, confirm real experience for
+                    the gaps, then copy or download the tailored resume.
+                  </p>
+                  <Button onClick={() => setTab('tailor')}>Tailor my resume</Button>
+                </div>
+              )}
+              <div className="rounded-lg border border-line-200 bg-paper-0 p-6">
+                {canTailor && <p className="text-caption font-semibold text-ink-700">Step 2</p>}
                 <h2 className="mb-2 text-h3 font-semibold text-ink-950">
                   Ready for the interview?
                 </h2>
                 <p className="mb-4 text-small text-ink-700">
                   Practice answering competency-based questions to improve your readiness score.
                 </p>
-                <Button onClick={onStartInterview} disabled={isStartingInterview}>
+                <Button
+                  variant={canTailor ? 'secondary' : 'primary'}
+                  onClick={onStartInterview}
+                  disabled={isStartingInterview}
+                >
                   {isStartingInterview ? 'Starting interview...' : 'Start Interview'}
                 </Button>
               </div>
@@ -256,8 +285,30 @@ export function AnalysisWorkspace({
           </TabsContent>
 
           {resumeText !== undefined && (
+            <TabsContent value="tailor">
+              <TailorPanel
+                evidenceMap={evidenceMap}
+                resumeText={resumeText}
+                added={skillAdditions}
+                onToggle={toggleSkill}
+                onAddAll={(terms) =>
+                  setSkillAdditions((prev) => [...prev, ...terms.filter((t) => !prev.includes(t))])
+                }
+                renderConfirm={(id) => {
+                  const competency = context.competencies.get(id);
+                  return competency ? <ConfirmAction competency={competency} /> : null;
+                }}
+                onOpenResume={() => setTab('resume')}
+              />
+            </TabsContent>
+          )}
+          {resumeText !== undefined && (
             <TabsContent value="resume">
-              <WorkingResume resumeText={resumeText} recommendations={recommendations} />
+              <WorkingResume
+                resumeText={resumeText}
+                recommendations={recommendations}
+                skillAdditions={skillAdditions}
+              />
             </TabsContent>
           )}
         </Tabs>
