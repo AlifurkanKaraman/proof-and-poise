@@ -27,8 +27,17 @@ export const AnalysisModelCompetencySchema = z.strictObject({
   id: CompetencyIdSchema,
   name: str(80),
   description: str(300),
-  /** Verbatim job-description phrase this competency comes from; grounded server-side. */
-  jobQuote: str(LIMITS.analysis.jobQuote.maxChars),
+  /**
+   * Verbatim job-description phrase this competency comes from; grounded server-side.
+   * A longer quote is clipped, not rejected: its first `maxChars` characters are still a
+   * verbatim slice of the job, so one long qualification line can't fail the whole
+   * analysis (design §7.4). The tool schema still advertises the limit to the model.
+   */
+  jobQuote: z
+    .string()
+    .min(1)
+    .overwrite((s) => s.slice(0, LIMITS.analysis.jobQuote.maxChars))
+    .max(LIMITS.analysis.jobQuote.maxChars),
   importance: ImportanceSchema,
   category: CompetencyCategorySchema,
   evidence: z

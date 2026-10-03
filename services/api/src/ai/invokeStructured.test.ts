@@ -11,7 +11,7 @@ import { ApiError } from '../lib/errors';
 import { createLogger } from '../lib/logger';
 import { demoModelOutput } from '../test/fixtures';
 import { invokeStructured, type ModelDeps } from './invokeStructured';
-import { ANALYZE_TOOL_NAME, analyzeRequest } from './prompts/analyze';
+import { ANALYZE_TOOL_NAME, analyzeRequest, isUsableCompetency } from './prompts/analyze';
 import { toolInputSchema } from './tools';
 
 const bedrockMock = mockClient(BedrockRuntimeClient);
@@ -105,6 +105,65 @@ describe('invokeStructured (design §7.1)', () => {
       code: 'MODEL_OUTPUT_INVALID',
     });
     expect(calls()[1]?.messages?.[0]?.content?.[0]?.text).toContain('duplicate ids c1');
+  });
+
+  it('logs which fields failed as path and code keys, never messages or values', async () => {
+    const longName = demoModelOutput();
+    longName.competencies[0]!.name = `${DEMO_JOB.description} `.repeat(3);
+    const dup = demoModelOutput();
+    dup.competencies[1]!.id = 'c1';
+    bedrockMock.on(ConverseCommand).resolvesOnce(toolReply(longName)).resolvesOnce(toolReply(dup));
+    await expect(invokeStructured(deps(), request())).rejects.toMatchObject({
+      code: 'MODEL_OUTPUT_INVALID',
+    });
+    const invalid = logLines
+      .map((l) => JSON.parse(l))
+      .filter((l) => l.event === 'model_output_invalid');
+    expect(invalid.map((l) => l.issues)).toEqual([
+      ['competencies.0.name:too_big'],
+      // c2 is gone, so the recommendation that cited it fails too.
+      ['check:competencies', 'check:recommendations.0.competencyId'],
+    ]);
+    const out = logLines.join('\n');
+    expect(out).not.toContain(DEMO_JOB.description.slice(0, 40));
+    expect(out).not.toContain('duplicate ids');
+    expect(out).not.toMatch(/too big:/i);
+  });
+
+  it('accepts a whole over-long qualification line as jobQuote by clipping it (design §7.4)', async () => {
+    // Regression: a ~230-char job line copied whole failed both attempts as
+    // `competencies.N.jobQuote:too_big` and the analysis ended MODEL_OUTPUT_INVALID.
+    const line =
+      'Experience with operational parameters and troubleshooting for three (3) of the following: compute/storage/networking/CDN/databases/DevOps/big data and analytics/security/applications development in a distributed systems environment';
+    expect(line.length).toBeGreaterThan(LIMITS.analysis.jobQuote.maxChars);
+    const job = { ...DEMO_JOB, description: `${DEMO_JOB.description}\n- ${line}` };
+    const output = demoModelOutput();
+    output.competencies[0]!.jobQuote = line;
+    bedrockMock.on(ConverseCommand).resolves(toolReply(output));
+
+    const result = await invokeStructured(deps(), analyzeRequest(DEMO_RESUME_TEXT, job));
+    expect(calls()).toHaveLength(1);
+    const quote = result.competencies[0]!.jobQuote;
+    expect(quote).toBe(line.slice(0, LIMITS.analysis.jobQuote.maxChars));
+    expect(isUsableCompetency({ name: result.competencies[0]!.name, jobQuote: quote }, job)).toBe(
+      true,
+    );
+  });
+
+  it('logs fixed keys for missing and truncated tool calls', async () => {
+    bedrockMock
+      .on(ConverseCommand)
+      .resolvesOnce({ ...toolReply(demoModelOutput()), stopReason: 'max_tokens' })
+      .resolvesOnce({
+        output: { message: { role: 'assistant', content: [{ text: 'Sure! Here you go.' }] } },
+        stopReason: 'end_turn',
+      });
+    await expect(invokeStructured(deps(), request())).rejects.toBeInstanceOf(ApiError);
+    const keys = logLines
+      .map((l) => JSON.parse(l))
+      .filter((l) => l.event === 'model_output_invalid')
+      .map((l) => l.issues);
+    expect(keys).toEqual([['truncated'], ['no_tool_call']]);
   });
 
   it('throws MODEL_OUTPUT_INVALID after a second failure, including missing tool calls', async () => {
@@ -219,7 +278,9 @@ describe('invokeStructured (design §7.1)', () => {
     const out = logLines.join('\n');
     expect(out).not.toContain('Amara');
     expect(out).not.toContain('Python');
-    expect(out).not.toContain('seniority');
+    // The failing field's path and Zod code are logged; its value never is.
+    expect(out).not.toContain('principal');
+    expect(out).toContain('"issues":["seniority:invalid_value"]');
     const call = logLines.map((l) => JSON.parse(l)).find((l) => l.event === 'model_call');
     expect(call).toMatchObject({
       task: 'analyze',
