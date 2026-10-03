@@ -4,6 +4,8 @@ Your experience is stronger when you can prove it.
 
 Proof & Poise is an evidence-grounded resume tailoring and interview prep web app. You give it a resume and a job description. It maps each job requirement to verbatim lines from your resume, helps you tailor the resume using only what you can prove, and then runs a five-question mock interview aimed at your weakest evidence.
 
+The tailored resume downloads as `.docx` or `.pdf`, in "Your original order" or a one-column "Jake's Resume" style. Files are built in the browser from the same text the Resume tab shows, with no model call; a property-tested check ensures every line appears once in the candidate's own wording and the only added text is a section heading. Layout inspired by [Jake's Resume](https://github.com/jakegut/resume) (MIT). PDF font: Crimson Text (SIL OFL 1.1, `apps/web/src/assets/fonts/crimson-text/OFL.txt`).
+
 **[Try the demo](https://main.d1tn5k7jq2sjsu.amplifyapp.com/demo)** (fictional candidate, no resume needed) · **[Live app](https://main.d1tn5k7jq2sjsu.amplifyapp.com)** · **[Docs](#documentation)**
 
 No account is needed. Each visit is an anonymous session, and its data expires after 24 hours.
