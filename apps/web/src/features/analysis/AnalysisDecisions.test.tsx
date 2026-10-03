@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { ERROR_STATUS, routes as contractRoutes, type ErrorCode } from '@proof-and-poise/shared';
+import {
+  DEMO_JOB,
+  DEMO_RESUME_INPUT,
+  ERROR_STATUS,
+  routes as contractRoutes,
+  type ErrorCode,
+} from '@proof-and-poise/shared';
 import { Providers } from '../../app/providers';
 import { routes } from '../../app/routes';
 import { api } from '../../lib/api';
@@ -35,6 +41,19 @@ async function openRecommendations() {
 }
 
 const card = (name: string) => screen.getByRole('article', { name: `Recommendation for ${name}` });
+
+/** What browser page translation does: replace each text node with a <font> element. */
+function translateTextNodes(root: HTMLElement) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+  for (const node of nodes) {
+    if (!node.nodeValue?.trim() || node.parentElement?.closest('textarea')) continue;
+    const font = document.createElement('font');
+    font.textContent = node.nodeValue;
+    node.replaceWith(font);
+  }
+}
 
 const failOnce = (path: string, code: ErrorCode) =>
   server.use(
@@ -230,6 +249,64 @@ describe('Tailor tab confirmation (design §7.6, Req 8.1)', () => {
       );
     } finally {
       server.events.removeListener('request:start', count);
+    }
+  });
+
+  // Regression (Req 8.1, 8.3): a standard session gets a confirmed_by_candidate rewrite back,
+  // like the API, and the screen keeps rendering even when the page has been translated.
+  it('keeps the screen after a confirmation on a translated page', async () => {
+    const created = await api.request('createSession', { body: { mode: 'standard' } });
+    saveSession(created);
+    await api.request('startAnalysis', {
+      params: { sessionId: created.sessionId },
+      body: { resume: DEMO_RESUME_INPUT, job: DEMO_JOB },
+    });
+    const router = createMemoryRouter(routes, {
+      initialEntries: [`/s/${created.sessionId}/analysis`],
+    });
+    render(
+      <Providers>
+        <RouterProvider router={router} />
+      </Providers>,
+    );
+    await userEvent.click(await screen.findByRole('tab', { name: 'Tailor resume' }));
+    const gaps = screen.getByRole('heading', {
+      name: /keywords your resume doesn't show/i,
+    }).parentElement!;
+    await userEvent.click(screen.getByRole('button', { name: 'Add REST APIs to Skills' }));
+
+    await userEvent.click(
+      within(row(gaps, 'Kubernetes')).getByRole('button', { name: 'I have this experience' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: /Kubernetes and containers/ });
+    // Naming the keyword moves it out of "doesn't show" while the dialog is still open.
+    await userEvent.type(
+      within(dialog).getByLabelText(/Your experience/),
+      'I deployed three Docker services to a Kubernetes cluster with Helm charts.',
+    );
+    await userEvent.click(within(dialog).getByRole('checkbox'));
+    // Browser page translation (e.g. Chrome's) swaps text nodes for <font> elements. React
+    // then inserted the Save button's spinner before a detached text node and threw
+    // NotFoundError, so the route error boundary replaced the screen.
+    translateTextNodes(dialog);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save confirmation' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(
+      await screen.findByText('You confirmed Kubernetes and containers experience.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('This screen failed to load')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Tailor your resume for this job' })).toBeVisible();
+
+    // The rewrite is offered as a change to accept, and the screen survives every tab.
+    await userEvent.click(screen.getByRole('tab', { name: /Recommendations/ }));
+    const rewrite = card('Kubernetes and containers');
+    expect(within(rewrite).getByRole('button', { name: 'Accept' })).toBeEnabled();
+    await userEvent.click(within(rewrite).getByRole('button', { name: 'Accept' }));
+    expect(await within(card('Kubernetes and containers')).findByText('Accepted')).toBeVisible();
+    for (const name of [/Competencies/, /Keywords/, 'Resume', 'Tailor resume', 'Overview']) {
+      await userEvent.click(screen.getByRole('tab', { name }));
+      expect(screen.queryByText('This screen failed to load')).toBeNull();
     }
   });
 

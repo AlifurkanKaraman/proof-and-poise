@@ -72,7 +72,10 @@ export function Button({
       {...props}
     >
       {loading && <Spinner />}
-      {children}
+      {/* Req 8.1: React inserts the spinner before this element, never before a bare text
+          node that page translation may have replaced, which threw and blanked the screen.
+          `contents` keeps the children as flex items, so the layout doesn't change. */}
+      <span className="contents">{children}</span>
     </button>
   );
 }
