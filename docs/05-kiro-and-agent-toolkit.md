@@ -1,6 +1,6 @@
 # 05. Kiro and the Agent Toolkit for AWS
 
-Proof & Poise was built spec-first in Kiro by two developers in about five days. Everything below is in the repo except where marked `TODO(user)`.
+Proof & Poise was built spec-first in Kiro by two developers in about five days. Everything below is in the repo, except the MCP servers, which are shown in a screenshot.
 
 ## Spec-driven workflow
 

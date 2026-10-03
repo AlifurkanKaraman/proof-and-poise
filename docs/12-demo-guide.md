@@ -52,4 +52,3 @@ From the fictional demo session ([screenshots/](screenshots/README.md)).
 ## Notes for the final demo
 
 - Answers are typed. The Record tab shows "Coming soon": recorded answers are out of scope for the MVP (see `09-limitations.md`).
-- Demo video: `TODO(user): add the demo video link, or delete this line if no video is submitted.`
