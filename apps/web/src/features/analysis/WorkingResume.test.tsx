@@ -38,7 +38,8 @@ describe('WorkingResume (Req 7.7)', () => {
         recommendations={[rec({ decision: 'pending' }), rec({ id: 'r2', decision: 'rejected' })]}
       />,
     );
-    expect(screen.getByText('Built a dashboard for the team')).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Tailored resume lines' });
+    expect(within(list).getByText('Built a dashboard for the team')).toBeInTheDocument();
     expect(screen.queryByText('Changed')).not.toBeInTheDocument();
     expect(screen.getByText(/Accepted changes and added skills appear here/)).toBeInTheDocument();
   });
@@ -76,6 +77,21 @@ describe('WorkingResume (Req 7.7)', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Resume' }));
     expect(screen.getByRole('heading', { name: 'Tailored resume' })).toBeInTheDocument();
     expect(screen.getByText('Changed line:')).toBeInTheDocument();
+  });
+
+  it('exports the same text the tab shows, added skills included (Req 7.10)', () => {
+    render(
+      <WorkingResume
+        resumeText={RESUME}
+        recommendations={[rec({})]}
+        skillAdditions={['Kubernetes']}
+      />,
+    );
+    const preview = screen.getByRole('region', { name: /^Preview:/ });
+    expect(preview).toHaveTextContent('Built a React dashboard used daily by 12 analysts');
+    expect(preview).toHaveTextContent('Additional skills: Kubernetes');
+    expect(screen.getByRole('button', { name: 'Download .pdf' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download .txt' })).toBeInTheDocument();
   });
 
   it('marks only lines that differ', () => {

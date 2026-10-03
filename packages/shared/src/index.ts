@@ -7,4 +7,5 @@ export * from './keywords';
 export * from './scoring';
 export * from './interview';
 export * from './tailoring';
+export * from './export';
 export * from './fixtures/demo';

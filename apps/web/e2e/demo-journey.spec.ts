@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -97,6 +98,56 @@ test.describe('Demo journey', () => {
 
     await expect(page).toHaveURL(/\/report/);
     await expect(page.getByRole('button', { name: /print/i })).toBeVisible({ timeout: 15000 });
+    await expectNoAxeViolations(page);
+  });
+
+  test('resume tab exports DOCX and PDF in both styles (Req 7.10)', async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    await page.goto('/demo');
+    await expect(page.getByRole('heading', { name: /your analysis/i })).toBeVisible({
+      timeout: 15000,
+    });
+
+    // Add a proven keyword on the Tailor tab; the export must include it.
+    await page.getByRole('tab', { name: 'Tailor resume', exact: true }).click();
+    await press(page, /^Add REST APIs to Skills$/);
+    await expect(
+      page.getByRole('button', { name: 'Remove REST APIs from Skills' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('tab', { name: 'Resume', exact: true }).click();
+    await expect(page.getByRole('region', { name: /^Preview:/ })).toContainText(
+      'Additional skills: REST APIs',
+    );
+    await expectNoAxeViolations(page);
+
+    const styles = [
+      { label: /Your original order/, slug: 'original' },
+      { label: /Jake's Resume style/, slug: 'jake' },
+    ];
+    for (const { label, slug } of styles) {
+      // The native radio is visually hidden inside its label; select it with the keyboard.
+      const radio = page.getByRole('radio', { name: label });
+      await radio.focus();
+      await page.keyboard.press('Space');
+      await expect(radio).toBeChecked();
+      for (const [ext, magic] of [
+        ['docx', 'PK'],
+        ['pdf', '%PDF-'],
+      ] as const) {
+        const name = `amara-okonkwo-fictional-resume-${slug}.${ext}`;
+        const [download] = await Promise.all([
+          page.waitForEvent('download'),
+          press(page, new RegExp(`^Download \\.${ext}$`)),
+        ]);
+        expect(download.suggestedFilename()).toBe(name);
+        const path = testInfo.outputPath(name);
+        await download.saveAs(path);
+        const head = (await readFile(path)).subarray(0, magic.length).toString('latin1');
+        expect(head).toBe(magic);
+        await expect(page.getByText(`Downloaded ${name}.`)).toBeVisible();
+      }
+    }
     await expectNoAxeViolations(page);
   });
 

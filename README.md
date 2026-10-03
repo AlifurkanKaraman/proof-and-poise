@@ -2,6 +2,8 @@
 
 Evidence-grounded job readiness. A candidate gives a resume and a job description. Proof & Poise maps the job's competencies to verbatim resume evidence and helps the candidate tailor the resume to the job truthfully: supported changes approved one at a time, proven job keywords listed in Skills, confirmations for real experience, and a downloadable tailored resume. Step 2 is a five-question adaptive mock interview aimed at the weakest evidence, with an explainable readiness report.
 
+The tailored resume downloads as `.txt`, `.docx` or `.pdf`, in "Your original order" or a one-column "Jake's Resume" style. Files are built in the browser from the same text the Resume tab shows, with no model call; a property-tested check ensures every line appears once in the candidate's own wording and the only added text is a section heading. Layout inspired by [Jake's Resume](https://github.com/jakegut/resume) (MIT). PDF font: Crimson Text (SIL OFL 1.1, `apps/web/src/assets/fonts/crimson-text/OFL.txt`).
+
 The model writes language only. Scores, grounding checks, strength caps, follow-up decisions, and quotas are deterministic TypeScript in `packages/shared`.
 
 Built for the AWS "Zero to Shipped" Shipathon.
