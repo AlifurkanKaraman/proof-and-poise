@@ -119,6 +119,13 @@ test.describe('Demo journey', () => {
     });
     await page.getByRole('tab', { name: 'Tailor resume' }).click();
     await page.getByRole('button', { name: 'Add REST APIs to Skills' }).click();
+    // Req 14.6: the button that appears after adding a skill stays inside its card. At 375px
+    // it used to overflow, which made Linux WebKit repaint every frame and time out.
+    const view = page.getByRole('button', { name: 'View and download the tailored resume' });
+    expect(
+      await view.evaluate((b) => b.parentElement!.scrollWidth - b.parentElement!.clientWidth),
+      'card overflow (px)',
+    ).toBeLessThanOrEqual(0);
 
     const row = page
       .getByRole('listitem')

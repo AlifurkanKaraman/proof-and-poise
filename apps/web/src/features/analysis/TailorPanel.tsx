@@ -165,7 +165,9 @@ export function TailorPanel({
           </ul>
         )}
         {added.length > 0 && (
-          <Button className="mt-4" variant="secondary" onClick={onOpenResume}>
+          // Wraps at 375px (Req 14.6): unwrapped, the label overflowed the card, and Linux
+          // WebKit then repainted the whole page every frame.
+          <Button className="mt-4 whitespace-normal" variant="secondary" onClick={onOpenResume}>
             View and download the tailored resume
           </Button>
         )}
