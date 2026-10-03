@@ -107,6 +107,45 @@ describe('invokeStructured (design §7.1)', () => {
     expect(calls()[1]?.messages?.[0]?.content?.[0]?.text).toContain('duplicate ids c1');
   });
 
+  it('logs which fields failed as path and code keys, never messages or values', async () => {
+    const longQuote = demoModelOutput();
+    longQuote.competencies[0]!.jobQuote = `${DEMO_JOB.description} `.repeat(3);
+    const dup = demoModelOutput();
+    dup.competencies[1]!.id = 'c1';
+    bedrockMock.on(ConverseCommand).resolvesOnce(toolReply(longQuote)).resolvesOnce(toolReply(dup));
+    await expect(invokeStructured(deps(), request())).rejects.toMatchObject({
+      code: 'MODEL_OUTPUT_INVALID',
+    });
+    const invalid = logLines
+      .map((l) => JSON.parse(l))
+      .filter((l) => l.event === 'model_output_invalid');
+    expect(invalid.map((l) => l.issues)).toEqual([
+      ['competencies.0.jobQuote:too_big'],
+      // c2 is gone, so the recommendation that cited it fails too.
+      ['check:competencies', 'check:recommendations.0.competencyId'],
+    ]);
+    const out = logLines.join('\n');
+    expect(out).not.toContain(DEMO_JOB.description.slice(0, 40));
+    expect(out).not.toContain('duplicate ids');
+    expect(out).not.toMatch(/too big:/i);
+  });
+
+  it('logs fixed keys for missing and truncated tool calls', async () => {
+    bedrockMock
+      .on(ConverseCommand)
+      .resolvesOnce({ ...toolReply(demoModelOutput()), stopReason: 'max_tokens' })
+      .resolvesOnce({
+        output: { message: { role: 'assistant', content: [{ text: 'Sure! Here you go.' }] } },
+        stopReason: 'end_turn',
+      });
+    await expect(invokeStructured(deps(), request())).rejects.toBeInstanceOf(ApiError);
+    const keys = logLines
+      .map((l) => JSON.parse(l))
+      .filter((l) => l.event === 'model_output_invalid')
+      .map((l) => l.issues);
+    expect(keys).toEqual([['truncated'], ['no_tool_call']]);
+  });
+
   it('throws MODEL_OUTPUT_INVALID after a second failure, including missing tool calls', async () => {
     bedrockMock.on(ConverseCommand).resolves({
       output: { message: { role: 'assistant', content: [{ text: 'Sure! Here you go.' }] } },
@@ -219,7 +258,9 @@ describe('invokeStructured (design §7.1)', () => {
     const out = logLines.join('\n');
     expect(out).not.toContain('Amara');
     expect(out).not.toContain('Python');
-    expect(out).not.toContain('seniority');
+    // The failing field's path and Zod code are logged; its value never is.
+    expect(out).not.toContain('principal');
+    expect(out).toContain('"issues":["seniority:invalid_value"]');
     const call = logLines.map((l) => JSON.parse(l)).find((l) => l.event === 'model_call');
     expect(call).toMatchObject({
       task: 'analyze',

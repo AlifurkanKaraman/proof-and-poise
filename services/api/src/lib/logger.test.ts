@@ -66,6 +66,18 @@ describe('logger redaction (Req 15.3)', () => {
     });
   });
 
+  it('keeps validation issue keys but drops free-text entries and caps the list', () => {
+    expect(
+      pickAllowed({
+        issues: ['competencies.3.jobQuote:too_big', `check:${SECRET_RESUME}`, 42, 'x\ny'],
+      }),
+    ).toEqual({ issues: ['competencies.3.jobQuote:too_big'] });
+    expect(pickAllowed({ issues: [SECRET_RESUME.repeat(5)] })).toEqual({});
+    expect(pickAllowed({ issues: 'check:keywords' })).toEqual({});
+    const many = Array.from({ length: 30 }, (_, i) => `keywords.${i}.term:too_big`);
+    expect(pickAllowed({ issues: many }).issues).toHaveLength(20);
+  });
+
   it('logs errors as { code, name } only, never the message or stack', () => {
     const { lines, log } = capture();
     const err = Object.assign(new Error(`Validation failed for ${SECRET_ANSWER}`), {
