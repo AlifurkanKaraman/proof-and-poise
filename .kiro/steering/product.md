@@ -15,8 +15,8 @@ Source of truth: `.kiro/specs/proof-and-poise/` (`requirements.md`, `design.md`,
 
 ## Current scope (from tasks.md and the working tree)
 
-- Done: tasks 1–21, 23, and 24 (bootstrap through report/practice, Amplify hosting, prod stage with alarms and budgets), the code part of 22, drafted docs for 25, and resume tailoring as the main flow (design §7.6, Req 7.9; PR #34 into `develop`). Production runs at https://main.d1tn5k7jq2sjsu.amplifyapp.com (prod API) and https://develop.d1tn5k7jq2sjsu.amplifyapp.com (dev API). Answers are typed; recorded answers are built but switched off because the account isn't subscribed to Amazon Transcribe. See `HANDOFF.md`.
-- Left: manual accessibility checks (22) and the `TODO(user)` doc items (25).
+- Done: tasks 1–24 (bootstrap through report/practice, Amplify hosting, accessibility audit with a manual iOS Safari and VoiceOver pass, prod stage with alarms and budgets), drafted docs for 25, resume tailoring as the main flow (design §7.6, Req 7.9; PR #34, released to `main` in #35), the UI redesign (#30), and Tailor confirmations matching the API (Req 8.1; #37). #30, #36, #37, and #38 are on `develop`, not yet released to `main`. Production runs at https://main.d1tn5k7jq2sjsu.amplifyapp.com (prod API) and https://develop.d1tn5k7jq2sjsu.amplifyapp.com (dev API). Answers are typed; recorded answers are built but switched off because the account isn't subscribed to Amazon Transcribe. See `HANDOFF.md`.
+- Left: the `TODO(user)` doc items (25; PR #39 open) and a release from `develop` to `main`.
 - Out of MVP scope: the "Post-hackathon" list in requirements.md (Cognito, Polly, mobile app, etc.). `apps/mobile/` is a README only.
 
 - Planned, not started: `.kiro/specs/evaluator-upgrade/` (structured requirements, source offsets, versioned scoring). Not current behavior.
