@@ -1,6 +1,6 @@
 # Screenshots
 
-App screenshots come from the fictional demo session (MSW mock, `dev:mock`). Desktop shots are full-page captures at 1600 px wide; `mobile-375.png` is a 375 px viewport at device scale.
+App screenshots come from the fictional demo session (MSW mock, `dev:mock`) and were regenerated on 2026-10-02 after the visual redesign. Desktop shots are full-page captures at 1600 px wide; `mobile-375.png` is a 375 px viewport at device scale.
 
 Before adding any image, review it for credentials, AWS account IDs, ARNs, API IDs, bucket names, URLs with IDs, email addresses, and personal data, and blur or crop them (Req 18.3). Use the fictional demo session only.
 
@@ -17,6 +17,7 @@ Before adding any image, review it for credentials, AWS account IDs, ARNs, API I
 - [x] `tailor.png`: Tailor resume tab (proven keywords added to Skills, gaps to confirm).
 - [x] `tailored-resume.png`: tailored resume with the changed line marked.
 - [x] `interview.png`: interview answer feedback.
+- [x] `interview-followup.png`: the guaranteed follow-up question (1a) after an answer.
 - [x] `report.png`: readiness report.
 - [x] `mobile-375.png`: Tailor resume tab at 375 px.
 - [ ] `TODO(user): cost-explorer.png`: Cost Explorer total (redacted).
