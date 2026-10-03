@@ -8,7 +8,7 @@ Before adding any image, review it for credentials, AWS account IDs, ARNs, API I
 
 - [ ] `TODO(user): kiro-spec.png`: Kiro spec view (requirements, design, tasks).
 - [ ] `TODO(user): kiro-task-execution.png`: a spec task run with tests passing.
-- [ ] `TODO(user): kiro-aws-mcp.png`: Kiro connected to AWS through the Agent Toolkit MCP server (redacted).
+- [ ] `TODO(user): kiro-aws-mcp.png`: Kiro using an AWS MCP server (account ID and ARNs redacted).
 - [ ] `TODO(user): kiro-steering-skills.png`: steering and skills.
 - [x] `landing.png`: landing page.
 - [x] `analysis-overview.png`: analysis overview with score rings.
