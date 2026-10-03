@@ -11,7 +11,7 @@ import { ApiError } from '../lib/errors';
 import { createLogger } from '../lib/logger';
 import { demoModelOutput } from '../test/fixtures';
 import { invokeStructured, type ModelDeps } from './invokeStructured';
-import { ANALYZE_TOOL_NAME, analyzeRequest } from './prompts/analyze';
+import { ANALYZE_TOOL_NAME, analyzeRequest, isUsableCompetency } from './prompts/analyze';
 import { toolInputSchema } from './tools';
 
 const bedrockMock = mockClient(BedrockRuntimeClient);
@@ -108,11 +108,11 @@ describe('invokeStructured (design §7.1)', () => {
   });
 
   it('logs which fields failed as path and code keys, never messages or values', async () => {
-    const longQuote = demoModelOutput();
-    longQuote.competencies[0]!.jobQuote = `${DEMO_JOB.description} `.repeat(3);
+    const longName = demoModelOutput();
+    longName.competencies[0]!.name = `${DEMO_JOB.description} `.repeat(3);
     const dup = demoModelOutput();
     dup.competencies[1]!.id = 'c1';
-    bedrockMock.on(ConverseCommand).resolvesOnce(toolReply(longQuote)).resolvesOnce(toolReply(dup));
+    bedrockMock.on(ConverseCommand).resolvesOnce(toolReply(longName)).resolvesOnce(toolReply(dup));
     await expect(invokeStructured(deps(), request())).rejects.toMatchObject({
       code: 'MODEL_OUTPUT_INVALID',
     });
@@ -120,7 +120,7 @@ describe('invokeStructured (design §7.1)', () => {
       .map((l) => JSON.parse(l))
       .filter((l) => l.event === 'model_output_invalid');
     expect(invalid.map((l) => l.issues)).toEqual([
-      ['competencies.0.jobQuote:too_big'],
+      ['competencies.0.name:too_big'],
       // c2 is gone, so the recommendation that cited it fails too.
       ['check:competencies', 'check:recommendations.0.competencyId'],
     ]);
@@ -128,6 +128,26 @@ describe('invokeStructured (design §7.1)', () => {
     expect(out).not.toContain(DEMO_JOB.description.slice(0, 40));
     expect(out).not.toContain('duplicate ids');
     expect(out).not.toMatch(/too big:/i);
+  });
+
+  it('accepts a whole over-long qualification line as jobQuote by clipping it (design §7.4)', async () => {
+    // Regression: a ~230-char job line copied whole failed both attempts as
+    // `competencies.N.jobQuote:too_big` and the analysis ended MODEL_OUTPUT_INVALID.
+    const line =
+      'Experience with operational parameters and troubleshooting for three (3) of the following: compute/storage/networking/CDN/databases/DevOps/big data and analytics/security/applications development in a distributed systems environment';
+    expect(line.length).toBeGreaterThan(LIMITS.analysis.jobQuote.maxChars);
+    const job = { ...DEMO_JOB, description: `${DEMO_JOB.description}\n- ${line}` };
+    const output = demoModelOutput();
+    output.competencies[0]!.jobQuote = line;
+    bedrockMock.on(ConverseCommand).resolves(toolReply(output));
+
+    const result = await invokeStructured(deps(), analyzeRequest(DEMO_RESUME_TEXT, job));
+    expect(calls()).toHaveLength(1);
+    const quote = result.competencies[0]!.jobQuote;
+    expect(quote).toBe(line.slice(0, LIMITS.analysis.jobQuote.maxChars));
+    expect(isUsableCompetency({ name: result.competencies[0]!.name, jobQuote: quote }, job)).toBe(
+      true,
+    );
   });
 
   it('logs fixed keys for missing and truncated tool calls', async () => {

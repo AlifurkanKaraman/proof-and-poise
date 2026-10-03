@@ -54,7 +54,7 @@ export const LIMITS = {
     keywords: { min: 8, max: 30 },
     recommendations: { max: 10 },
     evidencePerCompetency: { max: 5 },
-    /** Each competency cites the job phrase it comes from (design §7.4). */
+    /** Each competency cites the job phrase it comes from (design §7.4); longer quotes are clipped. */
     jobQuote: { maxChars: 200 },
     /** A `rewording_only` card must change at least this many words to be worth showing. */
     minRewordingChangedWords: 3,
