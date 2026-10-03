@@ -28,6 +28,8 @@ Per-function IAM roles scoped to the table, the S3 prefixes, the salt parameter,
 
 `services/api/src/lib/logger.ts` writes only an allowlisted, typed field set: request ID, route, status, latency, error code, token counts, duration, model task, attempt, discard counts, and stop reason. String values must match an identifier pattern. Errors are logged as `{ code, name }`, never `message`, because SDK messages can echo input. Resume text, job text, answers, transcripts, and model prompts or outputs are never logged. `logger.test.ts` checks the redaction (Req 15.3).
 
+Prod log review (task 23, 2026-10-02): the api and worker log groups after the account owner's full run with a real resume contained allowlisted fields only, with no resume, answer, or token content, and no unhandled errors or timeouts. The only errors were the expected Transcribe `SubscriptionRequiredException`.
+
 ## Prompt and model safety
 
 - User content is wrapped in delimited tags, and the system prompt says to treat it as data (Req 15.5).
@@ -45,10 +47,9 @@ Per-function IAM roles scoped to the table, the S3 prefixes, the salt parameter,
 ## Network
 
 - S3: block all public access, TLS only, SSE-S3. Uploads use presigned POSTs with content-type and size conditions and a 300 s expiry.
-- CORS on the API and bucket allows only configured origins (`infrastructure/cdk.json`). Today that's `http://localhost:5173`; Amplify domains are added with task 10. Wildcards are rejected by `infrastructure/lib/config.ts`.
+- CORS on the API and bucket allows only configured origins (`infrastructure/cdk.json`). `http://localhost:5173` is always allowed; `dev` adds `https://develop.d1tn5k7jq2sjsu.amplifyapp.com` and `prod` adds `https://main.d1tn5k7jq2sjsu.amplifyapp.com`. Wildcards, paths, and non-https origins are rejected by `infrastructure/lib/config.ts`. CORS from the Amplify domain was checked on `prod` on 2026-10-02.
 
 ## Known gaps
 
 - No WAF, Bedrock Guardrails, or customer-managed KMS keys (post-hackathon P6).
-- No CloudWatch alarms yet (task 23).
-- The CloudWatch log review for content leakage after a full run (task 23) hasn't been done yet. `TODO(user): record the result of that review.`
+- CloudWatch alarms (API and worker Lambda errors, API 5xx) email through SNS, but nothing acts on them automatically.

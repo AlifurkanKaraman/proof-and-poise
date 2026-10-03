@@ -37,6 +37,7 @@
 
   /* Prevent page breaks inside elements */
   .rounded-lg,
+  .rounded-xl,
   .border,
   section,
   article,
@@ -51,14 +52,22 @@
   .bg-indigo-50,
   .bg-emerald-50,
   .bg-amber-50,
-  .bg-error-50 {
+  .bg-indigo-100,
+  .bg-emerald-100,
+  .bg-amber-100,
+  .bg-red-100,
+  .bg-ink-100,
+  .bg-red-50 {
     background: white !important;
   }
 
   .border-line-200,
   .border-indigo-600\/20,
   .border-emerald-700\/20,
-  .border-amber-700\/20 {
+  .border-amber-700\/20,
+  .border-indigo-100,
+  .border-emerald-100,
+  .border-amber-100 {
     border: 1px solid #ccc !important;
   }
 
@@ -76,7 +85,7 @@
   .text-indigo-700,
   .text-emerald-700,
   .text-amber-700,
-  .text-error-700 {
+  .text-red-700 {
     color: #333 !important;
   }
 

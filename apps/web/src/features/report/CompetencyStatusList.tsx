@@ -1,6 +1,7 @@
-import { CheckCircle, Circle, TrendingUp, XCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Target, TrendingUp, type LucideIcon } from 'lucide-react';
 import type { Report } from '@proof-and-poise/shared';
-import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Card } from '../../components/ui/Card';
+import { StatusBadge, type EvidenceStatus } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
 
 type ReportCompetency = Report['competencies'][number];
@@ -10,36 +11,25 @@ interface CompetencyStatusListProps {
   className?: string;
 }
 
-const READINESS_CONFIG = {
-  ready: {
-    icon: CheckCircle,
-    color: 'text-emerald-700',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-700/20',
-    label: 'Ready',
-  },
+const READINESS_CONFIG: Record<
+  ReportCompetency['readiness'],
+  { icon: LucideIcon; color: string; label: string; badge: EvidenceStatus }
+> = {
+  ready: { icon: CheckCircle2, color: 'text-emerald-700', label: 'Ready', badge: 'verified' },
   developing: {
     icon: TrendingUp,
-    color: 'text-indigo-600',
-    bg: 'bg-indigo-50',
-    border: 'border-indigo-600/20',
+    color: 'text-indigo-700',
     label: 'Developing',
+    badge: 'rewording',
   },
   needs_practice: {
-    icon: XCircle,
+    icon: Target,
     color: 'text-amber-700',
-    bg: 'bg-amber-50',
-    border: 'border-amber-700/20',
     label: 'Needs Practice',
+    badge: 'weak',
   },
-  not_assessed: {
-    icon: Circle,
-    color: 'text-ink-500',
-    bg: 'bg-ink-50',
-    border: 'border-ink-500/20',
-    label: 'Not Assessed',
-  },
-} as const;
+  not_assessed: { icon: Circle, color: 'text-ink-700', label: 'Not Assessed', badge: 'missing' },
+};
 
 /**
  * Per-competency status list (Req 12.1).
@@ -47,10 +37,10 @@ const READINESS_CONFIG = {
  */
 export function CompetencyStatusList({ competencies, className }: CompetencyStatusListProps) {
   return (
-    <div className={cn('rounded-lg border border-line-200 bg-paper-0 p-6', className)}>
-      <h2 className="mb-4 text-h3 font-semibold text-ink-950">Competency Status</h2>
+    <Card className={className}>
+      <h2 className="mb-4 font-heading text-h3 font-semibold text-ink-950">Competency Status</h2>
 
-      <ul className="grid grid-cols-1 gap-3">
+      <ul className="divide-y divide-line-200">
         {competencies.map((competency) => {
           const config = READINESS_CONFIG[competency.readiness];
           const Icon = config.icon;
@@ -58,32 +48,22 @@ export function CompetencyStatusList({ competencies, className }: CompetencyStat
           return (
             <li
               key={competency.competencyId}
-              className={cn('flex items-start gap-3 rounded border p-4', config.border, config.bg)}
+              className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
             >
-              <Icon className={cn('size-5 shrink-0', config.color)} aria-hidden />
-              <div className="flex-1">
+              <Icon className={cn('size-5 shrink-0', config.color)} aria-hidden="true" />
+              <div className="min-w-0 flex-1">
                 <p className="text-small font-semibold text-ink-950">{competency.name}</p>
                 {competency.bestScore !== null && (
-                  <p className="mt-1 text-caption text-ink-700">
+                  <p className="text-caption text-ink-700">
                     Best answer score: {competency.bestScore.toFixed(1)} / 4
                   </p>
                 )}
               </div>
-              <StatusBadge
-                status={
-                  competency.readiness === 'ready'
-                    ? 'verified'
-                    : competency.readiness === 'needs_practice'
-                      ? 'weak'
-                      : 'missing'
-                }
-                label={config.label}
-                className="shrink-0"
-              />
+              <StatusBadge status={config.badge} label={config.label} className="shrink-0" />
             </li>
           );
         })}
       </ul>
-    </div>
+    </Card>
   );
 }

@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
+import { FileSearch } from 'lucide-react';
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { IconTile } from '../../components/ui/IconTile';
 import { StatusBadge, statusConfig } from '../../components/ui/StatusBadge';
-import { useMotionPreset } from '../../design/useReducedMotion';
+import { transitions } from '../../design/motion';
+import { useMotionPreset, useReducedMotion } from '../../design/useReducedMotion';
 import { cn, focusRing } from '../../lib/cn';
 import {
   previewCompetencies,
@@ -21,6 +24,7 @@ import {
 export function EvidenceThreadPreview() {
   const [selectedId, setSelectedId] = useState(previewCompetencies[0]?.id ?? '');
   const radios = useRef<(HTMLButtonElement | null)[]>([]);
+  const reduced = useReducedMotion();
   const baseId = useId();
   const evidenceId = `${baseId}-evidence`;
   const statusId = `${baseId}-status`;
@@ -53,17 +57,24 @@ export function EvidenceThreadPreview() {
   };
 
   return (
-    <section
+    // One entrance on load: the card rises into place (transform only, so contrast never changes).
+    <motion.section
       aria-labelledby={labelId}
-      className="rounded-xl border border-line-200 bg-paper-0 p-4 text-ink-950 shadow-md sm:p-6"
+      initial={reduced ? false : { y: 16 }}
+      animate={{ y: 0 }}
+      transition={reduced ? transitions.instant : transitions.reveal}
+      className="rounded-xl border border-line-200 bg-paper-0 p-4 text-ink-950 shadow-lift sm:p-6"
     >
-      <header className="flex flex-col gap-1">
-        <h2 id={labelId} className="text-h4 font-bold">
-          Interactive preview
-        </h2>
-        <p className="text-caption text-ink-700">
-          Fictional sample: {previewProfile.candidate} applying for {previewProfile.job}.
-        </p>
+      <header className="flex items-start gap-3">
+        <IconTile icon={FileSearch} tone="indigo" size="md" />
+        <div className="flex flex-col gap-1">
+          <h2 id={labelId} className="text-h4 font-bold">
+            Interactive preview
+          </h2>
+          <p className="text-caption text-ink-700">
+            Fictional sample: {previewProfile.candidate} applying for {previewProfile.job}.
+          </p>
+        </div>
       </header>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -93,11 +104,11 @@ export function EvidenceThreadPreview() {
                   onClick={() => setSelectedId(c.id)}
                   onKeyDown={(e) => onKeyDown(e, index)}
                   className={cn(
-                    'flex min-h-11 flex-col items-start gap-1 rounded-md border px-3 py-2 text-left',
+                    'flex min-h-11 flex-col items-start gap-1 rounded-lg border px-3 py-2 text-left',
                     'transition-colors duration-micro ease-standard',
                     checked
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-line-200 bg-paper-0 hover:bg-paper-50',
+                      ? 'border-indigo-600 bg-indigo-50 shadow-xs'
+                      : 'border-line-200 bg-paper-0 hover:bg-ink-100',
                     focusRing,
                   )}
                 >
@@ -126,18 +137,32 @@ export function EvidenceThreadPreview() {
                   key={line.id}
                   data-linked={isLinked || undefined}
                   className={cn(
-                    'relative rounded-md border py-2 pr-3 pl-6 text-small transition-colors duration-standard ease-standard',
+                    'relative rounded-lg border py-2 pr-3 pl-6 text-small transition-colors duration-standard ease-standard',
                     isLinked && selected?.status === 'verified'
-                      ? 'border-emerald-700/30 bg-emerald-50'
+                      ? 'border-emerald-700/30 bg-paper-0'
                       : isLinked
-                        ? 'border-dashed border-amber-700/50 bg-amber-50'
+                        ? 'border-dashed border-amber-700/50 bg-paper-0'
                         : 'border-line-200 bg-paper-50 text-ink-700',
                   )}
                 >
                   {isLinked && selected && <Thread key={selected.id} status={selected.status} />}
                   <span className="block text-caption text-ink-700">{line.section}</span>
                   {isLinked && <span className="sr-only">Linked evidence: </span>}
-                  {line.text}
+                  {isLinked ? (
+                    // Marker highlight: the proof itself is what gets marked.
+                    <mark
+                      className={cn(
+                        'rounded-sm px-0.5 box-decoration-clone text-ink-950',
+                        selected?.status === 'verified'
+                          ? 'bg-indigo-100'
+                          : 'bg-amber-100 underline decoration-amber-700 decoration-dashed underline-offset-4',
+                      )}
+                    >
+                      {line.text}
+                    </mark>
+                  ) : (
+                    line.text
+                  )}
                 </li>
               );
             })}
@@ -166,7 +191,7 @@ export function EvidenceThreadPreview() {
       >
         {selected && describe(selected)}
       </p>
-    </section>
+    </motion.section>
   );
 }
 

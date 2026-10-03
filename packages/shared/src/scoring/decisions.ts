@@ -114,6 +114,10 @@ export type ConfirmationResult =
 export const confirmedCount = (map: Pick<EvidenceMap, 'competencies'>): number =>
   map.competencies.filter((c) => c.confirmationState === 'confirmed').length;
 
+/** Whether the candidate can still confirm experience for `c`: weak or none, not yet confirmed (Req 8.1). */
+export const canConfirm = (c: Pick<Competency, 'strength' | 'confirmationState'>): boolean =>
+  c.confirmationState !== 'confirmed' && (c.strength === 'weak' || c.strength === 'none');
+
 const raiseTo = (a: Strength, floor: Strength): Strength =>
   STRENGTH_ORDER.indexOf(a) >= STRENGTH_ORDER.indexOf(floor) ? a : floor;
 

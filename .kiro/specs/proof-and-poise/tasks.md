@@ -131,7 +131,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
   - `POST/GET /report` (deterministic scores plus the narrative model call, validated, idempotent) and `POST /practice` (creates a practice turn, reuses the answer evaluation, best-attempt readiness, score event).
   - deps: 17. _Requirements: 6.2, 12.1–12.3, 12.5_
 
-- [ ] 22. [A] Quality pass: accessibility, responsive, states
+- [x] 22. [A] Quality pass: accessibility, responsive, states
   - axe on every screen, a keyboard-only run, a focus-order review, contrast checks, and the reduced-motion check. Verify 375, 768, and 1280 widths and 44 px touch targets. Audit every screen for its loading, empty, and error states. Audit for any button that does nothing.
   - The Playwright demo journey spec (MSW) at 1280 and 375, plus axe assertions, added to CI.
   - deps: 12, 15, 19. _Requirements: 14.2–14.6, 14.9, 17.2–17.3_
