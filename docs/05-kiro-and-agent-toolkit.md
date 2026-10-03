@@ -1,6 +1,6 @@
 # 05. Kiro and the Agent Toolkit for AWS
 
-Proof & Poise was built spec-first in Kiro by two developers in about five days. Everything below is in the repo except where marked `TODO(user)`.
+Proof & Poise was built spec-first in Kiro by two developers in about five days. Everything below is in the repo, except the MCP servers, which are shown in a screenshot.
 
 ## Spec-driven workflow
 
@@ -55,9 +55,7 @@ Two hooks live in `.kiro/hooks/` (added on 2026-10-02 in PR #38). Both run read-
 
 ## MCP servers
 
-No MCP configuration is committed to the repo, so this section can't be verified from code. `TODO(user): confirm which of these servers were used during the hackathon, and for which tasks.`
-
-Installed in the owner's Kiro:
+No MCP configuration is committed to the repo. The screenshot below (2026-10-02) shows these five servers connected in the owner's Kiro. The repo doesn't record which task used which server, so the uses below are the typical ones, not a log.
 
 - `awslabs.aws-iac-mcp-server` (Kiro Power "aws-infrastructure-as-code"): CDK documentation, CloudFormation template validation, cfn-lint, and cfn-guard. Likely used for the CDK stack in `infrastructure/` (tasks 4, 8, 23).
 - `awslabs.aws-documentation-mcp-server`: AWS documentation lookups, for example Bedrock Converse and Nova Lite limits, Lambda quotas, and Transcribe subscription errors.
@@ -65,9 +63,9 @@ Installed in the owner's Kiro:
 - `context7`: current library documentation (for example React Router, TanStack Query, Zod, Vitest).
 - `postman`: installed; no API collection is committed.
 
-Earlier drafts named the "Agent Toolkit for AWS MCP server". `TODO(user): confirm whether the Agent Toolkit for AWS was used, or whether the servers above are the full list.`
+These five are the full list. Earlier drafts named an "Agent Toolkit for AWS MCP server"; that wasn't one of them.
 
-![Kiro connected to AWS through an MCP server, redacted](screenshots/kiro-aws-mcp.png)
+![Kiro MCP Servers panel: AWS documentation, Playwright, Postman, Context7, and AWS infrastructure-as-code servers connected](screenshots/kiro-aws-mcp.png)
 
 ## How Kiro and AWS gates worked together
 
@@ -81,11 +79,8 @@ The steering made AWS actions explicit decisions. `cdk bootstrap`, `cdk deploy`,
 
 Redact account IDs, ARNs, API IDs, bucket names, URLs, and personal data before committing (Req 18.3). Store them in [screenshots/](screenshots/README.md).
 
-![Kiro spec view with requirements, design, and tasks](screenshots/kiro-spec.png)
+![Kiro Specs panel: the proof-and-poise and evaluator-upgrade specs, each with requirements, design, and tasks](screenshots/kiro-spec.png)
 
-![A spec task run in Kiro with property tests passing](screenshots/kiro-task-execution.png)
+![The proof-and-poise task list in Kiro, with completed tasks and links to the sessions that ran them](screenshots/kiro-task-execution.png)
 
-- `TODO(user): add kiro-spec.png (Kiro spec view: requirements, design, tasks) to docs/screenshots/.`
-- `TODO(user): add kiro-task-execution.png (a spec task run with property tests passing) to docs/screenshots/.`
-- `TODO(user): add kiro-aws-mcp.png (Kiro using an AWS MCP server, account ID and ARNs redacted) to docs/screenshots/.`
-- `TODO(user): add kiro-steering-skills.png (steering and skills in the Kiro panel) to docs/screenshots/.`
+![Kiro Agent Steering and Skills panel listing the workspace steering files and skills](screenshots/kiro-steering-skills.png)

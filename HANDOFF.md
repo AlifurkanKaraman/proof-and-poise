@@ -32,7 +32,7 @@ Run `git switch develop && git pull`, then start each change on its own `feature
 ## What recent work added
 
 - **Analysis** (`services/api/src/ai/prompts/analyze.ts`, `services/evidenceMapBuilder.ts`): every competency cites a verbatim `jobQuote` and keywords must appear in the job; working-condition requirements are dropped; one resume line caps strength at moderate (Education exempt); trivial, padded, or heading rewordings are dropped. Live eval results vary by run: `docs/analysis-prompt-evaluation.md`.
-- **Analysis UI**: accept/reject/undo with score toasts, "I have this experience" confirmation dialog, Resume tab with Copy as text and Download .txt.
+- **Analysis UI**: accept/reject/undo with score toasts, "I have this experience" confirmation dialog, Resume tab with DOCX/PDF download in two styles (PR #43).
 - **Resume tailoring** (#34, design §7.6): a Tailor resume tab (`features/analysis/TailorPanel.tsx`), step 1 from Overview's "Tailor my resume". Pure helpers in `packages/shared/src/tailoring/tailor.ts`: `tailoringPlan` (proven keywords to add to Skills, and keywords the resume doesn't show), `applySkillAdditions`, `findSkillsSection`, `scoreTrail` (score at analysis → now). No model call; added skills live in memory only, so a reload starts again from the saved analysis.
 - **Confirmations** (#37, Req 8.1): `canConfirm` in `packages/shared/src/scoring/decisions.ts` (weak or none, not yet confirmed). The UI only offers eligible confirmations, a confirmed keyword stays "Confirmed by you", and not-eligible or conflict errors show Close instead of Retry. The MSW mock now runs the shared `applyConfirmation` with the API's checks in the same order, and returns `fields` on errors.
 - **Redesign** (#30): `app/JourneyNav.tsx` (Prepare → Analysis → Interview → Report from the URL), `components/ui/Card.tsx` and `IconTile.tsx`; Button is now `font-semibold` and `rounded-lg`.
@@ -53,7 +53,7 @@ Run `git switch develop && git pull`, then start each change on its own `feature
 
 - **Task 25** [AB]: review and merge PR #39 (submission docs), then fill whatever `TODO(user)` items are still left in `docs/` (Cost Explorer figure, Kiro screenshots, demo video, team names, dates).
 - **Release** [AB]: a PR from `develop` into `main` to ship #36, #30, #38, and #37 to production (Amplify web build only).
-- After the hackathon: enable Transcribe and flip `FEATURES.recordedAnswers`; split analysis into a job-requirements call and an evidence call; DOCX/PDF export (P2); NVDA and Firefox accessibility passes.
+- After the hackathon: enable Transcribe and flip `FEATURES.recordedAnswers`; split analysis into a job-requirements call and an evidence call; NVDA and Firefox accessibility passes.
 
 ## Known issues
 

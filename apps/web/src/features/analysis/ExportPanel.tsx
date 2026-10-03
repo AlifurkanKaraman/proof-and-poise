@@ -118,8 +118,11 @@ export function ExportPanel({ text }: { text: string }) {
         copy your PDF's design.
       </p>
 
-      <ExportPreview layout={layout} label={`Preview: ${styleTitle}`} />
+      {/* Remount per style so no preview node is reused across different child shapes. */}
+      <ExportPreview key={style} layout={layout} label={`Preview: ${styleTitle}`} />
 
+      {/* Text next to a conditional icon or spinner stays in its own element, so extensions or
+          translators that rewrite text nodes can't break React's DOM insertions (design §7.7). */}
       <div className="flex flex-wrap gap-2">
         <Button
           variant="secondary"
@@ -128,7 +131,7 @@ export function ExportPanel({ text }: { text: string }) {
           onClick={() => void generate('docx')}
         >
           {busy !== 'docx' && <FileText aria-hidden="true" className="size-4" />}
-          Download .docx
+          <span>Download .docx</span>
         </Button>
         <Button
           variant="secondary"
@@ -137,16 +140,16 @@ export function ExportPanel({ text }: { text: string }) {
           onClick={() => void generate('pdf')}
         >
           {busy !== 'pdf' && <FileDown aria-hidden="true" className="size-4" />}
-          Download .pdf
+          <span>Download .pdf</span>
         </Button>
       </div>
 
       <p aria-live="polite" className="flex min-h-5 items-center gap-2 text-small text-ink-700">
-        {status.kind === 'busy' && `Creating your .${status.format}…`}
+        {status.kind === 'busy' && <span>{`Creating your .${status.format}…`}</span>}
         {status.kind === 'done' && (
           <>
             <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-emerald-700" />
-            {`Downloaded ${status.file}.`}
+            <span>{`Downloaded ${status.file}.`}</span>
           </>
         )}
       </p>
@@ -154,7 +157,7 @@ export function ExportPanel({ text }: { text: string }) {
       {status.kind === 'error' && (
         <ErrorState
           title="Couldn't create the file"
-          message="Nothing left your browser. Try again, or use Download .txt."
+          message="Nothing left your browser. Try again, or choose the other format."
           action={<Button onClick={() => void generate(status.format)}>Retry</Button>}
         />
       )}

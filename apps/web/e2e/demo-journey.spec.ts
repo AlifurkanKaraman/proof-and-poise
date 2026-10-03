@@ -24,6 +24,18 @@ async function expectNoAxeViolations(page: Page) {
   expect(results.violations).toEqual([]);
 }
 
+const EXPORT_STYLES = [
+  { label: /Your original order/, slug: 'original' },
+  { label: /Jake's Resume style/, slug: 'jake' },
+];
+
+/** After a download the Resume tab is still on screen, not the route error boundary. */
+async function expectResumeTabRendered(page: Page) {
+  await expect(page.getByRole('heading', { name: 'Tailored resume' })).toBeVisible();
+  await expect(page.getByText('This screen failed to load')).toHaveCount(0);
+  await expect(page.getByText("Couldn't show the download options")).toHaveCount(0);
+}
+
 test.describe('Demo journey', () => {
   test('landing → demo → analysis with accessibility checks', async ({ page }) => {
     await page.goto('/');
@@ -120,12 +132,10 @@ test.describe('Demo journey', () => {
       'Additional skills: REST APIs',
     );
     await expectNoAxeViolations(page);
+    // DOCX/PDF replace the old plain-text copy and .txt download.
+    await expect(page.getByRole('button', { name: /copy as text|download \.txt/i })).toHaveCount(0);
 
-    const styles = [
-      { label: /Your original order/, slug: 'original' },
-      { label: /Jake's Resume style/, slug: 'jake' },
-    ];
-    for (const { label, slug } of styles) {
+    for (const { label, slug } of EXPORT_STYLES) {
       // The native radio is visually hidden inside its label; select it with the keyboard.
       const radio = page.getByRole('radio', { name: label });
       await radio.focus();
@@ -146,9 +156,67 @@ test.describe('Demo journey', () => {
         const head = (await readFile(path)).subarray(0, magic.length).toString('latin1');
         expect(head).toBe(magic);
         await expect(page.getByText(`Downloaded ${name}.`)).toBeVisible();
+        await expectResumeTabRendered(page);
       }
     }
     await expectNoAxeViolations(page);
+  });
+
+  // Regression: an extension or translator that wraps page text in <font> made React's
+  // insertBefore throw NotFoundError after a download, replacing the screen with the route
+  // error boundary (design §7.7).
+  test('resume export survives an extension that rewrites text nodes (insertBefore crash)', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const consoleTexts: string[] = [];
+    page.on('console', (m) => consoleTexts.push(m.text()));
+    page.on('pageerror', (e) => consoleTexts.push(String(e)));
+    await page.goto('/demo');
+    await expect(page.getByRole('heading', { name: /your analysis/i })).toBeVisible({
+      timeout: 15000,
+    });
+    await page.getByRole('tab', { name: 'Resume', exact: true }).click();
+    await expect(page.locator('section[aria-labelledby="export-heading"]')).toBeVisible();
+    await page.evaluate(() => {
+      const root = document.querySelector('section[aria-labelledby="export-heading"]');
+      if (!root) throw new Error('export section missing');
+      const wrap = () => {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const nodes: Text[] = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+        for (const node of nodes) {
+          if (node.data.trim() === '' || node.parentElement?.tagName === 'FONT') continue;
+          const font = document.createElement('font');
+          node.replaceWith(font);
+          font.append(node);
+        }
+      };
+      new MutationObserver(wrap).observe(root, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+      wrap();
+    });
+
+    for (const { label, slug } of EXPORT_STYLES) {
+      const radio = page.getByRole('radio', { name: label });
+      await radio.focus();
+      await page.keyboard.press('Space');
+      await expect(radio).toBeChecked();
+      for (const ext of ['docx', 'pdf'] as const) {
+        const name = `amara-okonkwo-fictional-resume-${slug}.${ext}`;
+        const [download] = await Promise.all([
+          page.waitForEvent('download'),
+          press(page, new RegExp(`^Download \\.${ext}$`)),
+        ]);
+        expect(download.suggestedFilename()).toBe(name);
+        await expect(page.getByText(`Downloaded ${name}.`)).toBeVisible();
+        await expectResumeTabRendered(page);
+      }
+    }
+    expect(consoleTexts.filter((t) => /insertBefore|NotFoundError/.test(t))).toEqual([]);
   });
 
   // Regression (design §7.6, Req 8.1): a successful confirmation from the Tailor tab shows
