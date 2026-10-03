@@ -95,7 +95,8 @@ describe('mock API handlers', () => {
       strength: 'moderate',
       confirmationState: 'confirmed',
     });
-    expect(confirmation.recommendation?.trustLabel).toBe('confirmed_by_candidate');
+    // Demo sessions get no rewrite, like the API (Req 13.2).
+    expect(confirmation.recommendation).toBeUndefined();
     expect(confirmation.scoreEvent?.metric).toBe('jobMatch');
     expect(confirmation.scores.jobMatch).toBeGreaterThan(analysis.evidenceMap.scores.jobMatch);
 
@@ -184,6 +185,47 @@ describe('mock API handlers', () => {
     await expect(api.request('deleteSession', { params: p })).resolves.toBeNull();
     const gone = await apiError(api.request('getSession', { params: p }));
     expect(gone).toMatchObject({ kind: 'http', code: 'UNAUTHORIZED', status: 401 });
+  });
+
+  it('rejects confirmations exactly like the API (Req 7.5, 8.1)', async () => {
+    const sessionId = await newSession('demo');
+    const p = { sessionId };
+    const statement = 'I containerized three services with Docker and ran them on a k3s cluster.';
+    // c4 "CI/CD pipelines" is moderate, so it can't be confirmed.
+    const notEligible = await apiError(
+      api.request('createConfirmation', {
+        params: p,
+        body: { competencyId: 'c4', statement, attested: true },
+      }),
+    );
+    expect(notEligible).toMatchObject({
+      code: 'VALIDATION',
+      status: 400,
+      fields: { competencyId: 'not_eligible' },
+    });
+    await api.request('startInterview', { params: p });
+    const locked = await apiError(
+      api.request('createConfirmation', {
+        params: p,
+        body: { competencyId: 'c8', statement, attested: true },
+      }),
+    );
+    expect(locked).toMatchObject({ code: 'CONFLICT', status: 409 });
+  });
+
+  it('keeps score event ids unique after a confirmation and a decision', async () => {
+    const sessionId = await newSession('demo');
+    const p = { sessionId };
+    await api.request('createConfirmation', { params: p, body: DEMO_SAMPLE_CONFIRMATION });
+    await api.request('decideRecommendation', {
+      params: { ...p, recId: 'r1' },
+      body: { decision: 'accept' },
+    });
+    const analysis = await api.request('getAnalysis', { params: p });
+    if (analysis.status !== 'ready') throw new Error('demo analysis should be ready');
+    const ids = analysis.evidenceMap.scoreEvents.map((e) => e.id);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('moves a standard analysis through its stages to ready', async () => {

@@ -138,7 +138,7 @@ export function createHandlers(db: MockDb): HttpHandler[] {
       try {
         result = resolve({ session, params, body } as ResolverContext<RouteName>);
       } catch (e) {
-        if (e instanceof MockApiError) return errorResponse(e.code, e.message);
+        if (e instanceof MockApiError) return errorResponse(e.code, e.message, e.fields);
         return errorResponse('INTERNAL', 'Unexpected mock error.');
       }
 

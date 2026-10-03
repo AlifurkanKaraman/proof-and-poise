@@ -100,6 +100,60 @@ test.describe('Demo journey', () => {
     await expectNoAxeViolations(page);
   });
 
+  // Regression (design §7.6, Req 8.1): a successful confirmation from the Tailor tab shows
+  // no error, one score update, and the keyword as confirmed rather than as a gap.
+  test('tailor: add a skill, confirm a missing keyword, no error and one score update', async ({
+    page,
+  }) => {
+    let posts = 0;
+    page.on('request', (r) => {
+      if (r.method() === 'POST' && /\/confirmations$/.test(r.url())) posts++;
+    });
+    await page.goto('/');
+    await page
+      .getByRole('main')
+      .getByRole('link', { name: /try the demo/i })
+      .click();
+    await expect(page.getByRole('heading', { name: /your analysis/i })).toBeVisible({
+      timeout: 15000,
+    });
+    await page.getByRole('tab', { name: 'Tailor resume' }).click();
+    await page.getByRole('button', { name: 'Add REST APIs to Skills' }).click();
+    // Req 14.6: the button that appears after adding a skill stays inside its card. At 375px
+    // it used to overflow, which made Linux WebKit repaint every frame and time out.
+    const view = page.getByRole('button', { name: 'View and download the tailored resume' });
+    expect(
+      await view.evaluate((b) => b.parentElement!.scrollWidth - b.parentElement!.clientWidth),
+      'card overflow (px)',
+    ).toBeLessThanOrEqual(0);
+
+    const row = page
+      .getByRole('listitem')
+      .filter({ hasText: 'Kubernetes' })
+      .filter({ hasText: 'Not shown' });
+    await row.getByRole('button', { name: /i have this experience/i }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog
+      .getByRole('textbox')
+      .fill('I containerized three services with Docker and ran them on a k3s cluster.');
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: 'Save confirmation' }).click();
+
+    await expect(dialog).toBeHidden();
+    // Exact match: the Radix toast's aria-live announcer briefly repeats the text with a prefix.
+    await expect(
+      page.getByText('You confirmed Kubernetes and containers experience.', { exact: true }),
+    ).toHaveCount(1);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(row.getByText('Confirmed by you')).toBeVisible();
+    await expect(row.getByText('Gap: prepare to discuss it')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: 'Remove REST APIs from Skills' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(posts).toBe(1);
+    await expectNoAxeViolations(page);
+  });
+
   test('report → practice again → answer → report updates', async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/demo');

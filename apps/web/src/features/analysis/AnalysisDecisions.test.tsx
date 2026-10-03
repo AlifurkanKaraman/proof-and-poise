@@ -8,7 +8,7 @@ import { Providers } from '../../app/providers';
 import { routes } from '../../app/routes';
 import { api } from '../../lib/api';
 import { saveSession } from '../../lib/session';
-import { mswPath } from '../../mocks/handlers';
+import { errorResponse, mswPath } from '../../mocks/handlers';
 import { createMockServer } from '../../mocks/node';
 import { scoreToast } from './scoreToast';
 
@@ -120,10 +120,32 @@ describe('confirmation dialog (Req 8.1)', () => {
     expect(
       await screen.findByText(/You confirmed Kubernetes and containers experience\./),
     ).toBeInTheDocument();
-    // Now a confirmed_by_candidate change the candidate can accept.
+    // Demo sessions get no rewrite, like the API: the card stays missing evidence with no
+    // Accept, now marked as confirmed (Req 7.4, 13.2).
     const updated = card('Kubernetes and containers');
     expect(within(updated).getAllByText('Confirmed by you').length).toBeGreaterThan(0);
-    expect(within(updated).getByRole('button', { name: 'Accept' })).toBeEnabled();
+    expect(within(updated).queryByRole('button', { name: 'Accept' })).toBeNull();
+  });
+
+  it('a not-eligible rejection offers Close, not Retry', async () => {
+    server.use(
+      http.post(
+        mswPath(contractRoutes.createConfirmation.path),
+        () => errorResponse('VALIDATION', 'x', { competencyId: 'not_eligible' }),
+        { once: true },
+      ),
+    );
+    const dialog = await openDialog();
+    await userEvent.type(within(dialog).getByLabelText(/Your experience/), statement);
+    await userEvent.click(within(dialog).getByRole('checkbox'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save confirmation' }));
+
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent("Your resume already shows evidence for this, so there's");
+    expect(within(alert).queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Save confirmation' })).toBeDisabled();
+    await userEvent.click(within(alert).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('shows the quota error with a recovery action', async () => {
@@ -137,6 +159,86 @@ describe('confirmation dialog (Req 8.1)', () => {
     expect(alert).toHaveTextContent('Confirmation limit reached');
     await userEvent.click(within(alert).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+});
+
+describe('Tailor tab confirmation (design §7.6, Req 8.1)', () => {
+  const statement = 'I containerized three services with Docker and ran them on a k3s cluster.';
+
+  async function openTailor() {
+    const created = await api.request('createSession', { body: { mode: 'demo' } });
+    saveSession(created);
+    const router = createMemoryRouter(routes, {
+      initialEntries: [`/s/${created.sessionId}/analysis`],
+    });
+    render(
+      <Providers>
+        <RouterProvider router={router} />
+      </Providers>,
+    );
+    await userEvent.click(await screen.findByRole('tab', { name: 'Tailor resume' }));
+    return screen.getByRole('heading', { name: /keywords your resume doesn't show/i })
+      .parentElement!;
+  }
+
+  const row = (gaps: HTMLElement, term: string) =>
+    within(gaps).getByText(term, { selector: 'span' }).closest('li')!;
+
+  const jobMatch = () => {
+    const dd = screen.getByText('Job match', { selector: 'dt' }).nextElementSibling!;
+    const m = /\((\d+) at analysis, (\d+) now\)/.exec(dd.textContent ?? '');
+    return { atAnalysis: Number(m?.[1]), now: Number(m?.[2]) };
+  };
+
+  it('confirms once, without an error, and shows the keyword as confirmed', async () => {
+    let posts = 0;
+    const count = ({ request }: { request: Request }) => {
+      if (request.method === 'POST' && request.url.endsWith('/confirmations')) posts++;
+    };
+    server.events.on('request:start', count);
+    try {
+      const gaps = await openTailor();
+      await userEvent.click(screen.getByRole('button', { name: 'Add REST APIs to Skills' }));
+      const before = jobMatch();
+
+      await userEvent.click(
+        within(row(gaps, 'Kubernetes')).getByRole('button', { name: 'I have this experience' }),
+      );
+      const dialog = await screen.findByRole('dialog', { name: /Kubernetes and containers/ });
+      await userEvent.type(within(dialog).getByLabelText(/Your experience/), statement);
+      await userEvent.click(within(dialog).getByRole('checkbox'));
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Save confirmation' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(
+        await screen.findByText('You confirmed Kubernetes and containers experience.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(posts).toBe(1);
+
+      const k8s = row(gaps, 'Kubernetes');
+      expect(within(k8s).getByText('Confirmed by you')).toBeInTheDocument();
+      expect(within(k8s).queryByText('Gap: prepare to discuss it')).toBeNull();
+      expect(within(k8s).queryByRole('button', { name: 'I have this experience' })).toBeNull();
+      const after = jobMatch();
+      expect(after.atAnalysis).toBe(before.atAnalysis);
+      expect(after.now).toBeGreaterThan(before.now);
+      // The added skill survives the confirmation.
+      expect(screen.getByRole('button', { name: 'Remove REST APIs from Skills' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    } finally {
+      server.events.removeListener('request:start', count);
+    }
+  });
+
+  it("doesn't offer a confirmation the API would reject", async () => {
+    const gaps = await openTailor();
+    // c4 "CI/CD pipelines" is moderate, so the API rejects it as not eligible.
+    const cicd = row(gaps, 'CI/CD');
+    expect(within(cicd).queryByRole('button', { name: 'I have this experience' })).toBeNull();
+    expect(within(cicd).getByText('Gap: prepare to discuss it')).toBeInTheDocument();
   });
 });
 

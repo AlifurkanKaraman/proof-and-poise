@@ -2,6 +2,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { DEMO_EVIDENCE_MAP, DEMO_RESUME_TEXT } from '../fixtures/demo';
 import { containsTerm } from '../keywords/match';
+import { applyConfirmation, canConfirm } from '../scoring/decisions';
+import { strengthArb } from '../test/arbitraries';
 import {
   ADDED_SKILLS_LABEL,
   applySkillAdditions,
@@ -40,6 +42,68 @@ describe('tailoringPlan (design §7.6)', () => {
   it('lists required keywords first', () => {
     const req = plan.notShown.map((g) => g.required);
     expect(req).toEqual([...req].sort((a, b) => Number(b) - Number(a)));
+  });
+  it('offers only a competency the API accepts a confirmation for (Req 8.1)', () => {
+    // c4 "CI/CD pipelines" is moderate, so the API rejects a confirmation as not eligible.
+    expect(plan.notShown.find((g) => g.term === 'CI/CD')).toMatchObject({
+      competencyId: null,
+      confirmed: false,
+    });
+    expect(plan.notShown.find((g) => g.term === 'Kubernetes')).toMatchObject({
+      competencyId: 'c8',
+      confirmed: false,
+    });
+  });
+  it('marks a keyword confirmed after its competency is confirmed, never remapping it', () => {
+    const confirm = (competencyId: string) => {
+      const r = applyConfirmation({
+        map: DEMO_EVIDENCE_MAP,
+        resumeText: DEMO_RESUME_TEXT,
+        competencyId,
+        statement: 'I containerized three services with Docker and ran them on a k3s cluster.',
+        rewrite: null,
+        at: '2026-09-29T10:00:00.000Z',
+      });
+      if (!r.ok) throw new Error(r.error);
+      return tailoringPlan(r.map, DEMO_RESUME_TEXT);
+    };
+    expect(confirm('c8').notShown.find((g) => g.term === 'Kubernetes')).toMatchObject({
+      confirmed: true,
+      competencyId: null,
+    });
+    const afterOnCall = confirm('c7').notShown;
+    for (const term of ['On-call', 'Monitoring']) {
+      expect(afterOnCall.find((g) => g.term === term)).toMatchObject({
+        confirmed: true,
+        competencyId: null,
+      });
+    }
+  });
+  it('property: an offered competency can always be confirmed', () => {
+    const n = DEMO_EVIDENCE_MAP.competencies.length;
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({ strength: strengthArb, confirmed: fc.boolean() }), {
+          minLength: n,
+          maxLength: n,
+        }),
+        (states) => {
+          const competencies = DEMO_EVIDENCE_MAP.competencies.map((c, i) => ({
+            ...c,
+            strength: states[i]!.strength,
+            confirmationState: states[i]!.confirmed ? ('confirmed' as const) : ('none' as const),
+          }));
+          const p = tailoringPlan({ ...DEMO_EVIDENCE_MAP, competencies }, DEMO_RESUME_TEXT);
+          for (const g of p.notShown) {
+            if (g.confirmed) expect(g.competencyId).toBeNull();
+            if (g.competencyId !== null) {
+              const c = competencies.find((k) => k.id === g.competencyId)!;
+              expect(canConfirm(c)).toBe(true);
+            }
+          }
+        },
+      ),
+    );
   });
   it('counts a confirmation as evidence for a keyword', () => {
     const map = JSON.parse(JSON.stringify(DEMO_EVIDENCE_MAP)) as typeof DEMO_EVIDENCE_MAP;
