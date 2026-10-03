@@ -148,6 +148,9 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 - [ ] 25. [AB] Documentation and submission
   - `docs/01–14` according to design §14, the README with deploy and teardown steps, the judging map, the architecture diagram, the cost report (actual Cost Explorer figure), redacted screenshots of Kiro connected to AWS, and the submission story. A and B split the docs. Start `docs/06-timeline.md` and `05-kiro…` on D0 and update them daily.
   - deps: 24 (final numbers and screenshots). _Requirements: 18.1–18.3_
+- [x] 26. [AB] Resume export: DOCX and PDF in two styles
+  - `packages/shared/src/export/` (parse → layout → `verifyExportLayout`, property tests), `apps/web/src/features/analysis/{ExportPanel,ExportPreview}.tsx`, lazy `export/renderDocx.ts` and `export/renderPdf.ts`, Crimson Text OFL font, the demo-journey e2e download test. Design §7.7.
+  - deps: 21. _Requirements: 7.10_
 
 ## Stretch (only when task 24 is green before Oct 1 at 12:00)
 
@@ -157,7 +160,7 @@ The frontend runs in parallel against MSW mocks that are built from the same con
 ## Post-hackathon (not scheduled)
 
 - [ ]* P1. Cognito accounts and history
-- [ ]* P2. PDF/DOCX export
+- [x]* P2. PDF/DOCX export (task 26)
 - [ ]* P4. Streaming transcription
 - [ ]* P5. Expo React Native app on `packages/shared`
 - [ ]* P6. Bedrock Guardrails, KMS CMK, WAF

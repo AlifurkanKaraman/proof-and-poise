@@ -126,6 +126,7 @@ Target: AWS "Zero to Shipped" Shipathon. Submission deadline October 2, 2026. Tw
 7. THE workspace SHALL let the user view the working resume with accepted changes highlighted, and SHALL let them copy it as plain text.
 8. The analysis SHALL produce at most 10 recommendations.
 9. THE workspace SHALL offer a Tailor step that lets the user list, with one click each, job keywords their resume or confirmations already show but their Skills section doesn't, SHALL never add a keyword the resume doesn't show, SHALL show scores at analysis time next to current scores, and SHALL let the user download the tailored resume as plain text (design §7.6).
+10. THE workspace SHALL let the user download the tailored resume (the same text the Resume tab shows) as DOCX and as PDF in two styles: "Your original order" (the candidate's sections, order and wording in a clean single column) and a "Jake's Resume"-style layout (centered header; Education, Experience, Projects, Technical Skills, then other sections). Files SHALL be generated in the browser with no model call, upload or added cost. Every content line SHALL appear exactly once in its original wording (only whitespace and bullet markers normalized, and a trailing date moved to the right), the only added text SHALL be section headings from a fixed list, Unicode letters such as ş, ğ and ı SHALL render, and the PDF SHALL contain selectable text (design §7.7).
 
 ### Requirement 8: Candidate confirmation of missing or weak evidence
 
@@ -253,7 +254,7 @@ Target: AWS "Zero to Shipped" Shipathon. Submission deadline October 2, 2026. Tw
 ## Post-hackathon (explicitly out of MVP scope)
 
 - P1. Cognito accounts, saved history, and multiple jobs per user.
-- P2. PDF/DOCX export of the working resume.
+- P2. PDF/DOCX export of the working resume. Delivered in the MVP as Req 7.10.
 - P3. Amazon Polly interviewer voice. This is a stretch goal only if the whole core journey is deployed and verified by October 1 at 12:00. It should use pre-synthesized audio and a play button, never autoplay.
 - P4. Real-time streaming transcription and conversational turn-taking.
 - P5. Expo React Native app reusing `packages/shared`.
