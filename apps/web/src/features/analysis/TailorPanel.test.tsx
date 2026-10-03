@@ -60,18 +60,4 @@ describe('Tailor resume tab (design §7.6)', () => {
       within(gaps).getAllByRole('button', { name: /i have this experience/i }).length,
     ).toBeGreaterThan(0);
   });
-
-  it('downloads the tailored resume as a text file', async () => {
-    const createObjectURL = vi.fn(() => 'blob:tailored');
-    const revokeObjectURL = vi.fn();
-    Object.assign(URL, { createObjectURL, revokeObjectURL });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    renderWorkspace();
-    await userEvent.click(screen.getByRole('tab', { name: 'Resume' }));
-    await userEvent.click(screen.getByRole('button', { name: /download \.txt/i }));
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    expect(click).toHaveBeenCalledTimes(1);
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:tailored');
-    click.mockRestore();
-  });
 });

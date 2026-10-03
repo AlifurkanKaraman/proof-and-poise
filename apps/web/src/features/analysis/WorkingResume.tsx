@@ -1,14 +1,11 @@
-import { Copy, Download, FilePen } from 'lucide-react';
-import { useState } from 'react';
+import { FilePen } from 'lucide-react';
 import {
   applySkillAdditions,
   buildWorkingResume,
   type Recommendation,
 } from '@proof-and-poise/shared';
 import { EmptyState } from '../../components/states/EmptyState';
-import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/cn';
-import { downloadBlob } from '../../lib/download';
+import { SectionErrorBoundary } from '../../components/states/SectionErrorBoundary';
 import { ExportPanel } from './ExportPanel';
 
 interface WorkingResumeProps {
@@ -32,12 +29,10 @@ export function changedLines(prev: string, next: string): boolean[] {
   });
 }
 
-type CopyStatus = 'idle' | 'copied' | 'failed';
-
 /**
  * The working resume: the original text with accepted recommendations applied (Req 7.6–7.7).
  * Changed lines carry a visible "Changed" label and a screen-reader prefix, not color alone
- * (Req 14.3).
+ * (Req 14.3). Downloads are DOCX or PDF through `ExportPanel` (Req 7.7, 7.10).
  */
 export function WorkingResume({
   resumeText,
@@ -49,19 +44,6 @@ export function WorkingResume({
   const lines = text.split('\n');
   const changed = changedLines(resumeText, text);
   const changedCount = changed.filter(Boolean).length;
-  const [copy, setCopy] = useState<CopyStatus>('idle');
-
-  const copyText = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopy('copied');
-    } catch {
-      setCopy('failed');
-    }
-  };
-
-  const download = () =>
-    downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), 'tailored-resume.txt');
 
   const summary =
     working.applied.length === 0 && skillAdditions.length === 0
@@ -78,33 +60,12 @@ export function WorkingResume({
 
   return (
     <section aria-labelledby="working-resume-heading" className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id="working-resume-heading" className="text-h3 font-semibold text-ink-950">
-            Tailored resume
-          </h2>
-          <p className="text-small text-ink-700">{summary}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => void copyText()}>
-            <Copy aria-hidden="true" className="size-4" />
-            Copy as text
-          </Button>
-          <Button variant="secondary" onClick={download}>
-            <Download aria-hidden="true" className="size-4" />
-            Download .txt
-          </Button>
-        </div>
+      <div>
+        <h2 id="working-resume-heading" className="text-h3 font-semibold text-ink-950">
+          Tailored resume
+        </h2>
+        <p className="text-small text-ink-700">{summary}</p>
       </div>
-
-      <p
-        role="status"
-        className={cn('text-small', copy === 'failed' ? 'text-red-700' : 'text-ink-700')}
-      >
-        {copy === 'copied' && 'Tailored resume copied to the clipboard.'}
-        {copy === 'failed' &&
-          'Your browser blocked clipboard access. Select the text below and copy it manually.'}
-      </p>
 
       {working.unapplied.length > 0 && (
         <p className="rounded-md border border-amber-700/20 bg-amber-50 p-3 text-small text-ink-950">
@@ -115,7 +76,15 @@ export function WorkingResume({
         </p>
       )}
 
-      {text.trim() !== '' && <ExportPanel text={text} />}
+      {text.trim() !== '' && (
+        // Any render failure in the export panel stays here, not on the route (Req 14.2).
+        <SectionErrorBoundary
+          title="Couldn't show the download options"
+          message="Your tailored resume below is unchanged. Try again to reload this section."
+        >
+          <ExportPanel text={text} />
+        </SectionErrorBoundary>
+      )}
 
       {lines.every((l) => l.trim() === '') ? (
         <EmptyState

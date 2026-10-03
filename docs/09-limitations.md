@@ -5,7 +5,7 @@ Written against `develop` on 2026-10-02, after resume tailoring (PR #34), the UI
 ## Not finished
 
 - **Recorded answers are out of scope for the MVP.** The full flow is built and tested (audio upload, Amazon Transcribe, editable transcript; task 16), but the hackathon AWS account isn't subscribed to Amazon Transcribe (`SubscriptionRequiredException`). The Record tab is shown as "Coming soon" and answers are typed. To enable it after the hackathon: enable Transcribe for the account, then set `FEATURES.recordedAnswers` to `true` in `apps/web/src/lib/features.ts`. The API routes and IAM permissions are already deployed.
-- **Resume export is plain text only.** The tailored resume can be copied or downloaded as `.txt`. DOCX and PDF export aren't available yet. Skills added on the Tailor tab are kept in memory, so a page reload clears them.
+- **Resume export is text-based.** The tailored resume downloads as DOCX or PDF built from its text in two styles, so it can't copy an uploaded PDF's design. Skills added on the Tailor tab are kept in memory, so a page reload clears them.
 - **"Practice this in the interview"** on missing-evidence cards shows "Coming soon" (there's no contract route for it).
 - **Report builds.** Each standard session allows 2 report builds (`LIMITS.quotas`), so a second "Practice again" answer can hit "Report limit reached".
 
