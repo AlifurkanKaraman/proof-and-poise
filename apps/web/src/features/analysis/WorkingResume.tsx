@@ -8,6 +8,8 @@ import {
 import { EmptyState } from '../../components/states/EmptyState';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/cn';
+import { downloadBlob } from '../../lib/download';
+import { ExportPanel } from './ExportPanel';
 
 interface WorkingResumeProps {
   resumeText: string;
@@ -58,16 +60,8 @@ export function WorkingResume({
     }
   };
 
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tailored-resume.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
+  const download = () =>
+    downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), 'tailored-resume.txt');
 
   const summary =
     working.applied.length === 0 && skillAdditions.length === 0
@@ -120,6 +114,8 @@ export function WorkingResume({
           couldn't be placed because the original wording wasn't found in your resume.
         </p>
       )}
+
+      {text.trim() !== '' && <ExportPanel text={text} />}
 
       {lines.every((l) => l.trim() === '') ? (
         <EmptyState

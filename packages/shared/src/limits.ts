@@ -124,6 +124,17 @@ export const LIMITS = {
     starOutlines: { min: 2, max: 3 },
     actions: 3,
   },
+  /** Resume export parsing heuristics (design §7.7, Req 7.10). */
+  export: {
+    /** A line counts as a heading (known or all-caps) only when it is this short. */
+    headingMaxChars: 40,
+    headingMaxWords: 5,
+    /** Non-blank lines after the name that can form the contact header. */
+    maxHeaderLines: 4,
+    /** "Label: items" skill lines; longer labels stay plain paragraphs. */
+    skillLabelMaxChars: 40,
+    fileNameSlugMaxChars: 60,
+  },
 } as const;
 
 export type ModelTask = keyof typeof LIMITS.model;
