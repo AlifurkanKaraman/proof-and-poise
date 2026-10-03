@@ -1,27 +1,27 @@
 # 09. Known limitations
 
-Written against `develop` at the merge of PR #16 (2026-10-01). Integration branches were in progress at the time. `TODO(user): re-check each item below after tasks 10, 14, 16, 20, 23, and 24 merge, and delete the ones that no longer apply.`
+Written against `develop` on 2026-10-02, after resume tailoring (PR #34), the UI redesign (PR #30), the accessibility pass (PR #36), and the Kiro setup (PR #38).
 
-## Not finished on `develop`
+## Not finished
 
-- **Recommendation decisions and confirmations in the UI.** The API routes exist and are unit-tested (task 13), and the web client has the hooks, but the Recommendations tab doesn't call them yet (task 14).
 - **Recorded answers are out of scope for the MVP.** The full flow is built and tested (audio upload, Amazon Transcribe, editable transcript; task 16), but the hackathon AWS account isn't subscribed to Amazon Transcribe (`SubscriptionRequiredException`). The Record tab is shown as "Coming soon" and answers are typed. To enable it after the hackathon: enable Transcribe for the account, then set `FEATURES.recordedAnswers` to `true` in `apps/web/src/lib/features.ts`. The API routes and IAM permissions are already deployed.
-- **Report and practice integration.** The report screen creates and reads the report, and "Practice again" starts a practice turn, through the API client. End-to-end verification against the deployed API is task 20.
-- **Hosting.** Amplify Hosting isn't connected yet (task 10), so CORS allows only `http://localhost:5173`.
-- **Production.** The `prod` stack, CloudWatch alarms, SNS email, and AWS Budgets aren't created yet (task 23). Production verification (task 24) is pending.
+- **Resume export is plain text only.** The tailored resume can be copied or downloaded as `.txt`. DOCX and PDF export aren't available yet. Skills added on the Tailor tab are kept in memory, so a page reload clears them.
+- **"Practice this in the interview"** on missing-evidence cards shows "Coming soon" (there's no contract route for it).
+- **Report builds.** Each standard session allows 2 report builds (`LIMITS.quotas`), so a second "Practice again" answer can hit "Report limit reached".
 
-## Verified vs. unit-tested only
+## Verified on AWS
 
-- `ProofAndPoise-dev` was deployed and checked on real AWS for health, sessions, auth, and resume upload (task 8, per `HANDOFF.md`).
-- Live Bedrock calls ran for the analysis prompt evaluation.
-- The interview, report, decisions, and transcription routes are covered by unit tests with mocked AWS SDK clients. The real Transcribe → S3 write (task 18) hasn't been checked with a real recording.
-- `TODO(user): list which of these routes were verified on the deployed dev stack, and when.`
+- Every API route is real on `dev` and `prod`; nothing in the deployed app is served by MSW.
+- Verified on `prod` on 2026-10-02: health, demo session create, read, and delete, 401s without a valid token, CORS from the Amplify domain, the account owner's full typed journey with a real resume, and the Playwright smoke run on desktop Chrome and iPhone WebKit. gitleaks over the full history found no leaks.
+- Prod CloudWatch log review (api and worker Lambdas, 2026-10-02): see [07-security-privacy.md](07-security-privacy.md#logging).
+- The real Transcribe → S3 write (task 18) has never run, because the account isn't subscribed to Transcribe.
 
 ## Model quality
 
-- Analysis quality varies between runs. The evaluation uses a handful of fictional cases with code-enforced pass criteria; it measures pipeline behavior on those cases, not real-world accuracy. Failures seen include recommendation kept-rates below 50% (the server drops padded rewordings) and an occasional `MODEL_OUTPUT_INVALID`. See [analysis-prompt-evaluation.md](analysis-prompt-evaluation.md). `TODO(user): the copy of that file on develop still says the live run is pending; confirm the branch with the live results (feature/analysis-eval-results or feature/analysis-quality) is merged before submission.`
+- Analysis quality varies between runs on Nova Lite; real performance evidence is sometimes missed. The evaluation uses a handful of fictional cases with code-enforced pass criteria; it measures pipeline behavior on those cases, not real-world accuracy. Live runs on 2026-09-30 and 2026-10-01 ranged from 1/4 to 5/5. Failures seen include recommendation kept-rates below 50% (the server drops padded rewordings) and an occasional `MODEL_OUTPUT_INVALID`. See [analysis-prompt-evaluation.md](analysis-prompt-evaluation.md).
 - The grounding checks guarantee quotes come from the resume and recommendations add no new numbers or dictionary terms. They don't guarantee a quote is the best evidence for a competency.
 - Answer evaluation is model-generated language mapped to a deterministic score. It's practice feedback, not a hiring prediction.
+- Job Match, Keyword Coverage, and Evidence Coverage are this product's estimates, not an employer's ATS score.
 
 ## Product scope
 
@@ -30,5 +30,5 @@ Written against `develop` at the merge of PR #16 (2026-10-01). Integration branc
 - No accounts or saved history; data lives 24 hours.
 - Interview questions are text only (no voice playback).
 - Quota and budget caps are code constants; changing one needs a redeploy.
-- Accessibility: automated axe, keyboard, touch-target, and reduced-motion checks run in Playwright. The manual audit in `apps/web/ACCESSIBILITY.md`, iOS Safari, and the microphone-denied path are still open (task 22). Automated checks don't prove WCAG compliance.
+- Accessibility: automated axe, keyboard, width, touch-target, and reduced-motion checks run in Playwright (78 passed, including the Tailor and Resume tabs), and the owner did a manual iOS Safari and VoiceOver pass on 2026-10-02 with no issues (`apps/web/ACCESSIBILITY.md`). Automated checks and one manual pass don't prove WCAG compliance.
 - The shared demo fixtures are bundled into the main web chunk (about 418 kB), which slows the first load.

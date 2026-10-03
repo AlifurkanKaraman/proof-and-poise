@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEMO_EVIDENCE_MAP, DEMO_RESUME_TEXT } from '../fixtures/demo';
 import { LIMITS } from '../limits';
 import { EvidenceMapSchema } from '../schemas/evidenceMap';
-import { applyConfirmation, applyDecision, confirmedCount, nextId } from './decisions';
+import { applyConfirmation, applyDecision, canConfirm, confirmedCount, nextId } from './decisions';
 import { STRENGTH_ORDER } from './weights';
 
 const AT = '2026-09-29T10:00:00.000Z';
@@ -27,6 +27,29 @@ describe('nextId', () => {
         expect(ids).not.toContain(nextId('k', ids));
       }),
     );
+  });
+});
+
+describe('canConfirm (Req 8.1)', () => {
+  it('allows weak or none competencies that are not yet confirmed', () => {
+    expect(canConfirm({ strength: 'weak', confirmationState: 'none' })).toBe(true);
+    expect(canConfirm({ strength: 'none', confirmationState: 'none' })).toBe(true);
+    expect(canConfirm({ strength: 'moderate', confirmationState: 'none' })).toBe(false);
+    expect(canConfirm({ strength: 'strong', confirmationState: 'none' })).toBe(false);
+    expect(canConfirm({ strength: 'weak', confirmationState: 'confirmed' })).toBe(false);
+  });
+  it('agrees with applyConfirmation on the fixture', () => {
+    for (const c of map.competencies) {
+      const r = applyConfirmation({
+        map,
+        resumeText: DEMO_RESUME_TEXT,
+        competencyId: c.id,
+        statement: STATEMENT,
+        rewrite: null,
+        at: AT,
+      });
+      expect(r.ok).toBe(canConfirm(c));
+    }
   });
 });
 

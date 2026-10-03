@@ -7,9 +7,12 @@
  *   section doesn't list. Adding them doesn't change our keyword score, which already counts
  *   them; it puts them where recruiters and keyword searches look.
  * - `notShown`: job keywords the resume doesn't show. They are never added; the candidate
- *   can confirm real experience (Req 8) or treat them as gaps.
+ *   can confirm real experience (Req 8) or treat them as gaps. Only a competency that can
+ *   still be confirmed is offered (Req 8.1); once a competency that mentions the keyword is
+ *   confirmed, the keyword is marked confirmed and never remapped to another competency.
  */
 import { containsTerm } from '../keywords/match';
+import { canConfirm } from '../scoring/decisions';
 import { buildWorkingResume, confirmationStatements } from '../scoring/recompute';
 import type { Competency, EvidenceMap, ScoreEvent, ScoreSet } from '../schemas/evidenceMap';
 
@@ -54,6 +57,8 @@ export interface GapKeyword {
   required: boolean;
   /** A competency the candidate can confirm experience for, when one mentions the term. */
   competencyId: string | null;
+  /** A competency that mentions the term is already confirmed by the candidate. */
+  confirmed: boolean;
 }
 
 export interface TailoringPlan {
@@ -67,13 +72,22 @@ export interface TailoringPlan {
 const byRequired = <T extends { required: boolean }>(a: T, b: T) =>
   Number(b.required) - Number(a.required);
 
-function competencyFor(term: string, competencies: readonly Competency[]): string | null {
-  const c = competencies.find(
-    (k) =>
-      k.confirmationState !== 'confirmed' &&
-      containsTerm([k.name, k.description, k.missingEvidence ?? ''].join('\n'), term),
+/**
+ * The confirmation state for a missing keyword (design §7.6, Req 8.1): confirmed when any
+ * competency mentioning it is confirmed; otherwise the first one that can still be confirmed.
+ */
+function confirmationFor(
+  term: string,
+  competencies: readonly Competency[],
+): Pick<GapKeyword, 'competencyId' | 'confirmed'> {
+  const mentions = competencies.filter((k) =>
+    containsTerm([k.name, k.description, k.missingEvidence ?? ''].join('\n'), term),
   );
-  return c?.id ?? null;
+  const confirmed = mentions.some((k) => k.confirmationState === 'confirmed');
+  return {
+    confirmed,
+    competencyId: confirmed ? null : (mentions.find(canConfirm)?.id ?? null),
+  };
 }
 
 export function tailoringPlan(
@@ -104,7 +118,7 @@ export function tailoringPlan(
       notShown.push({
         term: k.term,
         required: k.required,
-        competencyId: competencyFor(k.term, map.competencies),
+        ...confirmationFor(k.term, map.competencies),
       });
     }
   }

@@ -1,8 +1,10 @@
 import {
   AnalysisStageSchema,
+  applyConfirmation,
+  canConfirm,
   canPracticeAgain,
-  capStrength,
   competencyReadiness,
+  confirmedCount,
   decideFollowUp,
   DEMO_EVIDENCE_MAP,
   DEMO_INTERVIEW_PLAN,
@@ -17,7 +19,6 @@ import {
   questionScore,
   READINESS_WEIGHTS,
   recomputeScores,
-  STRENGTH_ORDER,
   toScore100,
   type AnalysisRequest,
   type AudioContentType,
@@ -42,7 +43,6 @@ import {
   type SessionMode,
   type SessionStage,
   type SessionSummary,
-  type Strength,
   type TranscriptionStatusResponse,
   type Turn,
 } from '@proof-and-poise/shared';
@@ -54,13 +54,16 @@ import { MOCK_ACTIONS, MOCK_REPORT_SUMMARY, MOCK_STAR_OUTLINES } from './reportC
  * follow-up rule) so screens behave like the real API. Every analysis returns the demo map.
  */
 
-/** Thrown by mock operations; handlers turn it into `{ error: { code, message } }`. */
+/** Thrown by mock operations; handlers turn it into `{ error: { code, message, fields? } }`. */
 export class MockApiError extends Error {
+  readonly fields: Record<string, string> | undefined;
   constructor(
     readonly code: ErrorCode,
     message: string,
+    fields?: Record<string, string>,
   ) {
     super(message);
+    this.fields = fields;
   }
 }
 
@@ -116,8 +119,12 @@ function randomToken(): string {
 const isDemoLabel = (label: string): label is DemoTurnLabel =>
   Object.hasOwn(DEMO_SAMPLE_ANSWERS, label);
 
-const maxStrength = (a: Strength, b: Strength): Strength =>
-  STRENGTH_ORDER.indexOf(a) >= STRENGTH_ORDER.indexOf(b) ? a : b;
+/** Highest numeric suffix among ids with `prefix` (`ev7` → 7), or 0. */
+const maxSuffix = (prefix: string, items: readonly { id: string }[]): number =>
+  items.reduce((max, { id }) => {
+    const n = id.startsWith(prefix) ? Number(id.slice(prefix.length)) : NaN;
+    return Number.isInteger(n) && n > max ? n : max;
+  }, 0);
 
 export interface ScoredQuestionRow {
   primary: Turn;
@@ -355,59 +362,80 @@ export function createMockDb(options: MockDbOptions = {}) {
     return { recommendation: rec, scores, scoreEvent: events[0] ?? null };
   }
 
+  /**
+   * Mirrors the API's `DecisionService.confirm`: same checks in the same order, and the same
+   * shared `applyConfirmation`, so the mock can't accept what the API rejects (Req 8.1–8.4).
+   */
   function confirm(s: MockSession, req: ConfirmationRequest): ConfirmationResponse {
-    requireReady(s);
-    const confirmed = s.map.competencies.filter((c) => c.confirmationState === 'confirmed').length;
-    if (confirmed >= LIMITS.confirmation.maxPerSession) {
-      throw new MockApiError('QUOTA_EXCEEDED', 'You have used all confirmations for this session.');
+    // Locked once the interview starts (Req 7.5).
+    if (s.stage === 'interview' || s.stage === 'report') {
+      throw new MockApiError('CONFLICT', 'Confirmations are locked once the interview starts.');
     }
+    requireReady(s);
     const competency = s.map.competencies.find((c) => c.id === req.competencyId);
     if (!competency) throw new MockApiError('NOT_FOUND', 'Competency not found.');
     if (competency.confirmationState === 'confirmed') {
       throw new MockApiError('CONFLICT', 'You already confirmed this competency.');
     }
+    if (confirmedCount(s.map) >= LIMITS.confirmation.maxPerSession) {
+      throw new MockApiError('QUOTA_EXCEEDED', 'You have used all confirmations for this session.');
+    }
+    const notEligible = () =>
+      new MockApiError('VALIDATION', 'Some of the information is not valid.', {
+        competencyId: 'not_eligible',
+      });
+    if (!canConfirm(competency)) throw notEligible();
 
-    const evidenceId = nextId(s, 'evidence', 'k');
-    competency.evidence.push({
-      id: evidenceId,
-      source: 'candidate_confirmation',
-      quote: req.statement,
-    });
-    // The server caps confirmation-only evidence at moderate (Req 8.2, design §6.1).
-    competency.strength = capStrength(
-      maxStrength(competency.strength, 'moderate'),
-      competency.evidence,
-    ).strength;
-    competency.confirmationState = 'confirmed';
-    competency.interviewPriority = true;
-    competency.readiness = competencyReadiness(competency.strength, null);
-
-    const rec = s.map.recommendations.find(
+    // Demo sessions get no rewrite, like the API (Req 13.2). Standard sessions get a stand-in
+    // for the model's rewrite, which the shared grounding check accepts or drops (Req 8.3).
+    const missing = s.map.recommendations.find(
       (r) => r.competencyId === competency.id && r.trustLabel === 'missing_evidence',
     );
-    if (rec) {
-      rec.trustLabel = 'confirmed_by_candidate';
-      rec.proposedText = req.statement;
-      rec.sourceEvidenceIds = [evidenceId];
+    const rewrite =
+      s.mode === 'demo' || !missing
+        ? null
+        : {
+            originalText: missing.originalText,
+            proposedText: req.statement,
+            reason: 'Uses the experience you confirmed.',
+          };
+    const result = applyConfirmation({
+      map: s.map,
+      resumeText: s.resumeText,
+      competencyId: req.competencyId,
+      statement: req.statement,
+      rewrite,
+      at: iso(),
+    });
+    if (!result.ok) {
+      switch (result.error) {
+        case 'not_found':
+          throw new MockApiError('NOT_FOUND', 'Competency not found.');
+        case 'already_confirmed':
+          throw new MockApiError('CONFLICT', 'You already confirmed this competency.');
+        case 'limit_reached':
+          throw new MockApiError('QUOTA_EXCEEDED', 'You have used all confirmations.');
+        case 'not_eligible':
+          throw notEligible();
+      }
     }
-
-    const before = s.map.scores;
-    const { scores, keywords } = recomputeScores(s.map, s.resumeText);
-    s.map.keywords = keywords;
-    s.map.scores = scores;
-    const events = recordEvents(
-      s,
-      before,
-      scores,
-      `You confirmed ${competency.name} experience.`,
-      `confirmation:${competency.id}`,
+    s.map = result.map;
+    // Keep the mock's id counters ahead of the ids `applyConfirmation` created, so later
+    // events and evidence never reuse one (the client dedupes events by id).
+    s.counters.events = Math.max(s.counters.events, maxSuffix('ev', s.map.scoreEvents));
+    s.counters.evidence = Math.max(
+      s.counters.evidence,
+      maxSuffix(
+        'k',
+        s.map.competencies.flatMap((c) => c.evidence),
+      ),
     );
     persist();
     return {
-      competency,
-      ...(rec ? { recommendation: rec } : {}),
-      scores,
-      scoreEvent: events.find((e) => e.metric === 'jobMatch') ?? events[0] ?? null,
+      competency: result.competency,
+      ...(result.recommendation ? { recommendation: result.recommendation } : {}),
+      scores: s.map.scores,
+      scoreEvent: result.scoreEvent,
     };
   }
 

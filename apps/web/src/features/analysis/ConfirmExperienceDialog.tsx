@@ -43,6 +43,13 @@ export function ConfirmExperienceDialog({
   const attestErrorId = `${checkboxId}-error`;
 
   const quotaReached = isApiError(submitError) && submitError.code === 'QUOTA_EXCEEDED';
+  // Req 8.1: retrying these can't succeed, so offer Close instead of Retry (engineering.md).
+  const notEligible =
+    isApiError(submitError) &&
+    submitError.code === 'VALIDATION' &&
+    submitError.fields?.['competencyId'] !== undefined;
+  const conflict = isApiError(submitError) && submitError.code === 'CONFLICT';
+  const final = quotaReached || notEligible || conflict;
 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
@@ -143,10 +150,14 @@ export function ConfirmExperienceDialog({
               message={
                 quotaReached
                   ? `A session allows up to ${maxPerSession} confirmations. You can still practice this topic in the interview.`
-                  : userMessage(submitError)
+                  : notEligible
+                    ? "Your resume already shows evidence for this, so there's nothing to confirm."
+                    : conflict
+                      ? 'This was already confirmed, or the interview has started. Refresh to see the latest state.'
+                      : userMessage(submitError)
               }
               action={
-                quotaReached ? (
+                final ? (
                   <DialogClose asChild>
                     <Button variant="secondary">Close</Button>
                   </DialogClose>
@@ -165,7 +176,7 @@ export function ConfirmExperienceDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" loading={pending} disabled={quotaReached}>
+            <Button type="submit" loading={pending} disabled={final}>
               Save confirmation
             </Button>
           </div>

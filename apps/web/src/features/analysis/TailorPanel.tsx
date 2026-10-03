@@ -7,6 +7,7 @@ import {
   type TrailMetric,
 } from '@proof-and-poise/shared';
 import { Button } from '../../components/ui/Button';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/cn';
 
 const METRIC_LABELS: Record<TrailMetric, string> = {
@@ -164,7 +165,9 @@ export function TailorPanel({
           </ul>
         )}
         {added.length > 0 && (
-          <Button className="mt-4" variant="secondary" onClick={onOpenResume}>
+          // Wraps at 375px (Req 14.6): unwrapped, the label overflowed the card, and Linux
+          // WebKit then repainted the whole page every frame.
+          <Button className="mt-4 whitespace-normal" variant="secondary" onClick={onOpenResume}>
             View and download the tailored resume
           </Button>
         )}
@@ -194,7 +197,7 @@ export function TailorPanel({
                 className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line-200 p-3"
               >
                 <span className="flex flex-wrap items-center gap-2">
-                  <X aria-hidden="true" className="size-4 text-ink-700" />
+                  {!g.confirmed && <X aria-hidden="true" className="size-4 text-ink-700" />}
                   <span className="font-medium text-ink-950">{g.term}</span>
                   <span className="sr-only">Not shown in your resume.</span>
                   {g.required && (
@@ -203,7 +206,10 @@ export function TailorPanel({
                     </span>
                   )}
                 </span>
-                {g.competencyId !== null ? (
+                {/* design §7.6, Req 8.1: confirmed stays confirmed; only eligible ones are offered. */}
+                {g.confirmed ? (
+                  <StatusBadge status="confirmed" />
+                ) : g.competencyId !== null ? (
                   renderConfirm(g.competencyId)
                 ) : (
                   <span className="text-small text-ink-700">Gap: prepare to discuss it</span>
