@@ -29,9 +29,17 @@ export interface LogFields {
   discardedKeywords?: number;
   /** Bedrock `stopReason`, a fixed enum such as `tool_use` or `max_tokens`. */
   stopReason?: string;
+  /**
+   * Why model output failed validation, as keys like `competencies.3.jobQuote:too_big` or
+   * `check:keywords`: field paths plus a Zod code or check name, never messages or values.
+   */
+  issues?: string[];
 }
 
-type FieldKind = 'string' | 'number';
+type FieldKind = 'string' | 'number' | 'strings';
+
+/** List fields keep at most this many entries. */
+const MAX_LIST_ITEMS = 20;
 
 const ALLOWED: Record<keyof LogFields, FieldKind> = {
   requestId: 'string',
@@ -49,11 +57,14 @@ const ALLOWED: Record<keyof LogFields, FieldKind> = {
   discardedCompetencies: 'number',
   discardedKeywords: 'number',
   stopReason: 'string',
+  issues: 'strings',
 };
 
 /** Allowlisted string values must look like identifiers, not free text. */
 const SAFE_STRING = /^[A-Za-z0-9_\-./{}:$ ]{1,128}$/;
 const SAFE_EVENT = /^[a-z0-9_.]{1,64}$/;
+/** List entries are stricter than strings: path-like keys only, no spaces. */
+const SAFE_KEY = /^[A-Za-z0-9_.:]{1,96}$/;
 
 export interface SafeError {
   code: string;
@@ -66,7 +77,7 @@ export type LogSink = (line: string) => void;
 const defaultSink: LogSink = (line) => console.log(line);
 
 export function pickAllowed(fields: unknown): LogFields {
-  const out: Record<string, string | number> = {};
+  const out: Record<string, string | number | string[]> = {};
   if (typeof fields !== 'object' || fields === null) return out;
   for (const [key, kind] of Object.entries(ALLOWED)) {
     const value = (fields as Record<string, unknown>)[key];
@@ -74,6 +85,12 @@ export function pickAllowed(fields: unknown): LogFields {
       out[key] = value;
     } else if (kind === 'string' && typeof value === 'string' && SAFE_STRING.test(value)) {
       out[key] = value;
+    } else if (kind === 'strings' && Array.isArray(value)) {
+      // Entries must be path-like keys (no spaces); free-text entries are dropped.
+      const safe = value
+        .filter((v): v is string => typeof v === 'string' && SAFE_KEY.test(v))
+        .slice(0, MAX_LIST_ITEMS);
+      if (safe.length > 0) out[key] = safe;
     }
   }
   return out as LogFields;

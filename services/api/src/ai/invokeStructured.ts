@@ -8,8 +8,9 @@
  * - Output is used only after `schema.safeParse` plus optional semantic checks pass. On
  *   failure it retries once with the compact list of validation errors; a second failure
  *   throws `MODEL_OUTPUT_INVALID` (Req 5.3). No partial output is returned.
- * - Only token counts, task, attempt, and duration are logged (Req 15.3). Prompts, tool
- *   input, and validation messages never reach the logger.
+ * - Only token counts, task, attempt, duration, and validation issue keys (field path plus
+ *   Zod code or check name) are logged (Req 15.3). Prompts, tool input, and validation
+ *   messages never reach the logger.
  * - If the model rejects `toolChoice: { tool }`, it falls back to `auto` plus an instruction
  *   to call the tool; validation still gates the result.
  * - A truncated or malformed tool call (`max_tokens` stop, or Bedrock's
@@ -61,7 +62,9 @@ export interface StructuredRequest<S extends z.ZodType> {
 const MAX_REPAIR_ISSUES = 20;
 const MAX_ATTEMPTS = 2;
 
-type Attempt<T> = { ok: true; value: T } | { ok: false; issues: string[]; usable?: T };
+/** `keys` are the loggable form of `issues`: paths and codes only, never messages. */
+type Attempt<T> =
+  { ok: true; value: T } | { ok: false; issues: string[]; keys: string[]; usable?: T };
 
 /** Marker for a tool call that was cut off or malformed (design §7.1). */
 const TRUNCATED = Symbol('truncated');
@@ -88,6 +91,18 @@ function compactIssues(error: z.ZodError): string[] {
   return error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
 }
 
+/** Schema path plus Zod issue code, e.g. `competencies.3.jobQuote:too_big` (no message). */
+function issueKeys(error: z.ZodError): string[] {
+  return error.issues.map((i) => `${i.path.map(String).join('.') || 'root'}:${i.code}`);
+}
+
+/**
+ * Our own check strings start with a field path before the first colon
+ * (`keywords: need at least 8 ...`); keep only that part.
+ */
+const checkKeys = (prefix: string, issues: string[]) =>
+  issues.map((s) => `${prefix}:${(s.split(':')[0] ?? '').trim()}`);
+
 const isToolChoiceRejection = (err: unknown) =>
   typeof err === 'object' &&
   err !== null &&
@@ -105,15 +120,21 @@ export async function invokeStructured<S extends z.ZodType>(
 
   let usable: z.infer<S> | undefined;
   const validate = (input: unknown, last: boolean): Attempt<z.infer<S>> => {
-    if (input === TRUNCATED) return { ok: false, issues: [TRUNCATED_ISSUE] };
-    if (input === undefined) return { ok: false, issues: [`No ${req.toolName} tool call.`] };
+    if (input === TRUNCATED) return { ok: false, issues: [TRUNCATED_ISSUE], keys: ['truncated'] };
+    if (input === undefined) {
+      return { ok: false, issues: [`No ${req.toolName} tool call.`], keys: ['no_tool_call'] };
+    }
     const parsed = req.schema.safeParse(input);
-    if (!parsed.success) return { ok: false, issues: compactIssues(parsed.error) };
+    if (!parsed.success) {
+      return { ok: false, issues: compactIssues(parsed.error), keys: issueKeys(parsed.error) };
+    }
     const semantic = req.check?.(parsed.data) ?? [];
-    if (semantic.length > 0) return { ok: false, issues: semantic };
+    if (semantic.length > 0) {
+      return { ok: false, issues: semantic, keys: checkKeys('check', semantic) };
+    }
     const soft = last ? [] : (req.softCheck?.(parsed.data) ?? []);
     return soft.length > 0
-      ? { ok: false, issues: soft, usable: parsed.data }
+      ? { ok: false, issues: soft, keys: checkKeys('advice', soft), usable: parsed.data }
       : { ok: true, value: parsed.data };
   };
 
@@ -145,7 +166,7 @@ export async function invokeStructured<S extends z.ZodType>(
     if (result.ok) return result.value;
     if (result.usable !== undefined) usable = result.usable;
     issues = result.issues;
-    deps.log.warn('model_output_invalid', { task: req.task, attempt });
+    deps.log.warn('model_output_invalid', { task: req.task, attempt, issues: result.keys });
   }
   // The retry failed hard, but an earlier answer passed every required check.
   if (usable !== undefined) return usable;
