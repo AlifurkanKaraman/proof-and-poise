@@ -43,4 +43,4 @@ More in the [demo guide](12-demo-guide.md#screenshots).
 - Hosted app: https://main.d1tn5k7jq2sjsu.amplifyapp.com
 - Team: `TODO(user): team member names.`
 - Demo video: `TODO(user): demo video link.`
-- AWS spend: `TODO(user): final Cost Explorer total in USD and the date it was read (same figure as 08-cost-controls.md).`
+- AWS spend: $0.00 in Cost Explorer for 2026-09-26 to 2026-10-02, read on 2026-10-02 (details in [08-cost-controls.md](08-cost-controls.md)).
