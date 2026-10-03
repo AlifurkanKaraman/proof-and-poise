@@ -27,7 +27,29 @@ The public demo uses a fictional candidate, "Amara Okonkwo (fictional)", applyin
 - The demo uses labeled sample feedback and makes no Bedrock calls, so it keeps working when the daily capacity cap is reached (Req 13.4).
 - A standard session (Prepare for a job) runs the real pipeline: PDF or pasted text, Bedrock analysis, grounding, and live answer evaluation.
 
-## Pending for the final demo
+## Screenshots
+
+From the fictional demo session ([screenshots/](screenshots/README.md)).
+
+![Landing page with the evidence-thread preview](screenshots/landing.png)
+
+![Analysis overview with score rings](screenshots/analysis-overview.png)
+
+![Competencies with resume evidence and strength labels](screenshots/analysis-competencies.png)
+
+![Recommendation cards with trust labels](screenshots/recommendations.png)
+
+![Tailor resume tab with proven keywords to add to Skills and keywords the resume doesn't show](screenshots/tailor.png)
+
+![Tailored resume with the changed line marked](screenshots/tailored-resume.png)
+
+![Interview answer feedback](screenshots/interview.png)
+
+![Readiness report](screenshots/report.png)
+
+![Tailor resume tab on a 375 px mobile screen](screenshots/mobile-375.png)
+
+## Notes for the final demo
 
 - Answers are typed. The Record tab shows "Coming soon": recorded answers are out of scope for the MVP (see `09-limitations.md`).
-- `TODO(user): add the demo video link, if one is submitted.`
+- Demo video: `TODO(user): add the demo video link, or delete this line if no video is submitted.`

@@ -8,11 +8,11 @@ A new graduate on a student visa has a cloud internship, a serverless capstone, 
 
 ## What we built
 
-Proof & Poise starts from what the candidate can prove. It maps the job's competencies to verbatim lines from her resume, and shows which are strong, which are weak (listed in Skills only), and which are missing. It suggests changes she approves one at a time, each labeled by where its support comes from, and it never adds a number or a technology she didn't write. Then it interviews her on the weakest evidence, asks a follow-up when an answer is vague, and gives a readiness report where every number has a formula behind it.
+Proof & Poise starts from what the candidate can prove. It maps the job's competencies to verbatim lines from her resume, and shows which are strong, which are weak (listed in Skills only), and which are missing. Step 1 is tailoring her resume to the job, truthfully. It suggests changes she approves one at a time, each labeled by where its support comes from, and it never adds a number or a technology she didn't write. Job keywords her resume already proves can go into her Skills line with one click; keywords it doesn't show are never added, only confirmed if she has the experience. She copies the tailored resume or downloads it as text. Step 2 interviews her on the weakest evidence, asks a follow-up when an answer is vague, and gives a readiness report where every number has a formula behind it.
 
 ## How it works
 
-The model writes language; code decides. Amazon Bedrock (Nova Lite) produces competencies, quotes, questions, and feedback through forced tool use. Every output is schema-validated, and every quote must be found in the resume before it's kept. Scores, strength caps, follow-up decisions, and quotas live in a shared TypeScript package with property tests. The backend is two Lambdas, one DynamoDB table, and a private S3 bucket that forgets uploads within a day. The API transcribes recorded answers with Amazon Transcribe and deletes the audio and transcript once read. No accounts, no always-on servers, and daily caps keep spend in single dollars.
+The model writes language; code decides. Amazon Bedrock (Nova Lite) produces competencies, quotes, questions, and feedback through forced tool use. Every output is schema-validated, and every quote must be found in the resume before it's kept. Scores, strength caps, follow-up decisions, and quotas live in a shared TypeScript package with property tests. The backend is two Lambdas, one DynamoDB table, and a private S3 bucket that forgets uploads within a day. Recorded answers through Amazon Transcribe are built but switched off, because the hackathon account isn't subscribed to Transcribe; answers are typed. No accounts, no always-on servers, and daily caps keep spend in single dollars.
 
 ## How we built it
 
@@ -24,6 +24,23 @@ The model is good at language and unreliable at judgment. Our live prompt evalua
 
 ## What's next
 
-Accounts and history, resume export, an interviewer voice, streaming transcription, and a mobile app on the same shared package ([10-react-native-plan.md](10-react-native-plan.md)).
+Accounts and history, DOCX and PDF resume export, recorded answers once Transcribe is enabled, an interviewer voice, and a mobile app on the same shared package ([10-react-native-plan.md](10-react-native-plan.md)).
 
-`TODO(user): add the team names, the hosted URL, the demo video link, and the final AWS spend figure.`
+## Screenshots
+
+![Tailor resume tab with proven keywords to add to Skills](screenshots/tailor.png)
+
+![Tailored resume with the changed line marked](screenshots/tailored-resume.png)
+
+![Competencies with resume evidence and strength labels](screenshots/analysis-competencies.png)
+
+![Readiness report](screenshots/report.png)
+
+More in the [demo guide](12-demo-guide.md#screenshots).
+
+## Links
+
+- Hosted app: https://main.d1tn5k7jq2sjsu.amplifyapp.com
+- Team: `TODO(user): team member names.`
+- Demo video: `TODO(user): demo video link.`
+- AWS spend: `TODO(user): final Cost Explorer total in USD and the date it was read (same figure as 08-cost-controls.md).`

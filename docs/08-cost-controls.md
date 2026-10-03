@@ -23,7 +23,11 @@ Transcribe is the only meaningful cost: about $0.024 per minute, so the 60-minut
 
 ## Actual spend
 
-`TODO(user): add the actual Cost Explorer figure (month to date, filtered to us-east-1 or the app=proof-and-poise tag) and the date it was read.`
+Total: `TODO(user): Cost Explorer month-to-date total in USD (filtered to us-east-1 or the app=proof-and-poise tag) and the date it was read.`
+
+![Cost Explorer month-to-date total, account ID redacted](screenshots/cost-explorer.png)
+
+`TODO(user): add cost-explorer.png (Cost Explorer total, account ID redacted) to docs/screenshots/.`
 
 All stack resources carry the tags `app=proof-and-poise` and `stage=<stage>`. To filter by them in Cost Explorer, activate them as cost allocation tags in the Billing console first.
 
