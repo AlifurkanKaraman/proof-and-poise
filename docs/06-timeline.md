@@ -11,7 +11,7 @@ Dates come from the merge commits on `develop` and `main`. The planned schedule 
 | 2026-10-01 | Long-resume fix and job-grounded analysis (PRs #16, #17). Decisions and confirmations UI (14) and Resume tab (PR #18). Recorded answers (16) and report and practice integration (20) (PR #19). Amplify Hosting (10, PRs #20, #24). Docs draft (25, PR #21). Alarms, SNS, and the `prod` stage (23, PR #22), first release to `main` (PR #23). Typed answers only (PR #28). |
 | 2026-10-02 | Production verification (24, PRs #31, #32). Resume tailoring as the main flow (PR #34, released in PR #35). Accessibility pass and app screenshots (22, PR #36). UI redesign of the landing page and main flow (PR #30). Kiro steering, skills, and hooks (PR #38). Submission docs (25).                                                                                   |
 
-Submission: `TODO(user): add the submission date and time (with time zone).`
+Submission window: 2026-09-18 9:00 AM PDT to 2026-10-02 11:59 PM PDT. Same-day additions on 2026-10-02: the Tailor confirmation fix (PR #37) and DOCX/PDF resume export in two styles (PR #43).
 
 ## Planned vs. actual
 

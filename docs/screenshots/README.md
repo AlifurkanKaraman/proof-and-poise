@@ -6,10 +6,10 @@ Before adding any image, review it for credentials, AWS account IDs, ARNs, API I
 
 ## Checklist
 
-- [ ] `TODO(user): kiro-spec.png`: Kiro spec view (requirements, design, tasks).
-- [ ] `TODO(user): kiro-task-execution.png`: a spec task run with tests passing.
-- [ ] `TODO(user): kiro-aws-mcp.png`: Kiro using an AWS MCP server (account ID and ARNs redacted).
-- [ ] `TODO(user): kiro-steering-skills.png`: steering and skills.
+- [x] `kiro-spec.png`: Kiro Specs panel (both specs with requirements, design, tasks).
+- [x] `kiro-task-execution.png`: task list with completed tasks and their "View session" links.
+- [x] `kiro-aws-mcp.png`: Kiro MCP Servers panel with the five servers connected.
+- [x] `kiro-steering-skills.png`: steering and skills.
 - [x] `landing.png`: landing page.
 - [x] `analysis-overview.png`: analysis overview with score rings.
 - [x] `analysis-competencies.png`: competencies with evidence and strength labels.
@@ -20,4 +20,4 @@ Before adding any image, review it for credentials, AWS account IDs, ARNs, API I
 - [x] `interview-followup.png`: the guaranteed follow-up question (1a) after an answer.
 - [x] `report.png`: readiness report.
 - [x] `mobile-375.png`: Tailor resume tab at 375 px.
-- [ ] `TODO(user): cost-explorer.png`: Cost Explorer total (redacted).
+- [x] `cost-explorer.png`: Cost Explorer breakdown by service, 2026-09-26 to 2026-10-02 (no account ID shown).

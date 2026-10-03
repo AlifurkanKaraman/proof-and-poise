@@ -23,11 +23,9 @@ Transcribe is the only meaningful cost: about $0.024 per minute, so the 60-minut
 
 ## Actual spend
 
-Total: `TODO(user): Cost Explorer month-to-date total in USD (filtered to us-east-1 or the app=proof-and-poise tag) and the date it was read.`
+Total: **$0.00**. Read in Cost Explorer on 2026-10-02 for 2026-09-26 to 2026-10-02, monthly, grouped by service, with no filters. All 15 services in the breakdown (including Bedrock, Lambda, API Gateway, DynamoDB, S3, SQS, SNS, CloudWatch, and ECR) round to $0.00. A few show "-$0.00", which means a credit or adjustment smaller than half a cent.
 
-![Cost Explorer month-to-date total, account ID redacted](screenshots/cost-explorer.png)
-
-`TODO(user): add cost-explorer.png (Cost Explorer total, account ID redacted) to docs/screenshots/.`
+![Cost Explorer breakdown by service for 2026-09-26 to 2026-10-02, every service at $0.00](screenshots/cost-explorer.png)
 
 All stack resources carry the tags `app=proof-and-poise` and `stage=<stage>`. To filter by them in Cost Explorer, activate them as cost allocation tags in the Billing console first.
 
