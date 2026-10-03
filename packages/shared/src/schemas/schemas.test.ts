@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildPath, matchPath, routes } from '../contracts/routes';
 import { ERROR_CODES, ERROR_STATUS } from '../contracts/errors';
+import { LIMITS } from '../limits';
 import {
+  AnalysisModelCompetencySchema,
   AnalysisRequestSchema,
   AnswerRequestSchema,
   ConfirmationRequestSchema,
@@ -107,6 +109,36 @@ describe('model-output schemas are strict', () => {
       dimensions: { ...valid.dimensions, relevance: { score: 5, rationale: 'x' } },
     };
     expect(EvaluationModelOutputSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe('AnalysisModelCompetencySchema jobQuote (design §7.4)', () => {
+  const max = LIMITS.analysis.jobQuote.maxChars;
+  const competency = (jobQuote: string) => ({
+    id: 'c1',
+    name: 'Troubleshooting',
+    description: 'Troubleshoots distributed systems.',
+    jobQuote,
+    importance: 'required',
+    category: 'technical',
+    evidence: [],
+    proposedStrength: 'none',
+    missingEvidence: null,
+    suggestedInterviewTopic: 'A system you debugged',
+  });
+
+  it('clips an over-long quote to its first maxChars characters instead of rejecting it', () => {
+    const long = `Experience with operational parameters ${'and troubleshooting '.repeat(15)}`;
+    expect(long.length).toBeGreaterThan(max);
+    const r = AnalysisModelCompetencySchema.safeParse(competency(long));
+    expect(r.success).toBe(true);
+    expect(r.data?.jobQuote).toBe(long.slice(0, max));
+  });
+  it('keeps a quote within the limit unchanged and still rejects an empty one', () => {
+    expect(AnalysisModelCompetencySchema.parse(competency('Bachelor degree')).jobQuote).toBe(
+      'Bachelor degree',
+    );
+    expect(AnalysisModelCompetencySchema.safeParse(competency('')).success).toBe(false);
   });
 });
 
